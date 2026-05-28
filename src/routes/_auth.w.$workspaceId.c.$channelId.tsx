@@ -129,7 +129,7 @@ function ChannelPage() {
           message_id: msg.id,
           mention_agent_ids: mentions,
         },
-      }).catch((e) => console.error(e));
+      }).catch((e: unknown) => console.error(e));
     } catch (e: any) {
       toast.error(e.message ?? "Failed to send");
     } finally {
