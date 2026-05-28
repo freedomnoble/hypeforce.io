@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, Fragment, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkspaceShell, type Agent, type Profile } from "@/components/hypeforce/workspace-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
