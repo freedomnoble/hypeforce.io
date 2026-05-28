@@ -17,7 +17,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import appIcon from "@/assets/app-icon.png";
-import { InfiniteGridBg } from "./infinite-grid-bg";
+import { ClientOnly } from "@tanstack/react-router";
+import { lazy } from "react";
+const InfiniteGridBg = lazy(() =>
+  import("./infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
+);
 
 export interface Workspace {
   id: string;
@@ -97,7 +101,7 @@ export function WorkspaceShell({
 
   return (
     <div className="flex h-screen w-full overflow-hidden p-0 sm:p-2 gap-0 sm:gap-2 relative">
-      <InfiniteGridBg />
+      <ClientOnly fallback={null}><InfiniteGridBg /></ClientOnly>
       {/* Far-left rail */}
       <aside className="hidden sm:flex w-16 flex-col items-center gap-3 py-4 glass rounded-2xl">
 
