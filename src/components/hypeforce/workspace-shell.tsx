@@ -155,7 +155,7 @@ export function WorkspaceShell({
       </aside>
 
       {/* Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col glass rounded-2xl overflow-hidden">
+      <aside className="hidden md:flex w-64 flex-col paper-panel rounded-2xl overflow-hidden">
 
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
