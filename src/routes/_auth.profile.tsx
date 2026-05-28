@@ -132,19 +132,35 @@ function ProfilePage() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Avatar className="w-20 h-20 ring-2 ring-border">
-            <AvatarImage src={avatarUrl ?? undefined} />
-            <AvatarFallback className="text-xl font-display">{displayName[0]?.toUpperCase() ?? "?"}</AvatarFallback>
-          </Avatar>
-          <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-background/30 hover:bg-background/60 text-sm">
-            <Upload className="w-4 h-4" /> Upload photo
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => e.target.files?.[0] && uploadFile(e.target.files[0], "avatars", "avatar_url")}
-            />
-          </label>
+          <div className="relative">
+            <Avatar className="w-20 h-20 ring-2 ring-border">
+              <AvatarImage src={avatarUrl ?? undefined} />
+              <AvatarFallback className="text-xl font-display">{displayName[0]?.toUpperCase() ?? "?"}</AvatarFallback>
+            </Avatar>
+            {generating && (
+              <div className="absolute inset-0 rounded-full bg-background/70 backdrop-blur-sm flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin" />
+              </div>
+            )}
+          </div>
+          <div className="space-y-1">
+            <label className={`cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-background/30 hover:bg-background/60 text-sm ${generating ? "opacity-50 pointer-events-none" : ""}`}>
+              {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {generating ? "Creating mascot…" : "Upload photo → mascot"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                disabled={generating}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleAvatarFile(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <p className="text-xs text-muted-foreground">We turn your photo into a retro mascot avatar.</p>
+          </div>
         </div>
 
         <div className="space-y-3">
