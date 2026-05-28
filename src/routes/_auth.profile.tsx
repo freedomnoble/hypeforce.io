@@ -80,7 +80,7 @@ function ProfilePage() {
 
   return (
     <div className="min-h-screen p-6 md:p-10 max-w-2xl mx-auto relative">
-      <ClientOnly fallback={null}><InfiniteGridBg /></ClientOnly>
+      <ClientOnly fallback={null}><InfiniteGridBg interactive /></ClientOnly>
       <Link to="/" className="relative z-10 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="w-4 h-4" /> Back to workspace
       </Link>
