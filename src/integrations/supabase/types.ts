@@ -406,6 +406,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_generated_at: string | null
+          avatar_generation_model: string | null
+          avatar_generation_status: string
           avatar_url: string | null
           bio: string | null
           created_at: string
@@ -416,6 +419,9 @@ export type Database = {
           voice_sample_url: string | null
         }
         Insert: {
+          avatar_generated_at?: string | null
+          avatar_generation_model?: string | null
+          avatar_generation_status?: string
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
@@ -426,6 +432,9 @@ export type Database = {
           voice_sample_url?: string | null
         }
         Update: {
+          avatar_generated_at?: string | null
+          avatar_generation_model?: string | null
+          avatar_generation_status?: string
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
