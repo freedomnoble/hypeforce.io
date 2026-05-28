@@ -96,7 +96,8 @@ export function WorkspaceShell({
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden p-0 sm:p-2 gap-0 sm:gap-2">
+    <div className="flex h-screen w-full overflow-hidden p-0 sm:p-2 gap-0 sm:gap-2 relative">
+      <InfiniteGridBg />
       {/* Far-left rail */}
       <aside className="hidden sm:flex w-16 flex-col items-center gap-3 py-4 glass rounded-2xl">
 
