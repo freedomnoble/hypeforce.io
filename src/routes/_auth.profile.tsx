@@ -79,7 +79,6 @@ function ProfilePage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground font-mono">loading…</div>;
 
   return (
-    <div className="min-h-screen p-6 md:p-10 max-w-2xl mx-auto">
     <div className="min-h-screen p-6 md:p-10 max-w-2xl mx-auto relative">
       <ClientOnly fallback={null}><InfiniteGridBg /></ClientOnly>
       <Link to="/" className="relative z-10 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
