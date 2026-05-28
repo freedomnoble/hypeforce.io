@@ -95,9 +95,10 @@ export function WorkspaceShell({
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden">
+    <div className="flex h-screen w-full overflow-hidden p-0 sm:p-2 gap-0 sm:gap-2">
       {/* Far-left rail */}
-      <aside className="hidden sm:flex w-16 flex-col items-center gap-3 py-4 bg-rail border-r border-border">
+      <aside className="hidden sm:flex w-16 flex-col items-center gap-3 py-4 glass rounded-2xl">
+
         <Link to="/" className="flex flex-col items-center">
           <img src={appIcon} alt="Hypeforce" className="w-10 h-10 rounded-xl ring-1 ring-border" />
         </Link>
