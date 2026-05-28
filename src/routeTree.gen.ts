@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthWWorkspaceIdIndexRouteImport } from './routes/_auth.w.$workspaceId.index'
+import { Route as AuthWWorkspaceIdCChannelIdRouteImport } from './routes/_auth.w.$workspaceId.c.$channelId'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -33,16 +34,24 @@ const AuthWWorkspaceIdIndexRoute = AuthWWorkspaceIdIndexRouteImport.update({
   path: '/w/$workspaceId/',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthWWorkspaceIdCChannelIdRoute =
+  AuthWWorkspaceIdCChannelIdRouteImport.update({
+    id: '/w/$workspaceId/c/$channelId',
+    path: '/w/$workspaceId/c/$channelId',
+    getParentRoute: () => AuthRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
+  '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/w/$workspaceId': typeof AuthWWorkspaceIdIndexRoute
+  '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -50,13 +59,24 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/login': typeof LoginRoute
   '/_auth/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
+  '/_auth/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/w/$workspaceId/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/w/$workspaceId/'
+    | '/w/$workspaceId/c/$channelId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/w/$workspaceId'
-  id: '__root__' | '/' | '/_auth' | '/login' | '/_auth/w/$workspaceId/'
+  to: '/' | '/login' | '/w/$workspaceId' | '/w/$workspaceId/c/$channelId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_auth'
+    | '/login'
+    | '/_auth/w/$workspaceId/'
+    | '/_auth/w/$workspaceId/c/$channelId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,15 +115,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthWWorkspaceIdIndexRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/w/$workspaceId/c/$channelId': {
+      id: '/_auth/w/$workspaceId/c/$channelId'
+      path: '/w/$workspaceId/c/$channelId'
+      fullPath: '/w/$workspaceId/c/$channelId'
+      preLoaderRoute: typeof AuthWWorkspaceIdCChannelIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
 interface AuthRouteChildren {
   AuthWWorkspaceIdIndexRoute: typeof AuthWWorkspaceIdIndexRoute
+  AuthWWorkspaceIdCChannelIdRoute: typeof AuthWWorkspaceIdCChannelIdRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthWWorkspaceIdIndexRoute: AuthWWorkspaceIdIndexRoute,
+  AuthWWorkspaceIdCChannelIdRoute: AuthWWorkspaceIdCChannelIdRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
