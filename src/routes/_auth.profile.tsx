@@ -4,13 +4,27 @@ const InfiniteGridBg = lazy(() =>
   import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
 );
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { generateMascotAvatar } from "@/lib/avatar.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Upload, Mic } from "lucide-react";
+import { ArrowLeft, Upload, Mic, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+
+const ALLOWED_AVATAR_MIME = ["image/png", "image/jpeg", "image/webp"];
+const MAX_AVATAR_BYTES = 8 * 1024 * 1024;
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(file);
+  });
+}
 
 export const Route = createFileRoute("/_auth/profile")({
   head: () => ({ meta: [{ title: "Profile — Hypeforce" }] }),
@@ -26,6 +40,32 @@ function ProfilePage() {
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const generateAvatar = useServerFn(generateMascotAvatar);
+
+  const handleAvatarFile = async (file: File) => {
+    if (!userId || generating) return;
+    if (!ALLOWED_AVATAR_MIME.includes(file.type)) {
+      return toast.error("Please upload a PNG, JPEG, or WebP image.");
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      return toast.error("Image is too large (max 8MB).");
+    }
+    setGenerating(true);
+    const toastId = toast.loading("Creating your mascot avatar…");
+    try {
+      const sourceDataUrl = await fileToDataUrl(file);
+      const { avatarUrl: newUrl } = await generateAvatar({
+        data: { sourceDataUrl, mimeType: file.type as "image/png", byteLength: file.size },
+      });
+      setAvatarUrl(newUrl);
+      toast.success("Mascot avatar ready!", { id: toastId });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Generation failed.", { id: toastId });
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
