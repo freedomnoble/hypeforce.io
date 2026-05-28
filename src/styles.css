@@ -255,7 +255,6 @@
     -webkit-mask-image: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), black, transparent 70%);
     mask-image: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), black, transparent 70%);
   }
-  .infinite-grid-wrapper { opacity: var(--spot-opacity, 0); }
   .infinite-grid-spotlight { opacity: var(--spot-opacity, 0); }
   @media (prefers-reduced-motion: reduce) {
     .infinite-grid-layer,
