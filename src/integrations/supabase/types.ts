@@ -14,16 +14,550 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      agents: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          description: string | null
+          enabled: boolean
+          handle: string
+          id: string
+          model: string
+          name: string
+          provider: Database["public"]["Enums"]["agent_provider"]
+          system_prompt: string | null
+          workspace_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          handle: string
+          id?: string
+          model: string
+          name: string
+          provider: Database["public"]["Enums"]["agent_provider"]
+          system_prompt?: string | null
+          workspace_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          handle?: string
+          id?: string
+          model?: string
+          name?: string
+          provider?: Database["public"]["Enums"]["agent_provider"]
+          system_prompt?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_members: {
+        Row: {
+          agent_id: string | null
+          channel_id: string
+          created_at: string
+          id: string
+          member_type: Database["public"]["Enums"]["member_type"]
+          user_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          channel_id: string
+          created_at?: string
+          id?: string
+          member_type: Database["public"]["Enums"]["member_type"]
+          user_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          channel_id?: string
+          created_at?: string
+          id?: string
+          member_type?: Database["public"]["Enums"]["member_type"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_members_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_members_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channels: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_pinned: boolean
+          name: string
+          topic: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_pinned?: boolean
+          name: string
+          topic?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_pinned?: boolean
+          name?: string
+          topic?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channels_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_messages: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          title: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          title?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          title?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_participants: {
+        Row: {
+          agent_id: string | null
+          dm_id: string
+          id: string
+          member_type: Database["public"]["Enums"]["member_type"]
+          user_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          dm_id: string
+          id?: string
+          member_type: Database["public"]["Enums"]["member_type"]
+          user_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          dm_id?: string
+          id?: string
+          member_type?: Database["public"]["Enums"]["member_type"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_participants_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_participants_dm_id_fkey"
+            columns: ["dm_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      files: {
+        Row: {
+          bucket: string
+          channel_id: string | null
+          created_at: string
+          filename: string
+          id: string
+          is_pinned: boolean
+          message_id: string | null
+          mime_type: string | null
+          path: string
+          scope: Database["public"]["Enums"]["file_scope"]
+          size_bytes: number | null
+          uploader_id: string
+          workspace_id: string
+        }
+        Insert: {
+          bucket: string
+          channel_id?: string | null
+          created_at?: string
+          filename: string
+          id?: string
+          is_pinned?: boolean
+          message_id?: string | null
+          mime_type?: string | null
+          path: string
+          scope?: Database["public"]["Enums"]["file_scope"]
+          size_bytes?: number | null
+          uploader_id: string
+          workspace_id: string
+        }
+        Update: {
+          bucket?: string
+          channel_id?: string | null
+          created_at?: string
+          filename?: string
+          id?: string
+          is_pinned?: boolean
+          message_id?: string | null
+          mime_type?: string | null
+          path?: string
+          scope?: Database["public"]["Enums"]["file_scope"]
+          size_bytes?: number | null
+          uploader_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "files_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "files_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "files_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_base: {
+        Row: {
+          body: string | null
+          created_at: string
+          created_by: string | null
+          file_id: string | null
+          id: string
+          kind: Database["public"]["Enums"]["kb_kind"]
+          title: string
+          workspace_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_id?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["kb_kind"]
+          title: string
+          workspace_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_id?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["kb_kind"]
+          title?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_base_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_base_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          attachments: Json
+          author_agent_id: string | null
+          author_type: Database["public"]["Enums"]["author_type"]
+          author_user_id: string | null
+          channel_id: string | null
+          content: string
+          created_at: string
+          dm_id: string | null
+          id: string
+          mentions: string[]
+          workspace_id: string
+        }
+        Insert: {
+          attachments?: Json
+          author_agent_id?: string | null
+          author_type: Database["public"]["Enums"]["author_type"]
+          author_user_id?: string | null
+          channel_id?: string | null
+          content?: string
+          created_at?: string
+          dm_id?: string | null
+          id?: string
+          mentions?: string[]
+          workspace_id: string
+        }
+        Update: {
+          attachments?: Json
+          author_agent_id?: string | null
+          author_type?: Database["public"]["Enums"]["author_type"]
+          author_user_id?: string | null
+          channel_id?: string | null
+          content?: string
+          created_at?: string
+          dm_id?: string | null
+          id?: string
+          mentions?: string[]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_author_agent_id_fkey"
+            columns: ["author_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_dm_id_fkey"
+            columns: ["dm_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string
+          voice_sample_url: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id: string
+          updated_at?: string
+          voice_sample_url?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+          voice_sample_url?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          created_at: string
+          icon_url: string | null
+          id: string
+          name: string
+          owner_id: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          slug?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+          _workspace_id: string
+        }
+        Returns: boolean
+      }
+      is_dm_participant: {
+        Args: { _dm_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_workspace_admin: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
+      is_workspace_member: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      agent_provider: "openai" | "anthropic" | "google" | "manus"
+      app_role: "owner" | "admin" | "member"
+      author_type: "user" | "agent"
+      file_scope: "chat" | "knowledge" | "avatar" | "voice"
+      kb_kind: "rule" | "brand" | "brief" | "guideline"
+      member_type: "user" | "agent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +684,13 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      agent_provider: ["openai", "anthropic", "google", "manus"],
+      app_role: ["owner", "admin", "member"],
+      author_type: ["user", "agent"],
+      file_scope: ["chat", "knowledge", "avatar", "voice"],
+      kb_kind: ["rule", "brand", "brief", "guideline"],
+      member_type: ["user", "agent"],
+    },
   },
 } as const
