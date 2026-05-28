@@ -106,7 +106,7 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
       const systemPrompt = `${agent.system_prompt ?? `You are ${agent.name}.`}${kbBlock}\n\nReply concisely in markdown.`;
       const content = await callLLM(model, systemPrompt, history);
 
-      const { error: insertError } = await supabase.from("messages").insert({
+      const { error: insertError } = await supabaseAdmin.from("messages").insert({
         workspace_id,
         channel_id: channel_id ?? null,
         dm_id: dm_id ?? null,
