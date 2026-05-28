@@ -229,7 +229,7 @@ export function WorkspaceShell({
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
+      <main className="flex-1 flex flex-col overflow-hidden glass rounded-2xl">{children}</main>
     </div>
   );
 }
