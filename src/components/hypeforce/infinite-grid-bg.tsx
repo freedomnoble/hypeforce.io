@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { motion, useMotionValue, useMotionTemplate, useAnimationFrame } from "framer-motion";
 
 const SIZE = 40;
@@ -36,6 +36,15 @@ export function InfiniteGridBg() {
   const offX = useMotionValue(0);
   const offY = useMotionValue(0);
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      mouseX.set(e.clientX);
+      mouseY.set(e.clientY);
+    };
+    window.addEventListener("mousemove", handler);
+    return () => window.removeEventListener("mousemove", handler);
+  }, [mouseX, mouseY]);
+
   useAnimationFrame(() => {
     offX.set((offX.get() + 0.5) % SIZE);
     offY.set((offY.get() + 0.5) % SIZE);
@@ -44,15 +53,7 @@ export function InfiniteGridBg() {
   const maskImage = useMotionTemplate`radial-gradient(300px circle at ${mouseX}px ${mouseY}px, black, transparent)`;
 
   return (
-    <div
-      ref={ref}
-      onMouseMove={(e) => {
-        mouseX.set(e.clientX);
-        mouseY.set(e.clientY);
-      }}
-      className="fixed inset-0 z-0 pointer-events-auto"
-      style={{ pointerEvents: "none" }}
-    >
+    <div ref={ref} className="fixed inset-0 z-0 pointer-events-none">
       <div className="absolute inset-0 opacity-[0.12]">
         <GridPattern offsetX={offX} offsetY={offY} />
       </div>
