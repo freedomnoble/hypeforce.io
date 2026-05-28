@@ -1,5 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
+import { useEffect, useState, lazy } from "react";
+const InfiniteGridBg = lazy(() =>
+  import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
+);
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,8 +79,9 @@ function ProfilePage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground font-mono">loading…</div>;
 
   return (
-    <div className="min-h-screen p-6 md:p-10 max-w-2xl mx-auto">
-      <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
+    <div className="min-h-screen p-6 md:p-10 max-w-2xl mx-auto relative">
+      <ClientOnly fallback={null}><InfiniteGridBg /></ClientOnly>
+      <Link to="/" className="relative z-10 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="w-4 h-4" /> Back to workspace
       </Link>
 
