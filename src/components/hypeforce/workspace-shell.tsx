@@ -17,7 +17,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import appIcon from "@/assets/app-icon.png";
-import { InfiniteGridBg } from "./infinite-grid-bg";
+import { ClientOnly } from "@tanstack/react-router";
+import { lazy } from "react";
+const InfiniteGridBg = lazy(() =>
+  import("./infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
+);
 
 export interface Workspace {
   id: string;
