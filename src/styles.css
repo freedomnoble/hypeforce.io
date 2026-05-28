@@ -67,11 +67,11 @@
 :root {
   --radius: 0.875rem;
 
-  /* Blueprint cobalt palette */
-  --background: oklch(0.32 0.16 258);
+  /* Deep blueprint cobalt — dark enough for frosted panels to register */
+  --background: oklch(0.19 0.09 260);
   --foreground: oklch(0.98 0.01 250);
 
-  --card: oklch(0.36 0.15 258 / 0.55);
+  --card: oklch(0.32 0.13 260 / 0.45);
   --card-foreground: oklch(0.98 0.01 250);
 
   --popover: oklch(0.22 0.11 260);
@@ -80,10 +80,10 @@
   --primary: oklch(0.78 0.18 245);
   --primary-foreground: oklch(0.18 0.08 260);
 
-  --secondary: oklch(0.42 0.14 258 / 0.6);
+  --secondary: oklch(0.38 0.12 260 / 0.45);
   --secondary-foreground: oklch(0.98 0.01 250);
 
-  --muted: oklch(0.38 0.12 258 / 0.5);
+  --muted: oklch(0.34 0.10 260 / 0.4);
   --muted-foreground: oklch(0.82 0.06 245);
 
   --accent: oklch(0.55 0.22 270);
@@ -92,20 +92,19 @@
   --destructive: oklch(0.65 0.24 25);
   --destructive-foreground: oklch(0.98 0.01 250);
 
-  --border: oklch(1 0 0 / 0.14);
-  --input: oklch(1 0 0 / 0.1);
+  --border: oklch(1 0 0 / 0.12);
+  --input: oklch(1 0 0 / 0.08);
   --ring: oklch(0.78 0.18 245 / 0.6);
 
-  /* Brand accents */
   --electric: oklch(0.78 0.18 245);
   --violet: oklch(0.66 0.22 295);
   --mint: oklch(0.82 0.18 165);
-  --rail: oklch(0.22 0.12 260);
+  --rail: oklch(0.20 0.10 260 / 0.55);
   --rail-foreground: oklch(0.92 0.04 250);
-  --panel: oklch(0.28 0.13 260 / 0.7);
+  --panel: oklch(0.26 0.12 260 / 0.55);
   --panel-foreground: oklch(0.98 0.01 250);
 
-  --sidebar: oklch(0.26 0.13 260);
+  --sidebar: oklch(0.24 0.11 260 / 0.55);
   --sidebar-foreground: oklch(0.95 0.02 250);
   --sidebar-primary: oklch(0.78 0.18 245);
   --sidebar-primary-foreground: oklch(0.18 0.08 260);
@@ -116,8 +115,7 @@
 }
 
 .dark {
-  /* Same blueprint palette in dark — this app is always dark */
-  --background: oklch(0.22 0.12 260);
+  --background: oklch(0.19 0.09 260);
   --foreground: oklch(0.98 0.01 250);
 }
 
