@@ -136,7 +136,7 @@
     background-image:
       radial-gradient(ellipse at 18% 0%, oklch(0.55 0.22 270 / 0.28), transparent 55%),
       radial-gradient(ellipse at 100% 100%, oklch(0.78 0.18 245 / 0.25), transparent 55%),
-      url("/src/assets/paper-bg.jpg");
+      url("/paper-bg.jpg");
     background-size: auto, auto, cover;
     background-position: center;
     background-attachment: fixed;
