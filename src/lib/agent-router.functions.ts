@@ -60,12 +60,12 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
 
     const { data: agents } = await supabase.from("agents").select("*").in("id", agentIds);
 
-    // Load last 20 messages for context.
+    // Load last 10 messages for context.
     const baseQuery = supabase
       .from("messages")
       .select("content,author_type,author_agent_id,author_user_id,created_at")
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(10);
     const { data: recent } = channel_id
       ? await baseQuery.eq("channel_id", channel_id)
       : await baseQuery.eq("dm_id", dm_id ?? "");
