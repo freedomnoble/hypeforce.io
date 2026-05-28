@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import appIcon from "@/assets/app-icon.png";
+import { InfiniteGridBg } from "./infinite-grid-bg";
 
 export interface Workspace {
   id: string;
