@@ -148,11 +148,11 @@
 
 @layer utilities {
   .glass {
+    position: relative;
+    isolation: isolate;
     background:
-      linear-gradient(135deg, oklch(1 0 0 / 0.15), oklch(1 0 0 / 0.07) 40%, oklch(1 0 0 / 0.11));
-    backdrop-filter: blur(28px) saturate(180%);
-    -webkit-backdrop-filter: blur(28px) saturate(180%);
-    border: 1px solid oklch(1 0 0 / 0.18);
+      linear-gradient(135deg, oklch(0.30 0.10 260 / 0.78), oklch(0.22 0.09 260 / 0.72) 50%, oklch(0.28 0.10 260 / 0.78));
+    border: 1px solid oklch(1 0 0 / 0.22);
     box-shadow:
       inset 0 1px 0 oklch(1 0 0 / 0.22),
       inset 0 -1px 0 oklch(0 0 0 / 0.25),
@@ -160,16 +160,17 @@
       0 8px 24px -12px oklch(0.5 0.2 260 / 0.35);
   }
   .glass-strong {
+    position: relative;
+    isolation: isolate;
     background:
-      linear-gradient(135deg, oklch(1 0 0 / 0.19), oklch(1 0 0 / 0.09) 50%, oklch(1 0 0 / 0.15));
-    backdrop-filter: blur(32px) saturate(190%);
-    -webkit-backdrop-filter: blur(32px) saturate(190%);
-    border: 1px solid oklch(1 0 0 / 0.22);
+      linear-gradient(135deg, oklch(0.32 0.10 260 / 0.85), oklch(0.24 0.09 260 / 0.80) 50%, oklch(0.30 0.10 260 / 0.85));
+    border: 1px solid oklch(1 0 0 / 0.26);
     box-shadow:
       inset 0 1px 0 oklch(1 0 0 / 0.28),
       inset 0 -1px 0 oklch(0 0 0 / 0.28),
       0 28px 70px -24px oklch(0 0 0 / 0.6);
   }
+
   .paper-panel {
     color: oklch(0.22 0.04 260);
     background-color: oklch(0.97 0.012 90);
@@ -223,4 +224,30 @@
     background: oklch(1 0 0 / 0.12); border-radius: 8px;
   }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+
+  /* Animated infinite grid — compositor-friendly: one fixed tiled layer,
+     translated by transform over a single tile. */
+  .hf-infinite-grid {
+    --hf-grid-size: 40px;
+    background-image:
+      linear-gradient(to right, oklch(1 0 0 / 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, oklch(1 0 0 / 0.06) 1px, transparent 1px);
+    background-size: var(--hf-grid-size) var(--hf-grid-size);
+    background-repeat: repeat;
+    /* Oversize so translate never reveals an edge */
+    inset: calc(var(--hf-grid-size) * -2);
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    animation: hf-grid-drift 6s linear infinite;
+    -webkit-mask-image: radial-gradient(ellipse at center, black 55%, transparent 100%);
+            mask-image: radial-gradient(ellipse at center, black 55%, transparent 100%);
+  }
+  @keyframes hf-grid-drift {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-40px, -40px, 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hf-infinite-grid { animation: none; }
+  }
 }
+
