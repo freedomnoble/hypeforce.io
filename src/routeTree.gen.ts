@@ -9,38 +9,114 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthProfileRouteImport } from './routes/_auth.profile'
+import { Route as AuthWWorkspaceIdIndexRouteImport } from './routes/_auth.w.$workspaceId.index'
+import { Route as AuthWWorkspaceIdCChannelIdRouteImport } from './routes/_auth.w.$workspaceId.c.$channelId'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthProfileRoute = AuthProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthWWorkspaceIdIndexRoute = AuthWWorkspaceIdIndexRouteImport.update({
+  id: '/w/$workspaceId/',
+  path: '/w/$workspaceId/',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthWWorkspaceIdCChannelIdRoute =
+  AuthWWorkspaceIdCChannelIdRouteImport.update({
+    id: '/w/$workspaceId/c/$channelId',
+    path: '/w/$workspaceId/c/$channelId',
+    getParentRoute: () => AuthRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/profile': typeof AuthProfileRoute
+  '/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
+  '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/profile': typeof AuthProfileRoute
+  '/w/$workspaceId': typeof AuthWWorkspaceIdIndexRoute
+  '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_auth': typeof AuthRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_auth/profile': typeof AuthProfileRoute
+  '/_auth/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
+  '/_auth/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/profile'
+    | '/w/$workspaceId/'
+    | '/w/$workspaceId/c/$channelId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/profile'
+    | '/w/$workspaceId'
+    | '/w/$workspaceId/c/$channelId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_auth'
+    | '/login'
+    | '/_auth/profile'
+    | '/_auth/w/$workspaceId/'
+    | '/_auth/w/$workspaceId/c/$channelId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +124,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_auth/profile': {
+      id: '/_auth/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthProfileRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/w/$workspaceId/': {
+      id: '/_auth/w/$workspaceId/'
+      path: '/w/$workspaceId'
+      fullPath: '/w/$workspaceId/'
+      preLoaderRoute: typeof AuthWWorkspaceIdIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/w/$workspaceId/c/$channelId': {
+      id: '/_auth/w/$workspaceId/c/$channelId'
+      path: '/w/$workspaceId/c/$channelId'
+      fullPath: '/w/$workspaceId/c/$channelId'
+      preLoaderRoute: typeof AuthWWorkspaceIdCChannelIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
   }
 }
 
+interface AuthRouteChildren {
+  AuthProfileRoute: typeof AuthProfileRoute
+  AuthWWorkspaceIdIndexRoute: typeof AuthWWorkspaceIdIndexRoute
+  AuthWWorkspaceIdCChannelIdRoute: typeof AuthWWorkspaceIdCChannelIdRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthProfileRoute: AuthProfileRoute,
+  AuthWWorkspaceIdIndexRoute: AuthWWorkspaceIdIndexRoute,
+  AuthWWorkspaceIdCChannelIdRoute: AuthWWorkspaceIdCChannelIdRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

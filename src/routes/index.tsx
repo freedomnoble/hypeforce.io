@@ -1,29 +1,57 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
-    ],
-  }),
-  component: Index,
+  component: Gateway,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Gateway() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!active) return;
+      if (!u.user) {
+        navigate({ to: "/login", replace: true });
+        return;
+      }
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .select("id")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!active) return;
+      if (!ws) {
+        navigate({ to: "/login", replace: true });
+        return;
+      }
+      const { data: ch } = await supabase
+        .from("channels")
+        .select("id")
+        .eq("workspace_id", ws.id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!active) return;
+      if (ch) {
+        navigate({ to: "/w/$workspaceId/c/$channelId", params: { workspaceId: ws.id, channelId: ch.id }, replace: true });
+      } else {
+        navigate({ to: "/w/$workspaceId", params: { workspaceId: ws.id }, replace: true });
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [navigate]);
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="glass rounded-2xl px-6 py-4 font-mono text-sm text-muted-foreground">
+        loading workspace…
+      </div>
     </div>
   );
 }
