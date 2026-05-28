@@ -241,13 +241,14 @@
     background-size: 40px 40px;
     animation: infinite-grid-move 8s linear infinite;
   }
-  @keyframes infinite-grid-move {
-    from { transform: translate3d(0, 0, 0); }
-    to   { transform: translate3d(40px, 40px, 0); }
-  }
   @media (prefers-reduced-motion: reduce) {
-    .infinite-grid-layer { animation: none; }
+    .infinite-grid-layer { animation: none !important; }
   }
+}
+
+@keyframes infinite-grid-move {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(40px, 40px, 0); }
 }
 
 
