@@ -60,7 +60,7 @@ function ProfilePage() {
     }
     if (field === "avatar_url") setAvatarUrl(publicUrl);
     else setVoiceUrl(publicUrl);
-    await supabase.from("profiles").update({ [field]: publicUrl }).eq("id", userId);
+    await supabase.from("profiles").update({ [field]: publicUrl } as any).eq("id", userId);
     toast.success("Uploaded");
   };
 
