@@ -1,9 +1,7 @@
 export function InfiniteGridBg() {
   return (
-    <div
-      aria-hidden
-      className="hf-infinite-grid fixed inset-0 pointer-events-none"
-      style={{ zIndex: 0 }}
-    />
+    <div className="infinite-grid-wrapper fixed inset-0 z-0 pointer-events-none">
+      <div className="infinite-grid-layer" />
+    </div>
   );
 }

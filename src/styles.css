@@ -226,28 +226,28 @@
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
 
   /* Animated infinite grid — compositor-friendly: one fixed tiled layer,
-     translated by transform over a single tile. */
-  .hf-infinite-grid {
-    --hf-grid-size: 40px;
-    background-image:
-      linear-gradient(to right, oklch(1 0 0 / 0.06) 1px, transparent 1px),
-      linear-gradient(to bottom, oklch(1 0 0 / 0.06) 1px, transparent 1px);
-    background-size: var(--hf-grid-size) var(--hf-grid-size);
-    background-repeat: repeat;
-    /* Oversize so translate never reveals an edge */
-    inset: calc(var(--hf-grid-size) * -2);
-    will-change: transform;
-    transform: translate3d(0, 0, 0);
-    animation: hf-grid-drift 6s linear infinite;
-    -webkit-mask-image: radial-gradient(ellipse at center, black 55%, transparent 100%);
-            mask-image: radial-gradient(ellipse at center, black 55%, transparent 100%);
+     translated by transform exactly one tile so the loop is seamless. */
+  .infinite-grid-wrapper {
+    overflow: hidden;
   }
-  @keyframes hf-grid-drift {
+  .infinite-grid-layer {
+    position: absolute;
+    inset: -80px;
+    opacity: 0.45;
+    will-change: transform;
+    background-image:
+      linear-gradient(to right, rgba(180, 200, 255, 0.18) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(180, 200, 255, 0.18) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: infinite-grid-move 8s linear infinite;
+  }
+  @keyframes infinite-grid-move {
     from { transform: translate3d(0, 0, 0); }
-    to   { transform: translate3d(-40px, -40px, 0); }
+    to   { transform: translate3d(40px, 40px, 0); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .hf-infinite-grid { animation: none; }
+    .infinite-grid-layer { animation: none; }
   }
 }
+
 
