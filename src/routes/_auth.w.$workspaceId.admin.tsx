@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { WorkspaceShell } from "@/components/hypeforce/workspace-shell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
+
 import { toast } from "sonner";
 import {
   Settings2,
