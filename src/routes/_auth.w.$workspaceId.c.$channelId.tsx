@@ -206,7 +206,29 @@ function ChannelPage() {
         {messages.map((m) => (
           <MessageRow key={m.id} message={m} agents={agents} profiles={profiles} />
         ))}
+        {thinkingAgentIds.map((id) => {
+          const a = agents.find((x) => x.id === id);
+          if (!a) return null;
+          return (
+            <div key={`thinking-${id}`} className="flex gap-3 items-center opacity-80">
+              <Avatar className="w-9 h-9">
+                <AvatarImage src={a.avatar_url ?? undefined} />
+                <AvatarFallback><Bot className="w-4 h-4" /></AvatarFallback>
+              </Avatar>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground italic">
+                <span className="font-display font-semibold not-italic text-foreground/80">{a.name}</span>
+                <span>is thinking</span>
+                <span className="inline-flex gap-0.5">
+                  <span className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:-0.3s]" />
+                  <span className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:-0.15s]" />
+                  <span className="w-1 h-1 rounded-full bg-current animate-bounce" />
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
+
 
       {/* Composer */}
       <div className="border-t border-border p-3 md:p-4 glass-strong flex-shrink-0">
