@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthProfileRouteImport } from './routes/_auth.profile'
 import { Route as AuthWWorkspaceIdIndexRouteImport } from './routes/_auth.w.$workspaceId.index'
+import { Route as AuthWWorkspaceIdAdminRouteImport } from './routes/_auth.w.$workspaceId.admin'
 import { Route as AuthWWorkspaceIdCChannelIdRouteImport } from './routes/_auth.w.$workspaceId.c.$channelId'
 
 const LoginRoute = LoginRouteImport.update({
@@ -46,6 +47,11 @@ const AuthWWorkspaceIdIndexRoute = AuthWWorkspaceIdIndexRouteImport.update({
   path: '/w/$workspaceId/',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthWWorkspaceIdAdminRoute = AuthWWorkspaceIdAdminRouteImport.update({
+  id: '/w/$workspaceId/admin',
+  path: '/w/$workspaceId/admin',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthWWorkspaceIdCChannelIdRoute =
   AuthWWorkspaceIdCChannelIdRouteImport.update({
     id: '/w/$workspaceId/c/$channelId',
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/profile': typeof AuthProfileRoute
+  '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
   '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
 }
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/profile': typeof AuthProfileRoute
+  '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/w/$workspaceId': typeof AuthWWorkspaceIdIndexRoute
   '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
 }
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/_auth/profile': typeof AuthProfileRoute
+  '/_auth/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/_auth/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
   '/_auth/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
 }
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/profile'
+    | '/w/$workspaceId/admin'
     | '/w/$workspaceId/'
     | '/w/$workspaceId/c/$channelId'
   fileRoutesByTo: FileRoutesByTo
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/profile'
+    | '/w/$workspaceId/admin'
     | '/w/$workspaceId'
     | '/w/$workspaceId/c/$channelId'
   id:
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/_auth/profile'
+    | '/_auth/w/$workspaceId/admin'
     | '/_auth/w/$workspaceId/'
     | '/_auth/w/$workspaceId/c/$channelId'
   fileRoutesById: FileRoutesById
@@ -158,6 +170,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthWWorkspaceIdIndexRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/w/$workspaceId/admin': {
+      id: '/_auth/w/$workspaceId/admin'
+      path: '/w/$workspaceId/admin'
+      fullPath: '/w/$workspaceId/admin'
+      preLoaderRoute: typeof AuthWWorkspaceIdAdminRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/w/$workspaceId/c/$channelId': {
       id: '/_auth/w/$workspaceId/c/$channelId'
       path: '/w/$workspaceId/c/$channelId'
@@ -170,12 +189,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthRouteChildren {
   AuthProfileRoute: typeof AuthProfileRoute
+  AuthWWorkspaceIdAdminRoute: typeof AuthWWorkspaceIdAdminRoute
   AuthWWorkspaceIdIndexRoute: typeof AuthWWorkspaceIdIndexRoute
   AuthWWorkspaceIdCChannelIdRoute: typeof AuthWWorkspaceIdCChannelIdRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthProfileRoute: AuthProfileRoute,
+  AuthWWorkspaceIdAdminRoute: AuthWWorkspaceIdAdminRoute,
   AuthWWorkspaceIdIndexRoute: AuthWWorkspaceIdIndexRoute,
   AuthWWorkspaceIdCChannelIdRoute: AuthWWorkspaceIdCChannelIdRoute,
 }
@@ -191,3 +212,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
