@@ -361,9 +361,11 @@ function walkChildren(children: ReactNode, handles: Set<string>): ReactNode {
 function mentionMarkdownComponents(agents: Agent[]) {
   const handles = new Set(agents.map((a) => a.handle.toLowerCase()));
   const wrap =
-    (Tag: keyof JSX.IntrinsicElements) =>
-    ({ children, ...rest }: any) =>
-      <Tag {...rest}>{walkChildren(children, handles)}</Tag>;
+    (Tag: string) =>
+    ({ children, ...rest }: any) => {
+      const T = Tag as any;
+      return <T {...rest}>{walkChildren(children, handles)}</T>;
+    };
   return {
     p: wrap("p"),
     li: wrap("li"),
