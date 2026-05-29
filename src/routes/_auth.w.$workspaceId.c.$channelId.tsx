@@ -322,3 +322,55 @@ function MessageRow({
     </div>
   );
 }
+
+// Highlight @handle tokens in rendered markdown when they match a known agent.
+function highlightMentions(text: string, handles: Set<string>): ReactNode[] {
+  const parts: ReactNode[] = [];
+  const re = /(@[a-zA-Z0-9_-]+)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let key = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const handle = m[1].slice(1).toLowerCase();
+    if (handles.has(handle)) {
+      parts.push(
+        <span
+          key={`mention-${key++}`}
+          className="inline-block px-1 rounded bg-primary/20 text-primary font-mono font-semibold"
+        >
+          {m[1]}
+        </span>
+      );
+    } else {
+      parts.push(m[1]);
+    }
+    last = m.index + m[1].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
+function walkChildren(children: ReactNode, handles: Set<string>): ReactNode {
+  if (typeof children === "string") return <>{highlightMentions(children, handles)}</>;
+  if (Array.isArray(children))
+    return children.map((c, i) => <Fragment key={i}>{walkChildren(c, handles)}</Fragment>);
+  return children;
+}
+
+function mentionMarkdownComponents(agents: Agent[]) {
+  const handles = new Set(agents.map((a) => a.handle.toLowerCase()));
+  const wrap =
+    (Tag: keyof JSX.IntrinsicElements) =>
+    ({ children, ...rest }: any) =>
+      <Tag {...rest}>{walkChildren(children, handles)}</Tag>;
+  return {
+    p: wrap("p"),
+    li: wrap("li"),
+    strong: wrap("strong"),
+    em: wrap("em"),
+    td: wrap("td"),
+    th: wrap("th"),
+    blockquote: wrap("blockquote"),
+  } as any;
+}
