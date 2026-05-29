@@ -316,7 +316,7 @@ function MessageRow({
           <span className="text-[11px] font-mono text-muted-foreground">{time}</span>
         </div>
         <div className="prose prose-invert prose-sm max-w-none mt-0.5 text-foreground/90 [&_p]:my-1 [&_code]:font-mono [&_code]:text-electric [&_pre]:bg-popover [&_pre]:rounded-lg [&_pre]:p-3">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mentionMarkdownComponents(agents)}>{message.content}</ReactMarkdown>
         </div>
       </div>
     </div>
