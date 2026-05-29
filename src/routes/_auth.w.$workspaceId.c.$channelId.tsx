@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, Fragment, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkspaceShell, type Agent, type Profile } from "@/components/hypeforce/workspace-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,11 +29,13 @@ function ChannelPage() {
   const [channel, setChannel] = useState<{ name: string; topic: string | null } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [channelAgentIds, setChannelAgentIds] = useState<string[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [mentionOpen, setMentionOpen] = useState(false);
+  const [thinkingAgentIds, setThinkingAgentIds] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const thinkingTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
     (async () => {
@@ -41,6 +43,12 @@ function ChannelPage() {
       setChannel(c);
       const { data: ag } = await supabase.from("agents").select("*").eq("workspace_id", workspaceId);
       setAgents(ag ?? []);
+      const { data: cm } = await supabase
+        .from("channel_members")
+        .select("agent_id")
+        .eq("channel_id", channelId)
+        .eq("member_type", "agent");
+      setChannelAgentIds((cm ?? []).map((r: any) => r.agent_id).filter(Boolean));
       const { data: msgs } = await supabase
         .from("messages")
         .select("*")
@@ -66,10 +74,20 @@ function ChannelPage() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `channel_id=eq.${channelId}` },
         (payload) => {
+          const newMsg = payload.new as Message;
           setMessages((m) => {
-            if (m.some((x) => x.id === (payload.new as any).id)) return m;
-            return [...m, payload.new as Message];
+            if (m.some((x) => x.id === newMsg.id)) return m;
+            return [...m, newMsg];
           });
+          // Clear "thinking" indicator for the agent that just replied.
+          if (newMsg.author_type === "agent" && newMsg.author_agent_id) {
+            setThinkingAgentIds((s) => s.filter((id) => id !== newMsg.author_agent_id));
+            const t = thinkingTimeouts.current[newMsg.author_agent_id];
+            if (t) {
+              clearTimeout(t);
+              delete thinkingTimeouts.current[newMsg.author_agent_id];
+            }
+          }
         }
       )
       .subscribe();
@@ -80,7 +98,7 @@ function ChannelPage() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages.length]);
+  }, [messages.length, thinkingAgentIds.length]);
 
   const agentByHandle = useMemo(() => {
     const map: Record<string, Agent> = {};
@@ -121,6 +139,21 @@ function ChannelPage() {
         .single();
       if (error) throw error;
       setInput("");
+
+      // Determine which agents will respond and show "thinking..." for each.
+      const targetAgentIds = mentions.length > 0 ? mentions : channelAgentIds;
+      if (targetAgentIds.length > 0) {
+        setThinkingAgentIds((s) => Array.from(new Set([...s, ...targetAgentIds])));
+        // Safety: clear after 60s if no reply lands.
+        targetAgentIds.forEach((id) => {
+          if (thinkingTimeouts.current[id]) clearTimeout(thinkingTimeouts.current[id]);
+          thinkingTimeouts.current[id] = setTimeout(() => {
+            setThinkingAgentIds((s) => s.filter((x) => x !== id));
+            delete thinkingTimeouts.current[id];
+          }, 60_000);
+        });
+      }
+
       // dispatch to agent router (fire and forget)
       invokeAgentRouter({
         data: {
@@ -129,7 +162,11 @@ function ChannelPage() {
           message_id: msg.id,
           mention_agent_ids: mentions,
         },
-      }).catch((e: unknown) => console.error(e));
+      }).catch((e: unknown) => {
+        console.error(e);
+        // Clear indicators on dispatch failure.
+        setThinkingAgentIds((s) => s.filter((id) => !targetAgentIds.includes(id)));
+      });
     } catch (e: any) {
       toast.error(e.message ?? "Failed to send");
     } finally {
@@ -169,7 +206,29 @@ function ChannelPage() {
         {messages.map((m) => (
           <MessageRow key={m.id} message={m} agents={agents} profiles={profiles} />
         ))}
+        {thinkingAgentIds.map((id) => {
+          const a = agents.find((x) => x.id === id);
+          if (!a) return null;
+          return (
+            <div key={`thinking-${id}`} className="flex gap-3 items-center opacity-80">
+              <Avatar className="w-9 h-9">
+                <AvatarImage src={a.avatar_url ?? undefined} />
+                <AvatarFallback><Bot className="w-4 h-4" /></AvatarFallback>
+              </Avatar>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground italic">
+                <span className="font-display font-semibold not-italic text-foreground/80">{a.name}</span>
+                <span>is thinking</span>
+                <span className="inline-flex gap-0.5">
+                  <span className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:-0.3s]" />
+                  <span className="w-1 h-1 rounded-full bg-current animate-bounce [animation-delay:-0.15s]" />
+                  <span className="w-1 h-1 rounded-full bg-current animate-bounce" />
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
+
 
       {/* Composer */}
       <div className="border-t border-border p-3 md:p-4 glass-strong flex-shrink-0">
@@ -257,9 +316,63 @@ function MessageRow({
           <span className="text-[11px] font-mono text-muted-foreground">{time}</span>
         </div>
         <div className="prose prose-invert prose-sm max-w-none mt-0.5 text-foreground/90 [&_p]:my-1 [&_code]:font-mono [&_code]:text-electric [&_pre]:bg-popover [&_pre]:rounded-lg [&_pre]:p-3">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mentionMarkdownComponents(agents)}>{message.content}</ReactMarkdown>
         </div>
       </div>
     </div>
   );
+}
+
+// Highlight @handle tokens in rendered markdown when they match a known agent.
+function highlightMentions(text: string, handles: Set<string>): ReactNode[] {
+  const parts: ReactNode[] = [];
+  const re = /(@[a-zA-Z0-9_-]+)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let key = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const handle = m[1].slice(1).toLowerCase();
+    if (handles.has(handle)) {
+      parts.push(
+        <span
+          key={`mention-${key++}`}
+          className="inline-block px-1 rounded bg-primary/20 text-primary font-mono font-semibold"
+        >
+          {m[1]}
+        </span>
+      );
+    } else {
+      parts.push(m[1]);
+    }
+    last = m.index + m[1].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
+function walkChildren(children: ReactNode, handles: Set<string>): ReactNode {
+  if (typeof children === "string") return <>{highlightMentions(children, handles)}</>;
+  if (Array.isArray(children))
+    return children.map((c, i) => <Fragment key={i}>{walkChildren(c, handles)}</Fragment>);
+  return children;
+}
+
+function mentionMarkdownComponents(agents: Agent[]) {
+  const handles = new Set(agents.map((a) => a.handle.toLowerCase()));
+  const wrap =
+    (Tag: string) =>
+    ({ children, ...rest }: any) => {
+      const T = Tag as any;
+      return <T {...rest}>{walkChildren(children, handles)}</T>;
+    };
+  return {
+    p: wrap("p"),
+    li: wrap("li"),
+    strong: wrap("strong"),
+    em: wrap("em"),
+    td: wrap("td"),
+    th: wrap("th"),
+    blockquote: wrap("blockquote"),
+  } as any;
 }
