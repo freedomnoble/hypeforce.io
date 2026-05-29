@@ -219,6 +219,7 @@ export type Database = {
         Row: {
           bucket: string
           channel_id: string | null
+          content_text: string | null
           created_at: string
           filename: string
           id: string
@@ -234,6 +235,7 @@ export type Database = {
         Insert: {
           bucket: string
           channel_id?: string | null
+          content_text?: string | null
           created_at?: string
           filename: string
           id?: string
@@ -249,6 +251,7 @@ export type Database = {
         Update: {
           bucket?: string
           channel_id?: string | null
+          content_text?: string | null
           created_at?: string
           filename?: string
           id?: string
@@ -509,6 +512,7 @@ export type Database = {
       }
       workspaces: {
         Row: {
+          brand_voice: string | null
           created_at: string
           icon_url: string | null
           id: string
@@ -517,6 +521,7 @@ export type Database = {
           slug: string
         }
         Insert: {
+          brand_voice?: string | null
           created_at?: string
           icon_url?: string | null
           id?: string
@@ -525,6 +530,7 @@ export type Database = {
           slug: string
         }
         Update: {
+          brand_voice?: string | null
           created_at?: string
           icon_url?: string | null
           id?: string

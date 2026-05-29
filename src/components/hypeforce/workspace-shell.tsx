@@ -229,8 +229,8 @@ export function WorkspaceShell({
             <div className="text-sm font-medium truncate">{profile?.display_name ?? profile?.email ?? "You"}</div>
             <div className="text-[10px] font-mono text-mint">● online</div>
           </div>
-          <Link to="/profile">
-            <Button variant="ghost" size="icon" className="h-8 w-8"><Settings className="w-4 h-4" /></Button>
+          <Link to="/w/$workspaceId/admin" params={{ workspaceId }}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" title="Workspace settings"><Settings className="w-4 h-4" /></Button>
           </Link>
         </div>
       </aside>
