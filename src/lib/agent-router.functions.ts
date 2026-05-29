@@ -70,12 +70,27 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
       ? await baseQuery.eq("channel_id", channel_id)
       : await baseQuery.eq("dm_id", dm_id ?? "");
 
-    // Load knowledge base briefs (kept short).
-    const { data: kb } = await supabase
-      .from("knowledge_base")
-      .select("title,body")
-      .eq("workspace_id", workspace_id)
-      .limit(5);
+    // Load workspace brand voice + KB briefs (kept short).
+    const [{ data: ws }, { data: kb }] = await Promise.all([
+      supabase.from("workspaces").select("brand_voice").eq("id", workspace_id).maybeSingle(),
+      supabase
+        .from("knowledge_base")
+        .select("title,body")
+        .eq("workspace_id", workspace_id)
+        .limit(5),
+    ]);
+
+    // Pinned files in this channel (only those with extracted text).
+    let pinned: { filename: string; content_text: string | null }[] = [];
+    if (channel_id) {
+      const { data: pf } = await supabase
+        .from("files")
+        .select("filename,content_text")
+        .eq("channel_id", channel_id)
+        .eq("is_pinned", true)
+        .limit(10);
+      pinned = (pf ?? []) as any;
+    }
 
     const history = (recent ?? [])
       .reverse()
@@ -84,11 +99,23 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
         content: m.content,
       }));
 
+    const brandBlock = (ws as any)?.brand_voice
+      ? `\n\n---\nBRAND VOICE & GUIDELINES (always follow):\n${(ws as any).brand_voice}\n---`
+      : "";
+
     const kbBlock =
       (kb ?? []).length > 0
         ? `\n\nWorkspace knowledge:\n${(kb ?? [])
             .map((k: any) => `- ${k.title}: ${(k.body ?? "").slice(0, 400)}`)
             .join("\n")}`
+        : "";
+
+    const pinnedBlock =
+      pinned.filter((p) => p.content_text).length > 0
+        ? `\n\nPinned files in this channel:\n${pinned
+            .filter((p) => p.content_text)
+            .map((p) => `<<FILE: ${p.filename}>>\n${(p.content_text ?? "").slice(0, 4000)}\n<<END FILE>>`)
+            .join("\n\n")}`
         : "";
 
     // For each agent, generate and insert a reply.
@@ -103,7 +130,9 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
           ? "openai/gpt-5-mini"
           : "openai/gpt-5-mini";
 
-      const systemPrompt = `${agent.system_prompt ?? `You are ${agent.name}.`}${kbBlock}\n\nReply concisely in markdown.`;
+      // Brand voice + pinned files come BEFORE the agent's own prompt so they
+      // anchor tone, and KB comes after as supporting reference material.
+      const systemPrompt = `${brandBlock}${pinnedBlock}\n\n${agent.system_prompt ?? `You are ${agent.name}.`}${kbBlock}\n\nReply concisely in markdown. Stay strictly on brand.`;
       const content = await callLLM(model, systemPrompt, history);
 
       const { error: insertError } = await supabaseAdmin.from("messages").insert({
