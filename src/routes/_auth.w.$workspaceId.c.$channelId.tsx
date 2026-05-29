@@ -29,11 +29,13 @@ function ChannelPage() {
   const [channel, setChannel] = useState<{ name: string; topic: string | null } | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [channelAgentIds, setChannelAgentIds] = useState<string[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [mentionOpen, setMentionOpen] = useState(false);
+  const [thinkingAgentIds, setThinkingAgentIds] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const thinkingTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
     (async () => {
@@ -41,6 +43,12 @@ function ChannelPage() {
       setChannel(c);
       const { data: ag } = await supabase.from("agents").select("*").eq("workspace_id", workspaceId);
       setAgents(ag ?? []);
+      const { data: cm } = await supabase
+        .from("channel_members")
+        .select("agent_id")
+        .eq("channel_id", channelId)
+        .eq("member_type", "agent");
+      setChannelAgentIds((cm ?? []).map((r: any) => r.agent_id).filter(Boolean));
       const { data: msgs } = await supabase
         .from("messages")
         .select("*")
@@ -66,10 +74,20 @@ function ChannelPage() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `channel_id=eq.${channelId}` },
         (payload) => {
+          const newMsg = payload.new as Message;
           setMessages((m) => {
-            if (m.some((x) => x.id === (payload.new as any).id)) return m;
-            return [...m, payload.new as Message];
+            if (m.some((x) => x.id === newMsg.id)) return m;
+            return [...m, newMsg];
           });
+          // Clear "thinking" indicator for the agent that just replied.
+          if (newMsg.author_type === "agent" && newMsg.author_agent_id) {
+            setThinkingAgentIds((s) => s.filter((id) => id !== newMsg.author_agent_id));
+            const t = thinkingTimeouts.current[newMsg.author_agent_id];
+            if (t) {
+              clearTimeout(t);
+              delete thinkingTimeouts.current[newMsg.author_agent_id];
+            }
+          }
         }
       )
       .subscribe();
@@ -80,7 +98,7 @@ function ChannelPage() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages.length]);
+  }, [messages.length, thinkingAgentIds.length]);
 
   const agentByHandle = useMemo(() => {
     const map: Record<string, Agent> = {};
