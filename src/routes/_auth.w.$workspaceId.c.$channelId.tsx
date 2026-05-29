@@ -139,6 +139,21 @@ function ChannelPage() {
         .single();
       if (error) throw error;
       setInput("");
+
+      // Determine which agents will respond and show "thinking..." for each.
+      const targetAgentIds = mentions.length > 0 ? mentions : channelAgentIds;
+      if (targetAgentIds.length > 0) {
+        setThinkingAgentIds((s) => Array.from(new Set([...s, ...targetAgentIds])));
+        // Safety: clear after 60s if no reply lands.
+        targetAgentIds.forEach((id) => {
+          if (thinkingTimeouts.current[id]) clearTimeout(thinkingTimeouts.current[id]);
+          thinkingTimeouts.current[id] = setTimeout(() => {
+            setThinkingAgentIds((s) => s.filter((x) => x !== id));
+            delete thinkingTimeouts.current[id];
+          }, 60_000);
+        });
+      }
+
       // dispatch to agent router (fire and forget)
       invokeAgentRouter({
         data: {
@@ -147,7 +162,11 @@ function ChannelPage() {
           message_id: msg.id,
           mention_agent_ids: mentions,
         },
-      }).catch((e: unknown) => console.error(e));
+      }).catch((e: unknown) => {
+        console.error(e);
+        // Clear indicators on dispatch failure.
+        setThinkingAgentIds((s) => s.filter((id) => !targetAgentIds.includes(id)));
+      });
     } catch (e: any) {
       toast.error(e.message ?? "Failed to send");
     } finally {
