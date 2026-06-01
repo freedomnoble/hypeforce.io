@@ -24,6 +24,7 @@ export type Database = {
           id: string
           model: string
           name: string
+          preferred_route: string | null
           provider: Database["public"]["Enums"]["agent_provider"]
           system_prompt: string | null
           workspace_id: string
@@ -37,6 +38,7 @@ export type Database = {
           id?: string
           model: string
           name: string
+          preferred_route?: string | null
           provider: Database["public"]["Enums"]["agent_provider"]
           system_prompt?: string | null
           workspace_id: string
@@ -50,6 +52,7 @@ export type Database = {
           id?: string
           model?: string
           name?: string
+          preferred_route?: string | null
           provider?: Database["public"]["Enums"]["agent_provider"]
           system_prompt?: string | null
           workspace_id?: string
@@ -449,6 +452,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_ai_connections: {
+        Row: {
+          connected_at: string
+          encrypted_key: string
+          id: string
+          key_last4: string
+          last_validated_at: string | null
+          provider: Database["public"]["Enums"]["ai_provider"]
+          status: Database["public"]["Enums"]["ai_connection_status"]
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string
+          encrypted_key: string
+          id?: string
+          key_last4: string
+          last_validated_at?: string | null
+          provider: Database["public"]["Enums"]["ai_provider"]
+          status?: Database["public"]["Enums"]["ai_connection_status"]
+          user_id: string
+        }
+        Update: {
+          connected_at?: string
+          encrypted_key?: string
+          id?: string
+          key_last4?: string
+          last_validated_at?: string | null
+          provider?: Database["public"]["Enums"]["ai_provider"]
+          status?: Database["public"]["Enums"]["ai_connection_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -568,6 +604,8 @@ export type Database = {
     }
     Enums: {
       agent_provider: "openai" | "anthropic" | "google" | "manus"
+      ai_connection_status: "active" | "invalid" | "revoked"
+      ai_provider: "openai" | "anthropic" | "google" | "manus"
       app_role: "owner" | "admin" | "member"
       author_type: "user" | "agent"
       file_scope: "chat" | "knowledge" | "avatar" | "voice"
@@ -701,6 +739,8 @@ export const Constants = {
   public: {
     Enums: {
       agent_provider: ["openai", "anthropic", "google", "manus"],
+      ai_connection_status: ["active", "invalid", "revoked"],
+      ai_provider: ["openai", "anthropic", "google", "manus"],
       app_role: ["owner", "admin", "member"],
       author_type: ["user", "agent"],
       file_scope: ["chat", "knowledge", "avatar", "voice"],

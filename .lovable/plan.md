@@ -1,72 +1,69 @@
 
-# Hypeforce — Build Plan
+# Hybrid AI Routing: Lovable Gateway + Bring-Your-Own-Keys (BYOK)
 
-A Slack-style workspace for orchestrating AI agents alongside humans. The reference screenshot is already very close to the target design, so I'll match it directly rather than generate design directions.
+Keep the current Lovable AI Gateway as the zero-config default, and add a Plaid-style "Connect AI Provider" flow so users can attach their own OpenAI / Anthropic / Google / Manus keys to their account. At message time, the router picks per-user keys when available and falls back to the gateway otherwise.
 
-## Phase 1 — Foundation (this build)
+## User experience
 
-### Design System
-- **Palette:** Deep cobalt/midnight navy background with a faint blueprint grid; white/ice text; electric blue & soft violet accents; subtle teal/mint for "online" status.
-- **Typography:** `Space Grotesk` (display/UI) + `Inter` (body) + `JetBrains Mono` (timestamps, code, tags like `OPENAI`/`ANTHROPIC`).
-- **Visuals:** Frosted-glass panels (`backdrop-blur`), soft drop shadows, hairline borders, rounded-2xl cards, pill badges, micro hover/press states (scale + glow). All colors via `oklch` semantic tokens in `src/styles.css`.
-- **Icon/logo:** Use the uploaded glass character icon as the app mark; the 5 character avatars become the default agent + user avatars.
+1. New users work immediately — every agent runs on Lovable AI Gateway, no setup.
+2. In **Profile → Connections** (new section), the user sees a Plaid-like list of providers (OpenAI, Anthropic, Google, Manus) each with a **Connect** button.
+3. Clicking Connect opens a modal: paste API key → we validate it with a tiny test call → on success, store it encrypted and mark the provider as "Connected" with a green dot + masked key (`sk-...AB12`) + connected timestamp.
+4. User can **Disconnect** (deletes the key) or **Reconnect** (replace) any time.
+5. Per-agent (in Admin → Agents) a tiny dropdown: **Route via: Lovable Gateway (default) · My OpenAI key · My Anthropic key …** — only providers the user has connected appear.
+6. On send, if the chosen route is BYOK and the key exists for that user, the agent uses it. Otherwise silent fallback to Lovable Gateway. A tiny badge under the agent reply shows which route was used (`via your OpenAI` / `via Lovable AI`).
 
-### Layout (matches the reference screenshot)
-- **Far-left rail (64px):** Workspace switcher (avatar tiles), `+ New workspace`, settings, profile.
-- **Left sidebar (~260px):** Workspace name, search, Channels list (with `#`), Direct Messages (humans + AI), agent roster card, current user footer.
-- **Center pane:** Channel header (name, topic, member avatars, pin, details toggle) → message list (markdown + attachments + agent badges + timestamps) → composer with @-mention chips, attachment/image/emoji buttons, profile selector, Send.
-- **Right panel (collapsible, ~320px):** In This Room (members + presence), Pinned Files, Channel Context (knowledge-base snippets attached to every agent reply).
+## Backend changes
 
-### Routes (TanStack Start, file-based)
-- `/login` — email/password + Google sign-in
-- `/_authenticated.tsx` — auth gate layout
-- `/_authenticated/index.tsx` — redirect to last workspace
-- `/_authenticated/w/$workspaceId.tsx` — workspace shell (3-pane layout, Outlet)
-- `/_authenticated/w/$workspaceId/c/$channelId.tsx` — channel view
-- `/_authenticated/w/$workspaceId/dm/$dmId.tsx` — direct message view
-- `/_authenticated/w/$workspaceId/admin.tsx` — Admin Console (members, agents, knowledge base)
-- `/_authenticated/profile.tsx` — My Profile (bio, avatar, voice sample, email)
+### New table `user_ai_connections`
+- `user_id` (uuid, FK auth.users)
+- `provider` (enum: openai | anthropic | google | manus)
+- `encrypted_key` (text — encrypted at rest, see below)
+- `key_last4` (text — for display)
+- `status` (enum: active | invalid | revoked)
+- `connected_at`, `last_validated_at`
+- Unique on (user_id, provider)
+- RLS: user can only read/write their own rows; service role full access.
 
-### Backend (Lovable Cloud)
-Tables (all with RLS scoped via `workspace_members`):
-- `profiles` (user bio, avatar_url, voice_sample_url, email)
-- `workspaces` (name, slug, owner_id)
-- `workspace_members` (workspace_id, user_id, role: owner/admin/member)
-- `agents` (workspace_id, name, provider: openai/anthropic/google/manus, model, avatar_url, system_prompt, enabled)
-- `channels` (workspace_id, name, topic, is_pinned)
-- `channel_members` (channel_id, member_type: user/agent, ref_id)
-- `direct_messages` (workspace_id, participant_ids[])
-- `messages` (channel_id or dm_id, author_type: user/agent, author_id, content_md, mentions[], created_at)
-- `files` (workspace_id, uploader_id, path, mime, size, scope: chat/knowledge, channel_id?, message_id?)
-- `knowledge_base` (workspace_id, title, kind: rule/brand/brief, file_id, content_excerpt)
-- `user_roles` + `has_role()` security-definer (workspace-scoped roles, never on profile)
+### Encryption
+Keys are encrypted with `pgsodium` (Supabase Vault) or a server-side AES-GCM using a `AI_KEYS_ENCRYPTION_SECRET` we add via add_secret. Decryption only happens inside the server function that calls the provider. Decrypted keys are **never** returned to the client — only `key_last4` and `status`.
 
-Storage buckets: `avatars` (public), `attachments` (private), `knowledge` (private), `voice-samples` (private).
+### `agents` table — add column
+- `preferred_route` (text, nullable) — values like `lovable`, `byok:openai`, `byok:anthropic`. Null = lovable default.
 
-### Agent Router (per user request — Supabase Edge Function stub)
-`supabase/functions/agent-router/index.ts`: verifies auth, accepts `{channel_id, message_id, target_agent_id?, mention_agent_ids[]}`, loads recent N messages + workspace knowledge base + agent system prompt, dispatches to provider (OpenAI / Anthropic / Google / Manus) via Lovable AI Gateway where supported, inserts agent reply back into `messages`. Stub providers behind a switch so each can be wired up incrementally. Mention routing: if `mention_agent_ids` non-empty, only those reply; else all channel agents reply.
+### Server functions (TanStack, no Edge Functions)
+- `connectProvider({ provider, api_key })` — validates the key with a 1-token test request to that provider, encrypts, upserts row.
+- `disconnectProvider({ provider })` — deletes row.
+- `listMyConnections()` — returns providers with status + last4 (no key material).
+- `setAgentRoute({ agent_id, route })` — updates `agents.preferred_route`.
 
-### Realtime
-Supabase Realtime on `messages` keyed by channel/dm so new messages (human and agent) appear live.
+### Router update (`src/lib/agent-router.functions.ts`)
+For each agent reply:
+1. Resolve route: agent's `preferred_route` → if `byok:<provider>` and user has an active connection, use that provider's direct API; else use Lovable Gateway.
+2. Adapter layer: a tiny `callProvider(provider, key, model, system, history)` with one branch per provider (OpenAI Chat Completions, Anthropic Messages, Gemini generateContent, Manus stub). All four already speak similar JSON.
+3. Insert reply with a `route_used` field on the message (new optional column, or stash in `attachments` jsonb to avoid migration churn — leaning toward a new `route_used text` column for clarity).
+4. On BYOK failure (401/429/etc.), mark connection `invalid`, fall back to Lovable Gateway, and surface a toast to the user next time they open the app.
 
-### PWA / Mobile
-- Responsive: mobile collapses to single pane with bottom sheet for sidebars (hamburger + details toggle).
-- Manifest-only PWA (installable, no service worker — per project rules) with the glass icon.
+## Frontend
 
-## Technical Notes
-- AI calls use Lovable AI Gateway under the hood (`google/gemini-3-flash-preview` default, swappable per agent). User-facing copy says "AI-powered".
-- Markdown rendering via `react-markdown` + `remark-gfm`.
-- File uploads via Supabase Storage signed URLs.
-- All colors are semantic tokens; no hardcoded hex in components.
-- Following AI Elements / chat-agent-ui-contract for the chat surface (Conversation, Message, PromptInput, Shimmer for "thinking").
+- New `src/routes/_auth.profile.connections.tsx` — provider cards with Connect/Disconnect, masked keys, status dots.
+- Connect modal: provider-specific copy ("Get your key at platform.openai.com/api-keys"), paste field, validate button, success/fail state.
+- Admin agents view: route dropdown per agent.
+- Chat: small muted `via {route}` line under agent replies.
 
-## Phase 2 (later, not in this build)
-- Voice-sample tone transfer in agent prompts
-- Threaded replies / reactions
-- Search across channels
-- Granular knowledge-base chunking + retrieval
+## Security
 
-## Open question I'll answer by defaulting (tell me to change if wrong)
-- **Auth:** email/password + Google (Lovable Cloud defaults).
-- **Agent providers:** I'll wire OpenAI + Anthropic + Google through Lovable AI Gateway (no extra keys needed). Manus will be a stub provider with a `MANUS_API_KEY` secret slot you can fill in later.
-- **Conversation shape:** Threaded by channel/DM, persisted in the database (this is the product).
+- Keys never leave the server after the initial paste.
+- Validate format client-side (e.g. `sk-...`) but always re-validate server-side.
+- Rate-limit connect attempts per user.
+- Audit log table optional (skip for v1).
+- RLS strict: only owner reads their connection row, and even then `encrypted_key` is excluded from any select used by the client (use a view or explicit column lists).
+
+## Out of scope for this build
+
+- OAuth flows for providers that support it (OpenAI doesn't, Anthropic doesn't, Google does but requires GCP project setup — punt).
+- Usage metering / per-user billing dashboards.
+- Org-level shared keys (only personal for now).
+
+## Open question
+
+Manus has no public chat-completions API in the same shape as the others — for v1 the Manus BYOK option will be present in the UI but the actual call will remain a stub/placeholder until you confirm the Manus endpoint contract. OK to ship that way?
