@@ -422,24 +422,18 @@ export function WorkspaceShell({
                 .filter(Boolean);
               const picked = agents.filter((a) => cleaned.includes(a.handle.toLowerCase()));
               if (picked.length === 0) return toast.error("No matching agents in this workspace.");
-              const { data: u } = await supabase.auth.getUser();
-              if (!u.user) return;
-              const { data: dm, error } = await supabase
-                .from("direct_messages")
-                .insert({
-                  workspace_id: workspaceId,
-                  created_by: u.user.id,
-                  title: picked.map((a) => `@${a.handle}`).join(", "),
-                })
-                .select()
-                .single();
-              if (error || !dm) return toast.error(error?.message ?? "Failed to create DM");
-              const { error: pErr } = await supabase.from("dm_participants").insert([
-                { dm_id: dm.id, member_type: "user", user_id: u.user.id },
-                ...picked.map((a) => ({ dm_id: dm.id, member_type: "agent" as const, agent_id: a.id })),
-              ]);
-              if (pErr) return toast.error(pErr.message);
-              navigate({ to: "/w/$workspaceId/d/$dmId", params: { workspaceId, dmId: dm.id } });
+              try {
+                const { dm } = await createDmFn({
+                  data: {
+                    workspaceId,
+                    title: picked.map((a) => `@${a.handle}`).join(", "),
+                    participants: picked.map((a) => ({ kind: "agent" as const, agentId: a.id })),
+                  },
+                });
+                navigate({ to: "/w/$workspaceId/d/$dmId", params: { workspaceId, dmId: dm.id } });
+              } catch (err: any) {
+                toast.error(err?.message ?? "Failed to create DM");
+              }
             }}
           >
             {/* Search + filters */}
