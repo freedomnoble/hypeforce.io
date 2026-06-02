@@ -390,6 +390,55 @@ function AdminPage() {
             })}
           </ul>
         </section>
+
+        {/* Agent routing */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Plug className="w-4 h-4 text-electric" />
+            <h2 className="font-display text-lg font-semibold">Agent Routing</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Choose how each agent reaches its model. The default Lovable AI Gateway works for
+            everyone with no setup. To route an agent through your own provider account, first
+            connect a key in <span className="font-mono">Profile → AI Connections</span>.
+          </p>
+
+          <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
+            {agents.length === 0 && (
+              <li className="p-4 text-sm text-muted-foreground text-center">No agents yet.</li>
+            )}
+            {agents.map((a) => {
+              const current = a.preferred_route ?? "lovable";
+              return (
+                <li key={a.id} className="flex items-center gap-3 p-3 hover:bg-secondary/30">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{a.name}</div>
+                    <div className="text-[11px] font-mono text-muted-foreground">
+                      {a.provider}
+                    </div>
+                  </div>
+                  <Select value={current} onValueChange={(v) => updateAgentRoute(a.id, v)}>
+                    <SelectTrigger className="w-[200px] h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="lovable">Lovable AI Gateway (default)</SelectItem>
+                      {(["openai", "anthropic", "google", "manus"] as const).map((p) => (
+                        <SelectItem
+                          key={p}
+                          value={`byok:${p}`}
+                          disabled={!myConns.includes(p)}
+                        >
+                          My {p} key{!myConns.includes(p) ? " (not connected)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       </div>
     </WorkspaceShell>
   );
