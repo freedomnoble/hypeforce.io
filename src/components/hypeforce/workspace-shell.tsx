@@ -381,17 +381,15 @@ export function WorkspaceShell({
           <Section title="Channels" actionLabel="+ New" onAction={async () => {
             const name = prompt("Channel name (no spaces)");
             if (!name) return;
-            const { data: u } = await supabase.auth.getUser();
-            if (!u.user) return;
-            const { data, error } = await supabase
-              .from("channels")
-              .insert({ workspace_id: workspaceId, name: name.toLowerCase().replace(/\s+/g, "-"), created_by: u.user.id })
-              .select()
-              .single();
-            if (error) return toast.error(error.message);
-            await supabase.from("channel_members").insert({ channel_id: data.id, member_type: "user", user_id: u.user.id });
-            setChannels((cs) => [...cs, data]);
-            navigate({ to: "/w/$workspaceId/c/$channelId", params: { workspaceId, channelId: data.id } });
+            try {
+              const { channel } = await createChannelFn({
+                data: { workspaceId, name },
+              });
+              setChannels((cs) => [...cs, channel]);
+              navigate({ to: "/w/$workspaceId/c/$channelId", params: { workspaceId, channelId: channel.id } });
+            } catch (err: any) {
+              toast.error(err?.message ?? "Couldn't create channel");
+            }
           }}>
             {channels.map((c) => (
               <Link
