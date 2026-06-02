@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { createAuthInvalidationHandler } from "@/lib/auth-invalidation";
 
 import appCss from "../styles.css?url";
 
