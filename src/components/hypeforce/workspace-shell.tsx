@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import appIcon from "@/assets/app-icon.png";
 import { ClientOnly } from "@tanstack/react-router";
 import { lazy } from "react";
+import { WorkspaceSettingsSheet } from "./workspace-settings-sheet";
 const InfiniteGridBg = lazy(() =>
   import("./infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
 );
@@ -73,6 +74,8 @@ export function WorkspaceShell({
   const [agents, setAgents] = useState<Agent[]>([]);
   const [dms, setDms] = useState<DirectMessage[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
 
   useEffect(() => {
     (async () => {
@@ -187,9 +190,13 @@ export function WorkspaceShell({
           <Plus className="w-4 h-4" />
         </button>
         <div className="flex-1" />
-        <Link to="/profile" className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary">
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary"
+          title="Workspace settings"
+        >
           <Settings className="w-4 h-4" />
-        </Link>
+        </button>
         <button onClick={signOut} className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground">
           <LogOut className="w-4 h-4" />
         </button>
@@ -338,13 +345,25 @@ export function WorkspaceShell({
             <div className="text-sm font-medium truncate">{profile?.display_name ?? profile?.email ?? "You"}</div>
             <div className="text-[10px] font-mono text-mint">● online</div>
           </div>
-          <Link to="/w/$workspaceId/admin" params={{ workspaceId }}>
-            <Button variant="ghost" size="icon" className="h-8 w-8" title="Workspace settings"><Settings className="w-4 h-4" /></Button>
-          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            title="Workspace settings"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden glass rounded-2xl">{children}</main>
+
+      <WorkspaceSettingsSheet
+        workspaceId={workspaceId}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+      />
     </div>
   );
 }
