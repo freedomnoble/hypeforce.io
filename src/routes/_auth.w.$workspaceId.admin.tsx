@@ -4,6 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { WorkspaceShell } from "@/components/hypeforce/workspace-shell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  listMyConnections,
+  setAgentRoute,
+} from "@/lib/ai-connections.functions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { toast } from "sonner";
 import {
@@ -14,6 +26,7 @@ import {
   Loader2,
   ShieldAlert,
   Sparkles,
+  Plug,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/admin")({
