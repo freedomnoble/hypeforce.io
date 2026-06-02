@@ -36,11 +36,13 @@ export async function decryptApiKey(payload: string): Promise<string> {
   const [ivB64, ctB64] = payload.split(":");
   if (!ivB64 || !ctB64) throw new Error("Malformed encrypted key");
   const key = await getKey();
-  const pt = await crypto.subtle.decrypt(
-    { name: ALGO, iv: fromB64(ivB64) },
-    key,
-    fromB64(ctB64),
-  );
+  const ivBytes = fromB64(ivB64);
+  const ctBytes = fromB64(ctB64);
+  const iv = new Uint8Array(ivBytes.byteLength);
+  iv.set(ivBytes);
+  const ct = new Uint8Array(ctBytes.byteLength);
+  ct.set(ctBytes);
+  const pt = await crypto.subtle.decrypt({ name: ALGO, iv }, key, ct);
   return new TextDecoder().decode(pt);
 }
 
