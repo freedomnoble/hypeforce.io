@@ -169,19 +169,6 @@ function Gateway() {
 
         {status.kind === "no-session" && <div>redirecting to sign in…</div>}
 
-        {status.kind === "no-workspace" && (
-          <>
-            <div className="text-foreground font-display text-base">No workspace yet</div>
-            <div>Your account has no workspace. Sign out and back in to seed one, or contact support.</div>
-            <div className="flex gap-2 justify-center pt-1">
-              <button onClick={retry} className="text-electric hover:underline">Retry</button>
-              <span>·</span>
-              <button onClick={contactSupport} className="text-electric hover:underline">Contact support</button>
-              <span>·</span>
-              <button onClick={signOut} className="text-electric hover:underline">Sign out</button>
-            </div>
-          </>
-        )}
 
         {status.kind === "error" && (
           <>
