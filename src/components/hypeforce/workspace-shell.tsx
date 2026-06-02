@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -12,10 +12,22 @@ import {
   Sparkles,
   ChevronDown,
   MessageSquare,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import appIcon from "@/assets/app-icon.png";
 import { ClientOnly } from "@tanstack/react-router";
@@ -56,6 +68,24 @@ export interface DirectMessage {
   participants: { user?: Profile | null; agent?: Agent | null }[];
 }
 
+type DmFilter = "all" | "agents" | "people" | "unread";
+
+interface LastMessage {
+  content: string;
+  created_at: string;
+  author_is_me: boolean;
+}
+
+const readKey = (dmId: string) => `hf:dm-read:${dmId}`;
+const getReadAt = (dmId: string): string => {
+  if (typeof window === "undefined") return "1970-01-01T00:00:00Z";
+  return localStorage.getItem(readKey(dmId)) ?? "1970-01-01T00:00:00Z";
+};
+const markRead = (dmId: string) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(readKey(dmId), new Date().toISOString());
+};
+
 export function WorkspaceShell({
   workspaceId,
   activeChannelId,
@@ -75,7 +105,12 @@ export function WorkspaceShell({
   const [dms, setDms] = useState<DirectMessage[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-
+  const [lastByDm, setLastByDm] = useState<Record<string, LastMessage>>({});
+  const [readVersion, setReadVersion] = useState(0); // bump to recompute unread counts
+  const [dmQuery, setDmQuery] = useState("");
+  const [dmFilter, setDmFilter] = useState<DmFilter>("all");
+  const [pendingAgent, setPendingAgent] = useState<Agent | null>(null);
+  const meIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -100,11 +135,11 @@ export function WorkspaceShell({
 
       const { data: u } = await supabase.auth.getUser();
       if (u.user) {
+        meIdRef.current = u.user.id;
         const { data: p } = await supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle();
         setProfile(p);
       }
 
-      // Load DMs the current user participates in.
       const { data: dmRows } = await supabase
         .from("direct_messages")
         .select("id,title,dm_participants(user_id,agent_id,member_type)")
@@ -125,22 +160,157 @@ export function WorkspaceShell({
         const { data: ps } = await supabase.from("profiles").select("*").in("id", userIds);
         (ps ?? []).forEach((p: any) => profilesMap.set(p.id, p));
       }
-      setDms(
-        (dmRows ?? []).map((d: any) => ({
-          id: d.id,
-          title: d.title,
-          participants: (d.dm_participants ?? []).map((p: any) => ({
-            user: p.user_id ? profilesMap.get(p.user_id) ?? null : null,
-            agent: p.agent_id ? agentMap.get(p.agent_id) ?? null : null,
-          })),
+      const loadedDms = (dmRows ?? []).map((d: any) => ({
+        id: d.id,
+        title: d.title,
+        participants: (d.dm_participants ?? []).map((p: any) => ({
+          user: p.user_id ? profilesMap.get(p.user_id) ?? null : null,
+          agent: p.agent_id ? agentMap.get(p.agent_id) ?? null : null,
         })),
-      );
+      }));
+      setDms(loadedDms);
+
+      // Load last message per DM
+      const dmIds = loadedDms.map((d) => d.id);
+      if (dmIds.length) {
+        const { data: msgs } = await supabase
+          .from("messages")
+          .select("dm_id,content,created_at,author_user_id,author_type")
+          .in("dm_id", dmIds)
+          .order("created_at", { ascending: false })
+          .limit(500);
+        const byDm: Record<string, LastMessage> = {};
+        const me = meIdRef.current;
+        (msgs ?? []).forEach((m: any) => {
+          if (!m.dm_id || byDm[m.dm_id]) return;
+          byDm[m.dm_id] = {
+            content: m.content ?? "",
+            created_at: m.created_at,
+            author_is_me: m.author_type === "user" && m.author_user_id === me,
+          };
+        });
+        setLastByDm(byDm);
+      }
     })();
   }, [workspaceId]);
+
+  // Mark active DM as read when opened or when a new message lands in it.
+  useEffect(() => {
+    if (!activeDmId) return;
+    markRead(activeDmId);
+    setReadVersion((v) => v + 1);
+  }, [activeDmId, lastByDm]);
+
+  const dmByAgentId = useMemo(() => {
+    const map = new Map<string, DirectMessage>();
+    for (const d of dms) {
+      if (
+        d.participants.length === 2 &&
+        d.participants.some((p) => p.user) &&
+        d.participants.some((p) => p.agent)
+      ) {
+        const agent = d.participants.find((p) => p.agent)?.agent;
+        if (agent && !map.has(agent.id)) map.set(agent.id, d);
+      }
+    }
+    return map;
+  }, [dms]);
+
+  const unreadFor = (dmId: string | undefined): number => {
+    void readVersion;
+    if (!dmId) return 0;
+    const last = lastByDm[dmId];
+    if (!last || last.author_is_me) return 0;
+    return last.created_at > getReadAt(dmId) ? 1 : 0;
+  };
+
+  const previewFor = (dmId: string | undefined): string => {
+    if (!dmId) return "";
+    const last = lastByDm[dmId];
+    if (!last) return "";
+    const prefix = last.author_is_me ? "You: " : "";
+    return prefix + (last.content ?? "").replace(/\s+/g, " ").trim();
+  };
+
+  const groupDms = useMemo(
+    () =>
+      dms.filter((d) => {
+        if (d.participants.length !== 2) return true;
+        const hasAgent = d.participants.some((p) => p.agent);
+        const hasUser = d.participants.some((p) => p.user);
+        return !(hasAgent && hasUser);
+      }),
+    [dms],
+  );
+
+  const q = dmQuery.trim().toLowerCase();
+  const matchesQuery = (hay: string) => !q || hay.toLowerCase().includes(q);
+
+  const filteredAgents = agents.filter((a) => {
+    if (dmFilter === "people") return false;
+    const dmId = dmByAgentId.get(a.id)?.id;
+    if (dmFilter === "unread" && unreadFor(dmId) === 0) return false;
+    return matchesQuery(`${a.name} @${a.handle} ${previewFor(dmId)}`);
+  });
+
+  const filteredGroups = groupDms.filter((d) => {
+    if (dmFilter === "agents") return false;
+    if (dmFilter === "people") {
+      const onlyPeople = d.participants.every((p) => p.user);
+      if (!onlyPeople) return false;
+    }
+    if (dmFilter === "unread" && unreadFor(d.id) === 0) return false;
+    const label =
+      d.title ??
+      d.participants
+        .map((p) => (p.agent ? `@${p.agent.handle}` : p.user?.display_name ?? p.user?.email ?? ""))
+        .join(", ");
+    return matchesQuery(`${label} ${previewFor(d.id)}`);
+  });
+
+  const totalUnread =
+    agents.reduce((n, a) => n + unreadFor(dmByAgentId.get(a.id)?.id), 0) +
+    groupDms.reduce((n, d) => n + unreadFor(d.id), 0);
 
   const signOut = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/login" });
+  };
+
+  const startDmWithAgent = async (a: Agent) => {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    const { data: dm, error } = await supabase
+      .from("direct_messages")
+      .insert({
+        workspace_id: workspaceId,
+        created_by: u.user.id,
+        title: `@${a.handle}`,
+      })
+      .select()
+      .single();
+    if (error || !dm) {
+      toast.error(error?.message ?? "Failed to create DM");
+      return;
+    }
+    const { error: pErr } = await supabase.from("dm_participants").insert([
+      { dm_id: dm.id, member_type: "user", user_id: u.user.id },
+      { dm_id: dm.id, member_type: "agent", agent_id: a.id },
+    ]);
+    if (pErr) {
+      toast.error(pErr.message);
+      return;
+    }
+    setDms((prev) => [
+      {
+        id: dm.id,
+        title: dm.title,
+        participants: [{ user: profile }, { agent: a }],
+      },
+      ...prev,
+    ]);
+    toast.success(`Started a conversation with @${a.handle}`);
+    navigate({ to: "/w/$workspaceId/d/$dmId", params: { workspaceId, dmId: dm.id } });
   };
 
   return (
@@ -215,14 +385,7 @@ export function WorkspaceShell({
           </div>
         </div>
 
-        <div className="p-3">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
-            <Input placeholder="Search" className="pl-8 h-9 bg-background/40" />
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-4 space-y-5">
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-4 space-y-5 pt-3">
           <Section title="Channels" actionLabel="+ New" onAction={async () => {
             const name = prompt("Channel name (no spaces)");
             if (!name) return;
@@ -256,6 +419,7 @@ export function WorkspaceShell({
 
           <Section
             title="Direct Messages"
+            titleBadge={totalUnread > 0 ? totalUnread : undefined}
             actionLabel="+ Group"
             onAction={async () => {
               const handles = prompt(
@@ -288,19 +452,61 @@ export function WorkspaceShell({
               navigate({ to: "/w/$workspaceId/d/$dmId", params: { workspaceId, dmId: dm.id } });
             }}
           >
-            {/* Agents — clicking opens (or creates) a 1:1 DM */}
-            {agents.map((a) => {
-              const existing = dms.find(
-                (d) =>
-                  d.participants.length === 2 &&
-                  d.participants.some((p) => p.agent?.id === a.id) &&
-                  d.participants.some((p) => p.user),
-              );
-              const activeForAgent = existing?.id === activeDmId;
+            {/* Search + filters */}
+            <div className="px-1 pb-2 space-y-2">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-2 top-2 text-muted-foreground" />
+                <Input
+                  value={dmQuery}
+                  onChange={(e) => setDmQuery(e.target.value)}
+                  placeholder="Search agents & DMs"
+                  className="pl-7 pr-7 h-8 text-xs bg-background/40"
+                />
+                {dmQuery && (
+                  <button
+                    onClick={() => setDmQuery("")}
+                    className="absolute right-1.5 top-1.5 text-muted-foreground hover:text-foreground"
+                    aria-label="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-1 flex-wrap">
+                {(
+                  [
+                    ["all", "All"],
+                    ["unread", "Unread"],
+                    ["agents", "Agents"],
+                    ["people", "People"],
+                  ] as [DmFilter, string][]
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setDmFilter(key)}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-mono uppercase tracking-wider transition-colors ${
+                      dmFilter === key
+                        ? "bg-primary/20 text-foreground"
+                        : "text-muted-foreground hover:bg-secondary/50"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Agents — clicking opens (or prompts to create) a 1:1 DM */}
+            {filteredAgents.map((a) => {
+              const existing = dmByAgentId.get(a.id);
+              const dmId = existing?.id;
+              const activeForAgent = dmId === activeDmId;
+              const unread = unreadFor(dmId);
+              const preview = previewFor(dmId);
               return (
                 <button
                   key={a.id}
-                  onClick={async () => {
+                  onClick={() => {
                     if (existing) {
                       navigate({
                         to: "/w/$workspaceId/d/$dmId",
@@ -308,89 +514,97 @@ export function WorkspaceShell({
                       });
                       return;
                     }
-                    const { data: u } = await supabase.auth.getUser();
-                    if (!u.user) return;
-                    const { data: dm, error } = await supabase
-                      .from("direct_messages")
-                      .insert({
-                        workspace_id: workspaceId,
-                        created_by: u.user.id,
-                        title: `@${a.handle}`,
-                      })
-                      .select()
-                      .single();
-                    if (error || !dm) return toast.error(error?.message ?? "Failed to create DM");
-                    const { error: pErr } = await supabase.from("dm_participants").insert([
-                      { dm_id: dm.id, member_type: "user", user_id: u.user.id },
-                      { dm_id: dm.id, member_type: "agent", agent_id: a.id },
-                    ]);
-                    if (pErr) return toast.error(pErr.message);
-                    setDms((prev) => [
-                      {
-                        id: dm.id,
-                        title: dm.title,
-                        participants: [{ user: profile }, { agent: a }],
-                      },
-                      ...prev,
-                    ]);
-                    navigate({ to: "/w/$workspaceId/d/$dmId", params: { workspaceId, dmId: dm.id } });
+                    setPendingAgent(a);
                   }}
-                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors text-left ${
+                  className={`w-full flex items-start gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors text-left ${
                     activeForAgent
                       ? "bg-primary/15 text-foreground"
                       : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                   }`}
                 >
-                  <Avatar className="w-5 h-5">
+                  <Avatar className="w-6 h-6 mt-0.5">
                     <AvatarImage src={a.avatar_url ?? undefined} />
                     <AvatarFallback className="text-[10px]">
                       <Bot className="w-3 h-3" />
                     </AvatarFallback>
                   </Avatar>
-                  <span className="truncate">@{a.handle}</span>
-                  <span className="ml-auto text-[10px] font-mono text-mint">●</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`truncate ${unread ? "font-semibold text-foreground" : ""}`}>
+                        @{a.handle}
+                      </span>
+                      {!existing && (
+                        <span className="text-[9px] font-mono uppercase text-muted-foreground/60 ml-auto">
+                          new
+                        </span>
+                      )}
+                      {unread > 0 && (
+                        <Badge className="ml-auto h-4 min-w-4 px-1 text-[10px] leading-none">
+                          {unread}
+                        </Badge>
+                      )}
+                    </div>
+                    {preview && (
+                      <div className="text-[11px] text-muted-foreground/80 truncate">
+                        {preview}
+                      </div>
+                    )}
+                  </div>
                 </button>
               );
             })}
 
-            {/* Group DMs (anything beyond a 1:1 user↔agent) */}
-            {dms
-              .filter((d) => {
-                if (d.participants.length !== 2) return true;
-                const hasAgent = d.participants.some((p) => p.agent);
-                const hasUser = d.participants.some((p) => p.user);
-                return !(hasAgent && hasUser);
-              })
-              .map((d) => {
-                const label =
-                  d.title ??
-                  d.participants
-                    .map((p) =>
-                      p.agent
-                        ? `@${p.agent.handle}`
-                        : p.user?.display_name ?? p.user?.email ?? "?",
-                    )
-                    .join(", ");
-                return (
-                  <Link
-                    key={d.id}
-                    to="/w/$workspaceId/d/$dmId"
-                    params={{ workspaceId, dmId: d.id }}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors ${
-                      d.id === activeDmId
-                        ? "bg-primary/15 text-foreground"
-                        : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
-                    }`}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span className="truncate">{label}</span>
-                  </Link>
-                );
-              })}
+            {/* Group / multi-participant DMs */}
+            {filteredGroups.map((d) => {
+              const label =
+                d.title ??
+                d.participants
+                  .map((p) =>
+                    p.agent
+                      ? `@${p.agent.handle}`
+                      : p.user?.display_name ?? p.user?.email ?? "?",
+                  )
+                  .join(", ");
+              const unread = unreadFor(d.id);
+              const preview = previewFor(d.id);
+              return (
+                <Link
+                  key={d.id}
+                  to="/w/$workspaceId/d/$dmId"
+                  params={{ workspaceId, dmId: d.id }}
+                  className={`flex items-start gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors ${
+                    d.id === activeDmId
+                      ? "bg-primary/15 text-foreground"
+                      : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5 mt-1 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`truncate ${unread ? "font-semibold text-foreground" : ""}`}>
+                        {label}
+                      </span>
+                      {unread > 0 && (
+                        <Badge className="ml-auto h-4 min-w-4 px-1 text-[10px] leading-none">
+                          {unread}
+                        </Badge>
+                      )}
+                    </div>
+                    {preview && (
+                      <div className="text-[11px] text-muted-foreground/80 truncate">
+                        {preview}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
 
-            {agents.length === 0 && (
-              <div className="px-2 py-1 text-[11px] text-muted-foreground font-mono">
-                No agents in this workspace yet.
+            {filteredAgents.length === 0 && filteredGroups.length === 0 && (
+              <div className="px-2 py-2 text-[11px] text-muted-foreground font-mono">
+                {q || dmFilter !== "all"
+                  ? "No matches — try a different search or filter."
+                  : "No agents in this workspace yet."}
               </div>
             )}
           </Section>
@@ -424,17 +638,51 @@ export function WorkspaceShell({
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
       />
+
+      <AlertDialog open={!!pendingAgent} onOpenChange={(o) => !o && setPendingAgent(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Avatar className="w-7 h-7">
+                <AvatarImage src={pendingAgent?.avatar_url ?? undefined} />
+                <AvatarFallback className="text-[10px]">
+                  <Bot className="w-3 h-3" />
+                </AvatarFallback>
+              </Avatar>
+              Start a conversation with @{pendingAgent?.handle}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingAgent?.description ||
+                `This will open a new direct message with ${pendingAgent?.name}. You can pick up the thread any time from your Direct Messages.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const a = pendingAgent;
+                setPendingAgent(null);
+                if (a) await startDmWithAgent(a);
+              }}
+            >
+              Start conversation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
 function Section({
   title,
+  titleBadge,
   actionLabel,
   onAction,
   children,
 }: {
   title: string;
+  titleBadge?: number;
   actionLabel?: string;
   onAction?: () => void;
   children: React.ReactNode;
@@ -442,7 +690,12 @@ function Section({
   return (
     <div>
       <div className="flex items-center justify-between px-2 mb-1">
-        <div className="text-[11px] uppercase tracking-wider font-mono text-muted-foreground">{title}</div>
+        <div className="text-[11px] uppercase tracking-wider font-mono text-muted-foreground flex items-center gap-1.5">
+          {title}
+          {titleBadge ? (
+            <Badge className="h-4 min-w-4 px-1 text-[10px] leading-none">{titleBadge}</Badge>
+          ) : null}
+        </div>
         {actionLabel && (
           <button onClick={onAction} className="text-[11px] text-electric hover:underline font-mono">
             {actionLabel}
