@@ -104,6 +104,9 @@ export function WorkspaceShell({
   children?: React.ReactNode;
 }) {
   const navigate = useNavigate();
+  const createWorkspaceFn = useServerFn(createWorkspaceWithOwner);
+  const createChannelFn = useServerFn(createChannelWithMembership);
+  const createDmFn = useServerFn(createDmWithParticipants);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
