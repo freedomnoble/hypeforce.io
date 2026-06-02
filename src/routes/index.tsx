@@ -71,8 +71,20 @@ function Gateway() {
           return;
         }
         if (!ws) {
-          log("no workspace for user");
-          setStatus({ kind: "no-workspace" });
+          log("no workspace for user → running ensureUserBootstrap repair");
+          setStatus({ kind: "loading", step: "bootstrap" });
+          const repaired = await ensureBootstrap({ data: undefined as never });
+          if (!active) return;
+          log("bootstrap ok → redirect", repaired);
+          resolvedRef.current = true;
+          navigate({
+            to: "/w/$workspaceId/c/$channelId",
+            params: {
+              workspaceId: repaired.workspaceId,
+              channelId: repaired.channelId,
+            },
+            replace: true,
+          });
           return;
         }
         log("workspace ok", { workspaceId: ws.id });
