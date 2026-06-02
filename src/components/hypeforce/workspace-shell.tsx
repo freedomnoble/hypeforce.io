@@ -339,17 +339,12 @@ export function WorkspaceShell({
           onClick={async () => {
             const name = prompt("New workspace name");
             if (!name) return;
-            const { data: u } = await supabase.auth.getUser();
-            if (!u.user) return;
-            const slug = name.toLowerCase().replace(/\s+/g, "-") + "-" + Math.random().toString(36).slice(2, 6);
-            const { data, error } = await supabase
-              .from("workspaces")
-              .insert({ name, slug, owner_id: u.user.id })
-              .select()
-              .single();
-            if (error) return toast.error(error.message);
-            await supabase.from("workspace_members").insert({ workspace_id: data.id, user_id: u.user.id, role: "owner" });
-            navigate({ to: "/w/$workspaceId", params: { workspaceId: data.id } });
+            try {
+              const { workspaceId: newId } = await createWorkspaceFn({ data: { name } });
+              navigate({ to: "/w/$workspaceId", params: { workspaceId: newId } });
+            } catch (err: any) {
+              toast.error(err?.message ?? "Couldn't create workspace");
+            }
           }}
           className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 text-muted-foreground hover:bg-secondary"
           title="New workspace"
