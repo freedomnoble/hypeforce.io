@@ -256,15 +256,18 @@ export function WorkspaceShell({
 
           <Section
             title="Direct Messages"
-            actionLabel="+ New"
+            actionLabel="+ Group"
             onAction={async () => {
-              const handle = prompt(
-                "Start a DM with an agent. Enter the agent's @handle (e.g. claude):",
+              const handles = prompt(
+                "Start a group DM. Enter agent @handles separated by commas (e.g. claude, gemini):",
               );
-              if (!handle) return;
-              const clean = handle.trim().replace(/^@/, "").toLowerCase();
-              const agent = agents.find((a) => a.handle.toLowerCase() === clean);
-              if (!agent) return toast.error(`No agent named @${clean} in this workspace.`);
+              if (!handles) return;
+              const cleaned = handles
+                .split(",")
+                .map((h) => h.trim().replace(/^@/, "").toLowerCase())
+                .filter(Boolean);
+              const picked = agents.filter((a) => cleaned.includes(a.handle.toLowerCase()));
+              if (picked.length === 0) return toast.error("No matching agents in this workspace.");
               const { data: u } = await supabase.auth.getUser();
               if (!u.user) return;
               const { data: dm, error } = await supabase
@@ -272,67 +275,124 @@ export function WorkspaceShell({
                 .insert({
                   workspace_id: workspaceId,
                   created_by: u.user.id,
-                  title: `@${agent.handle}`,
+                  title: picked.map((a) => `@${a.handle}`).join(", "),
                 })
                 .select()
                 .single();
               if (error || !dm) return toast.error(error?.message ?? "Failed to create DM");
               const { error: pErr } = await supabase.from("dm_participants").insert([
                 { dm_id: dm.id, member_type: "user", user_id: u.user.id },
-                { dm_id: dm.id, member_type: "agent", agent_id: agent.id },
+                ...picked.map((a) => ({ dm_id: dm.id, member_type: "agent" as const, agent_id: a.id })),
               ]);
               if (pErr) return toast.error(pErr.message);
               navigate({ to: "/w/$workspaceId/d/$dmId", params: { workspaceId, dmId: dm.id } });
             }}
           >
-            {dms.length === 0 && (
-              <div className="px-2 py-1 text-[11px] text-muted-foreground font-mono">
-                No DMs yet — start one with an agent.
-              </div>
-            )}
-            {dms.map((d) => {
-              const other = d.participants.find((p) => p.agent) ?? d.participants[0];
-              const label =
-                d.title ??
-                (other?.agent
-                  ? `@${other.agent.handle}`
-                  : other?.user?.display_name ?? other?.user?.email ?? "DM");
-              const avatarUrl = other?.agent?.avatar_url ?? other?.user?.avatar_url ?? undefined;
+            {/* Agents — clicking opens (or creates) a 1:1 DM */}
+            {agents.map((a) => {
+              const existing = dms.find(
+                (d) =>
+                  d.participants.length === 2 &&
+                  d.participants.some((p) => p.agent?.id === a.id) &&
+                  d.participants.some((p) => p.user),
+              );
+              const activeForAgent = existing?.id === activeDmId;
               return (
-                <Link
-                  key={d.id}
-                  to="/w/$workspaceId/d/$dmId"
-                  params={{ workspaceId, dmId: d.id }}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors ${
-                    d.id === activeDmId
+                <button
+                  key={a.id}
+                  onClick={async () => {
+                    if (existing) {
+                      navigate({
+                        to: "/w/$workspaceId/d/$dmId",
+                        params: { workspaceId, dmId: existing.id },
+                      });
+                      return;
+                    }
+                    const { data: u } = await supabase.auth.getUser();
+                    if (!u.user) return;
+                    const { data: dm, error } = await supabase
+                      .from("direct_messages")
+                      .insert({
+                        workspace_id: workspaceId,
+                        created_by: u.user.id,
+                        title: `@${a.handle}`,
+                      })
+                      .select()
+                      .single();
+                    if (error || !dm) return toast.error(error?.message ?? "Failed to create DM");
+                    const { error: pErr } = await supabase.from("dm_participants").insert([
+                      { dm_id: dm.id, member_type: "user", user_id: u.user.id },
+                      { dm_id: dm.id, member_type: "agent", agent_id: a.id },
+                    ]);
+                    if (pErr) return toast.error(pErr.message);
+                    setDms((prev) => [
+                      {
+                        id: dm.id,
+                        title: dm.title,
+                        participants: [{ user: profile }, { agent: a }],
+                      },
+                      ...prev,
+                    ]);
+                    navigate({ to: "/w/$workspaceId/d/$dmId", params: { workspaceId, dmId: dm.id } });
+                  }}
+                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors text-left ${
+                    activeForAgent
                       ? "bg-primary/15 text-foreground"
                       : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                   }`}
                 >
                   <Avatar className="w-5 h-5">
-                    <AvatarImage src={avatarUrl} />
+                    <AvatarImage src={a.avatar_url ?? undefined} />
                     <AvatarFallback className="text-[10px]">
-                      {other?.agent ? <Bot className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
+                      <Bot className="w-3 h-3" />
                     </AvatarFallback>
                   </Avatar>
-                  <span className="truncate">{label}</span>
-                  <MessageSquare className="w-3 h-3 ml-auto opacity-50" />
-                </Link>
+                  <span className="truncate">@{a.handle}</span>
+                  <span className="ml-auto text-[10px] font-mono text-mint">●</span>
+                </button>
               );
             })}
-          </Section>
 
-          <Section title="Agents">
-            {agents.map((a) => (
-              <div key={a.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-muted-foreground">
-                <Avatar className="w-5 h-5">
-                  <AvatarImage src={a.avatar_url ?? undefined} />
-                  <AvatarFallback className="text-[10px]"><Bot className="w-3 h-3" /></AvatarFallback>
-                </Avatar>
-                <span className="truncate">{a.name}</span>
-                <span className="ml-auto text-[10px] font-mono text-mint">●</span>
+            {/* Group DMs (anything beyond a 1:1 user↔agent) */}
+            {dms
+              .filter((d) => {
+                if (d.participants.length !== 2) return true;
+                const hasAgent = d.participants.some((p) => p.agent);
+                const hasUser = d.participants.some((p) => p.user);
+                return !(hasAgent && hasUser);
+              })
+              .map((d) => {
+                const label =
+                  d.title ??
+                  d.participants
+                    .map((p) =>
+                      p.agent
+                        ? `@${p.agent.handle}`
+                        : p.user?.display_name ?? p.user?.email ?? "?",
+                    )
+                    .join(", ");
+                return (
+                  <Link
+                    key={d.id}
+                    to="/w/$workspaceId/d/$dmId"
+                    params={{ workspaceId, dmId: d.id }}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors ${
+                      d.id === activeDmId
+                        ? "bg-primary/15 text-foreground"
+                        : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                    }`}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span className="truncate">{label}</span>
+                  </Link>
+                );
+              })}
+
+            {agents.length === 0 && (
+              <div className="px-2 py-1 text-[11px] text-muted-foreground font-mono">
+                No agents in this workspace yet.
               </div>
-            ))}
+            )}
           </Section>
         </div>
 
