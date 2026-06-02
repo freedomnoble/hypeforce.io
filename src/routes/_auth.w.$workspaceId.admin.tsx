@@ -75,6 +75,15 @@ function readAsText(file: File): Promise<string> {
   });
 }
 
+interface AgentRow {
+  id: string;
+  name: string;
+  provider: string;
+  preferred_route: string | null;
+}
+
+type ConnectedProvider = "openai" | "anthropic" | "google" | "manus";
+
 function AdminPage() {
   const { workspaceId } = Route.useParams();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -83,7 +92,12 @@ function AdminPage() {
   const [entries, setEntries] = useState<KBEntry[]>([]);
   const [files, setFiles] = useState<Record<string, FileRow>>({});
   const [uploading, setUploading] = useState(false);
+  const [agents, setAgents] = useState<AgentRow[]>([]);
+  const [myConns, setMyConns] = useState<ConnectedProvider[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const listConns = useServerFn(listMyConnections);
+  const setRouteFn = useServerFn(setAgentRoute);
 
   useEffect(() => {
     (async () => {
