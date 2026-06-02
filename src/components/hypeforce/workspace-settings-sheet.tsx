@@ -280,12 +280,16 @@ function AgentsPanel({ workspaceId }: { workspaceId: string }) {
     if (!handle) return;
     const provider = prompt("Provider: openai | anthropic | google | manus", "openai");
     if (!provider) return;
+    const allowed = ["openai", "anthropic", "google", "manus"] as const;
+    if (!(allowed as readonly string[]).includes(provider)) {
+      return toast.error("Invalid provider");
+    }
     const { data: u } = await supabase.auth.getUser();
     const { error } = await supabase.from("agents").insert({
       workspace_id: workspaceId,
       name,
       handle,
-      provider,
+      provider: provider as (typeof allowed)[number],
       created_by: u.user?.id,
       system_prompt: `You are ${name}.`,
     });
