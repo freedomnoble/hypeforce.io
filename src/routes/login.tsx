@@ -13,8 +13,10 @@ const InfiniteGridBg = lazy(() =>
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign in — Hypeforce" }] }),
   beforeLoad: async () => {
+    // Existing session? Go straight to the gateway resolver (/), which picks
+    // the right workspace/channel route. Avoid the /app trampoline.
     const { data } = await supabase.auth.getSession();
-    if (data.session) throw redirect({ to: "/app" });
+    if (data.session) throw redirect({ to: "/", replace: true });
   },
   component: LoginPage,
 });
