@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
@@ -7,25 +7,47 @@ export const Route = createFileRoute("/")({
 });
 
 type Status =
-  | { kind: "loading" }
-  | { kind: "error"; message: string }
+  | { kind: "loading"; step: "session" | "workspace" | "channel" }
+  | { kind: "error"; message: string; detail?: string }
+  | { kind: "no-session" }
   | { kind: "no-workspace" };
+
+function log(...args: unknown[]) {
+  // eslint-disable-next-line no-console
+  console.log("[gateway]", ...args);
+}
 
 function Gateway() {
   const navigate = useNavigate();
-  const [status, setStatus] = useState<Status>({ kind: "loading" });
+  const [status, setStatus] = useState<Status>({ kind: "loading", step: "session" });
+  const [attempt, setAttempt] = useState(0);
+  const inflight = useRef(false);
 
   useEffect(() => {
+    if (inflight.current) return;
+    inflight.current = true;
     let active = true;
+
     (async () => {
       try {
-        const { data: sess } = await supabase.auth.getSession();
+        setStatus({ kind: "loading", step: "session" });
+        log("checking session…");
+        const { data: sess, error: sessErr } = await supabase.auth.getSession();
         if (!active) return;
+        if (sessErr) {
+          console.error("[gateway] session error", sessErr);
+          setStatus({ kind: "error", message: "Couldn't read your session.", detail: sessErr.message });
+          return;
+        }
         if (!sess.session?.user) {
+          log("no session → /login");
+          setStatus({ kind: "no-session" });
           navigate({ to: "/login", replace: true });
           return;
         }
+        log("session ok", { userId: sess.session.user.id });
 
+        setStatus({ kind: "loading", step: "workspace" });
         const { data: ws, error: wsErr } = await supabase
           .from("workspaces")
           .select("id")
@@ -34,18 +56,23 @@ function Gateway() {
           .maybeSingle();
         if (!active) return;
         if (wsErr) {
-          setStatus({ kind: "error", message: wsErr.message });
+          console.error("[gateway] workspace query error", wsErr);
+          setStatus({
+            kind: "error",
+            message: "Couldn't reach the backend.",
+            detail: `${wsErr.code ?? ""} ${wsErr.message}`.trim(),
+          });
           return;
         }
         if (!ws) {
-          // Authenticated but no workspace yet — do NOT bounce to /login
-          // (causes a redirect loop because /login has a session and forwards
-          // to /app → /).
+          log("no workspace for user");
           setStatus({ kind: "no-workspace" });
           return;
         }
+        log("workspace ok", { workspaceId: ws.id });
 
-        const { data: ch } = await supabase
+        setStatus({ kind: "loading", step: "channel" });
+        const { data: ch, error: chErr } = await supabase
           .from("channels")
           .select("id")
           .eq("workspace_id", ws.id)
@@ -53,13 +80,19 @@ function Gateway() {
           .limit(1)
           .maybeSingle();
         if (!active) return;
+        if (chErr) {
+          console.error("[gateway] channel query error", chErr);
+          // Still send them into the workspace shell — channel is optional.
+        }
         if (ch) {
+          log("channel ok → redirect", { channelId: ch.id });
           navigate({
             to: "/w/$workspaceId/c/$channelId",
             params: { workspaceId: ws.id, channelId: ch.id },
             replace: true,
           });
         } else {
+          log("no channel → workspace index");
           navigate({
             to: "/w/$workspaceId",
             params: { workspaceId: ws.id },
@@ -67,46 +100,76 @@ function Gateway() {
           });
         }
       } catch (err: any) {
+        console.error("[gateway] unexpected error", err);
         if (!active) return;
-        setStatus({ kind: "error", message: err?.message ?? "Network error" });
+        setStatus({
+          kind: "error",
+          message: "Something went wrong loading your workspace.",
+          detail: err?.message ?? String(err),
+        });
+      } finally {
+        inflight.current = false;
       }
     })();
+
     return () => {
       active = false;
     };
-  }, [navigate]);
+  }, [navigate, attempt]);
+
+  const retry = () => {
+    log("retry");
+    setAttempt((a) => a + 1);
+    setStatus({ kind: "loading", step: "session" });
+  };
+  const signOut = async () => {
+    log("sign out");
+    await supabase.auth.signOut();
+    navigate({ to: "/login", replace: true });
+  };
+  const contactSupport = () => {
+    window.open("mailto:support@hypeforce.app?subject=Workspace%20failed%20to%20load", "_blank");
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="glass rounded-2xl px-6 py-5 font-mono text-sm text-muted-foreground max-w-md text-center space-y-3">
-        {status.kind === "loading" && <div>loading workspace…</div>}
-        {status.kind === "no-workspace" && (
+      <div className="glass rounded-2xl px-6 py-5 font-mono text-sm text-muted-foreground max-w-md w-full text-center space-y-3">
+        {status.kind === "loading" && (
           <>
             <div className="text-foreground font-display text-base">
-              No workspace yet
+              loading workspace…
             </div>
-            <div>Your account has no workspace. Sign out and back in to seed one, or contact your admin.</div>
-            <button
-              onClick={async () => {
-                await supabase.auth.signOut();
-                navigate({ to: "/login", replace: true });
-              }}
-              className="text-electric hover:underline"
-            >
-              Sign out
-            </button>
+            <div className="opacity-70">step: {status.step}</div>
           </>
         )}
+
+        {status.kind === "no-session" && <div>redirecting to sign in…</div>}
+
+        {status.kind === "no-workspace" && (
+          <>
+            <div className="text-foreground font-display text-base">No workspace yet</div>
+            <div>Your account has no workspace. Sign out and back in to seed one, or contact support.</div>
+            <div className="flex gap-2 justify-center pt-1">
+              <button onClick={retry} className="text-electric hover:underline">Retry</button>
+              <span>·</span>
+              <button onClick={contactSupport} className="text-electric hover:underline">Contact support</button>
+              <span>·</span>
+              <button onClick={signOut} className="text-electric hover:underline">Sign out</button>
+            </div>
+          </>
+        )}
+
         {status.kind === "error" && (
           <>
-            <div className="text-foreground font-display text-base">Couldn't reach the backend</div>
-            <div className="opacity-80">{status.message}</div>
-            <button
-              onClick={() => window.location.reload()}
-              className="text-electric hover:underline"
-            >
-              Retry
-            </button>
+            <div className="text-foreground font-display text-base">{status.message}</div>
+            {status.detail && <div className="opacity-70 break-words">{status.detail}</div>}
+            <div className="flex gap-2 justify-center pt-1">
+              <button onClick={retry} className="text-electric hover:underline">Retry</button>
+              <span>·</span>
+              <button onClick={contactSupport} className="text-electric hover:underline">Contact support</button>
+              <span>·</span>
+              <button onClick={signOut} className="text-electric hover:underline">Sign out</button>
+            </div>
           </>
         )}
       </div>
