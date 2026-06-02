@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  createWorkspaceWithOwner,
+  createChannelWithMembership,
+  createDmWithParticipants,
+} from "@/lib/collab.functions";
 import {
   Hash,
   Plus,
@@ -98,6 +104,9 @@ export function WorkspaceShell({
   children?: React.ReactNode;
 }) {
   const navigate = useNavigate();
+  const createWorkspaceFn = useServerFn(createWorkspaceWithOwner);
+  const createChannelFn = useServerFn(createChannelWithMembership);
+  const createDmFn = useServerFn(createDmWithParticipants);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -278,39 +287,27 @@ export function WorkspaceShell({
   };
 
   const startDmWithAgent = async (a: Agent) => {
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return;
-    const { data: dm, error } = await supabase
-      .from("direct_messages")
-      .insert({
-        workspace_id: workspaceId,
-        created_by: u.user.id,
-        title: `@${a.handle}`,
-      })
-      .select()
-      .single();
-    if (error || !dm) {
-      toast.error(error?.message ?? "Failed to create DM");
-      return;
+    try {
+      const { dm } = await createDmFn({
+        data: {
+          workspaceId,
+          title: `@${a.handle}`,
+          participants: [{ kind: "agent", agentId: a.id }],
+        },
+      });
+      setDms((prev) => [
+        {
+          id: dm.id,
+          title: dm.title,
+          participants: [{ user: profile }, { agent: a }],
+        },
+        ...prev,
+      ]);
+      toast.success(`Started a conversation with @${a.handle}`);
+      navigate({ to: "/w/$workspaceId/d/$dmId", params: { workspaceId, dmId: dm.id } });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to create DM");
     }
-    const { error: pErr } = await supabase.from("dm_participants").insert([
-      { dm_id: dm.id, member_type: "user", user_id: u.user.id },
-      { dm_id: dm.id, member_type: "agent", agent_id: a.id },
-    ]);
-    if (pErr) {
-      toast.error(pErr.message);
-      return;
-    }
-    setDms((prev) => [
-      {
-        id: dm.id,
-        title: dm.title,
-        participants: [{ user: profile }, { agent: a }],
-      },
-      ...prev,
-    ]);
-    toast.success(`Started a conversation with @${a.handle}`);
-    navigate({ to: "/w/$workspaceId/d/$dmId", params: { workspaceId, dmId: dm.id } });
   };
 
   return (
@@ -342,17 +339,12 @@ export function WorkspaceShell({
           onClick={async () => {
             const name = prompt("New workspace name");
             if (!name) return;
-            const { data: u } = await supabase.auth.getUser();
-            if (!u.user) return;
-            const slug = name.toLowerCase().replace(/\s+/g, "-") + "-" + Math.random().toString(36).slice(2, 6);
-            const { data, error } = await supabase
-              .from("workspaces")
-              .insert({ name, slug, owner_id: u.user.id })
-              .select()
-              .single();
-            if (error) return toast.error(error.message);
-            await supabase.from("workspace_members").insert({ workspace_id: data.id, user_id: u.user.id, role: "owner" });
-            navigate({ to: "/w/$workspaceId", params: { workspaceId: data.id } });
+            try {
+              const { workspaceId: newId } = await createWorkspaceFn({ data: { name } });
+              navigate({ to: "/w/$workspaceId", params: { workspaceId: newId } });
+            } catch (err: any) {
+              toast.error(err?.message ?? "Couldn't create workspace");
+            }
           }}
           className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 text-muted-foreground hover:bg-secondary"
           title="New workspace"
@@ -389,17 +381,15 @@ export function WorkspaceShell({
           <Section title="Channels" actionLabel="+ New" onAction={async () => {
             const name = prompt("Channel name (no spaces)");
             if (!name) return;
-            const { data: u } = await supabase.auth.getUser();
-            if (!u.user) return;
-            const { data, error } = await supabase
-              .from("channels")
-              .insert({ workspace_id: workspaceId, name: name.toLowerCase().replace(/\s+/g, "-"), created_by: u.user.id })
-              .select()
-              .single();
-            if (error) return toast.error(error.message);
-            await supabase.from("channel_members").insert({ channel_id: data.id, member_type: "user", user_id: u.user.id });
-            setChannels((cs) => [...cs, data]);
-            navigate({ to: "/w/$workspaceId/c/$channelId", params: { workspaceId, channelId: data.id } });
+            try {
+              const { channel } = await createChannelFn({
+                data: { workspaceId, name },
+              });
+              setChannels((cs) => [...cs, channel]);
+              navigate({ to: "/w/$workspaceId/c/$channelId", params: { workspaceId, channelId: channel.id } });
+            } catch (err: any) {
+              toast.error(err?.message ?? "Couldn't create channel");
+            }
           }}>
             {channels.map((c) => (
               <Link
@@ -432,24 +422,18 @@ export function WorkspaceShell({
                 .filter(Boolean);
               const picked = agents.filter((a) => cleaned.includes(a.handle.toLowerCase()));
               if (picked.length === 0) return toast.error("No matching agents in this workspace.");
-              const { data: u } = await supabase.auth.getUser();
-              if (!u.user) return;
-              const { data: dm, error } = await supabase
-                .from("direct_messages")
-                .insert({
-                  workspace_id: workspaceId,
-                  created_by: u.user.id,
-                  title: picked.map((a) => `@${a.handle}`).join(", "),
-                })
-                .select()
-                .single();
-              if (error || !dm) return toast.error(error?.message ?? "Failed to create DM");
-              const { error: pErr } = await supabase.from("dm_participants").insert([
-                { dm_id: dm.id, member_type: "user", user_id: u.user.id },
-                ...picked.map((a) => ({ dm_id: dm.id, member_type: "agent" as const, agent_id: a.id })),
-              ]);
-              if (pErr) return toast.error(pErr.message);
-              navigate({ to: "/w/$workspaceId/d/$dmId", params: { workspaceId, dmId: dm.id } });
+              try {
+                const { dm } = await createDmFn({
+                  data: {
+                    workspaceId,
+                    title: picked.map((a) => `@${a.handle}`).join(", "),
+                    participants: picked.map((a) => ({ kind: "agent" as const, agentId: a.id })),
+                  },
+                });
+                navigate({ to: "/w/$workspaceId/d/$dmId", params: { workspaceId, dmId: dm.id } });
+              } catch (err: any) {
+                toast.error(err?.message ?? "Failed to create DM");
+              }
             }}
           >
             {/* Search + filters */}
