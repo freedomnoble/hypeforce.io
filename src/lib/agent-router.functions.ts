@@ -147,29 +147,40 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
       // anchor tone, and KB comes after as supporting reference material.
       const systemPrompt = `${brandBlock}${pinnedBlock}\n\n${agent.system_prompt ?? `You are ${agent.name}.`}${kbBlock}\n\nReply concisely in markdown. Stay strictly on brand.`;
 
-      // Resolve route: agent.preferred_route may be "byok:<provider>".
+      // Resolve route explicitly. The only legal values for preferred_route
+      // are null (== lovable gateway) or "byok:<provider>" where <provider>
+      // is one of the supported providers. setAgentRoute enforces this on
+      // write; we re-validate on read because old rows may predate the
+      // constraint. Anything else degrades to "lovable" rather than throwing.
       let content = "";
-      let routeUsed = "lovable";
-      const pref = (agent as any).preferred_route as string | null;
-      const byokProvider =
-        pref && pref.startsWith("byok:") ? (pref.slice(5) as ProviderId) : null;
+      const pref = (agent as { preferred_route?: string | null }).preferred_route ?? null;
+      const byokMatch = pref?.match(/^byok:(openai|anthropic|google|manus)$/);
+      const byokProvider = byokMatch ? (byokMatch[1] as ProviderId) : null;
 
-      if (byokProvider && byok.has(byokProvider)) {
-        try {
-          const { decryptApiKey } = await import("./ai-crypto.server");
-          const { callProvider } = await import("./ai-providers.server");
-          const apiKey = await decryptApiKey(byok.get(byokProvider)!);
-          content = await callProvider(byokProvider, apiKey, agent.model ?? "", systemPrompt, history);
-          routeUsed = `byok:${byokProvider}`;
-        } catch (e: any) {
-          console.error("BYOK call failed, falling back to gateway", e?.message);
-          await supabaseAdmin
-            .from("user_ai_connections")
-            .update({ status: "invalid" })
-            .eq("user_id", context.userId)
-            .eq("provider", byokProvider);
-          content = await callLLM(model, systemPrompt, history);
-          routeUsed = "lovable (fallback)";
+      if (byokProvider) {
+        // BYOK route requested. Use the calling user's PERSONAL key; never
+        // someone else's. If no active key exists, return a friendly agent
+        // message rather than silently switching providers — admins set
+        // routing intentionally and silent fallback hides misconfiguration.
+        const encrypted = byok.get(byokProvider);
+        if (!encrypted) {
+          content = `_(@${agent.handle} is configured to use your own ${byokProvider} key, but you haven't connected one. Add it in Profile → AI Connections, or have a workspace admin switch this agent back to the Lovable gateway.)_`;
+        } else {
+          try {
+            const { decryptApiKey } = await import("./ai-crypto.server");
+            const { callProvider } = await import("./ai-providers.server");
+            const apiKey = await decryptApiKey(encrypted);
+            content = await callProvider(byokProvider, apiKey, agent.model ?? "", systemPrompt, history);
+          } catch (e: any) {
+            // Log message only — never log the key itself.
+            console.error("BYOK call failed", { provider: byokProvider, message: e?.message });
+            await supabaseAdmin
+              .from("user_ai_connections")
+              .update({ status: "invalid" })
+              .eq("user_id", context.userId)
+              .eq("provider", byokProvider);
+            content = `_(@${agent.handle} couldn't reach ${byokProvider} with your key. It's been marked invalid — please re-connect it in Profile → AI Connections.)_`;
+          }
         }
       } else {
         content = await callLLM(model, systemPrompt, history);
