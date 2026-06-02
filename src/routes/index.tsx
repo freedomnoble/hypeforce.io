@@ -22,9 +22,13 @@ function Gateway() {
   const [status, setStatus] = useState<Status>({ kind: "loading", step: "session" });
   const [attempt, setAttempt] = useState(0);
   const inflight = useRef(false);
+  // Once we have resolved & navigated to a workspace/channel route, this is
+  // set to true so subsequent renders (or late effect re-runs) can never
+  // call navigate() again and cause a visible loop back to "loading workspace".
+  const resolvedRef = useRef(false);
 
   useEffect(() => {
-    if (inflight.current) return;
+    if (inflight.current || resolvedRef.current) return;
     inflight.current = true;
     let active = true;
 
@@ -86,6 +90,9 @@ function Gateway() {
         }
         if (ch) {
           log("channel ok → redirect", { channelId: ch.id });
+          // Set resolved BEFORE navigating so a re-render of this component
+          // (e.g. from auth state events) can't kick off another resolve.
+          resolvedRef.current = true;
           navigate({
             to: "/w/$workspaceId/c/$channelId",
             params: { workspaceId: ws.id, channelId: ch.id },
@@ -93,6 +100,7 @@ function Gateway() {
           });
         } else {
           log("no channel → workspace index");
+          resolvedRef.current = true;
           navigate({
             to: "/w/$workspaceId",
             params: { workspaceId: ws.id },
@@ -119,6 +127,8 @@ function Gateway() {
 
   const retry = () => {
     log("retry");
+    resolvedRef.current = false;
+    inflight.current = false;
     setAttempt((a) => a + 1);
     setStatus({ kind: "loading", step: "session" });
   };

@@ -13,8 +13,10 @@ const InfiniteGridBg = lazy(() =>
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign in — Hypeforce" }] }),
   beforeLoad: async () => {
+    // Existing session? Go straight to the gateway resolver (/), which picks
+    // the right workspace/channel route. Avoid the /app trampoline.
     const { data } = await supabase.auth.getSession();
-    if (data.session) throw redirect({ to: "/app" });
+    if (data.session) throw redirect({ to: "/", replace: true });
   },
   component: LoginPage,
 });
@@ -36,7 +38,8 @@ function LoginPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/app`,
+            // Send confirmed users to the gateway resolver at "/", not "/app".
+            emailRedirectTo: `${window.location.origin}/`,
             data: { display_name: name || email.split("@")[0] },
           },
         });
@@ -46,7 +49,9 @@ function LoginPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/app" });
+        // Go directly to the canonical resolver — it will replace history into
+        // the workspace/channel route.
+        navigate({ to: "/", replace: true });
       }
     } catch (err: any) {
       toast.error(err.message ?? "Something went wrong");
