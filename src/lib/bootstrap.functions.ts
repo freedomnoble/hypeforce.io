@@ -68,7 +68,15 @@ export const ensureUserBootstrap = createServerFn({ method: "POST" })
     }
 
     // 3. Starter agents (idempotent — only insert missing handles)
-    const starters = [
+    const starters: Array<{
+      name: string;
+      handle: string;
+      provider: "manus" | "openai" | "anthropic" | "google";
+      model: string;
+      description: string;
+      system_prompt: string;
+      avatar_url: string;
+    }> = [
       {
         name: "Manus",
         handle: "manus",
