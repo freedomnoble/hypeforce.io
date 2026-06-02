@@ -120,6 +120,17 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
             .join("\n\n")}`
         : "";
 
+    // Load the calling user's connected BYOK providers (we only need the
+    // encrypted key for those we may actually route through).
+    const { data: byokRows } = await supabase
+      .from("user_ai_connections")
+      .select("provider,encrypted_key,status")
+      .eq("status", "active");
+    const byok = new Map<ProviderId, string>();
+    for (const row of byokRows ?? []) {
+      byok.set(row.provider as ProviderId, (row as any).encrypted_key);
+    }
+
     // For each agent, generate and insert a reply.
     let dispatched = 0;
     for (const agent of agents ?? []) {
@@ -135,7 +146,34 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
       // Brand voice + pinned files come BEFORE the agent's own prompt so they
       // anchor tone, and KB comes after as supporting reference material.
       const systemPrompt = `${brandBlock}${pinnedBlock}\n\n${agent.system_prompt ?? `You are ${agent.name}.`}${kbBlock}\n\nReply concisely in markdown. Stay strictly on brand.`;
-      const content = await callLLM(model, systemPrompt, history);
+
+      // Resolve route: agent.preferred_route may be "byok:<provider>".
+      let content = "";
+      let routeUsed = "lovable";
+      const pref = (agent as any).preferred_route as string | null;
+      const byokProvider =
+        pref && pref.startsWith("byok:") ? (pref.slice(5) as ProviderId) : null;
+
+      if (byokProvider && byok.has(byokProvider)) {
+        try {
+          const { decryptApiKey } = await import("./ai-crypto.server");
+          const { callProvider } = await import("./ai-providers.server");
+          const apiKey = await decryptApiKey(byok.get(byokProvider)!);
+          content = await callProvider(byokProvider, apiKey, agent.model ?? "", systemPrompt, history);
+          routeUsed = `byok:${byokProvider}`;
+        } catch (e: any) {
+          console.error("BYOK call failed, falling back to gateway", e?.message);
+          await supabaseAdmin
+            .from("user_ai_connections")
+            .update({ status: "invalid" })
+            .eq("user_id", context.userId)
+            .eq("provider", byokProvider);
+          content = await callLLM(model, systemPrompt, history);
+          routeUsed = "lovable (fallback)";
+        }
+      } else {
+        content = await callLLM(model, systemPrompt, history);
+      }
 
       const { error: insertError } = await supabaseAdmin.from("messages").insert({
         workspace_id,
