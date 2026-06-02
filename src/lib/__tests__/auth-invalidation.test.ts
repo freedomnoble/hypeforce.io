@@ -27,6 +27,18 @@ describe("createAuthInvalidationHandler", () => {
     expect(onTransition).not.toHaveBeenCalled();
   });
 
+  it("uses INITIAL_SESSION as a baseline without invalidating", () => {
+    const onTransition = vi.fn();
+    const handler = createAuthInvalidationHandler(onTransition);
+
+    handler("INITIAL_SESSION", session("user-1"));
+    handler("TOKEN_REFRESHED", session("user-1"));
+    handler("USER_UPDATED", session("user-1"));
+    handler("SIGNED_IN", session("user-1"));
+
+    expect(onTransition).not.toHaveBeenCalled();
+  });
+
   it("fires exactly once for a real SIGNED_IN, even with repeats", () => {
     const onTransition = vi.fn();
     const handler = createAuthInvalidationHandler(onTransition);
@@ -103,14 +115,12 @@ describe("createAuthInvalidationHandler", () => {
     const onTransition = vi.fn();
     const handler = createAuthInvalidationHandler(onTransition);
 
-    // Initial state is "unknown" — first observed state is signed-out.
-    // We DO want this to fire once so the app can settle into the logged-out
-    // shape, because the sentinel starts as `undefined` (not `null`).
+    // Initial signed-out state is only a baseline, not a transition. This
+    // avoids invalidating the public/login route on startup.
     handler("SIGNED_OUT", null);
     handler("SIGNED_OUT", null);
     handler("SIGNED_OUT", null);
 
-    expect(onTransition).toHaveBeenCalledTimes(1);
-    expect(onTransition).toHaveBeenCalledWith(null);
+    expect(onTransition).not.toHaveBeenCalled();
   });
 });
