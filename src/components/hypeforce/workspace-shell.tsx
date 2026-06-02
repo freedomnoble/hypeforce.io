@@ -100,6 +100,38 @@ export function WorkspaceShell({
         const { data: p } = await supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle();
         setProfile(p);
       }
+
+      // Load DMs the current user participates in.
+      const { data: dmRows } = await supabase
+        .from("direct_messages")
+        .select("id,title,dm_participants(user_id,agent_id,member_type)")
+        .eq("workspace_id", workspaceId)
+        .order("created_at", { ascending: false });
+      const agentMap = new Map((ag ?? []).map((a) => [a.id, a]));
+      const userIds = Array.from(
+        new Set(
+          (dmRows ?? []).flatMap((d: any) =>
+            (d.dm_participants ?? [])
+              .filter((p: any) => p.member_type === "user" && p.user_id)
+              .map((p: any) => p.user_id),
+          ),
+        ),
+      );
+      const profilesMap = new Map<string, Profile>();
+      if (userIds.length) {
+        const { data: ps } = await supabase.from("profiles").select("*").in("id", userIds);
+        (ps ?? []).forEach((p: any) => profilesMap.set(p.id, p));
+      }
+      setDms(
+        (dmRows ?? []).map((d: any) => ({
+          id: d.id,
+          title: d.title,
+          participants: (d.dm_participants ?? []).map((p: any) => ({
+            user: p.user_id ? profilesMap.get(p.user_id) ?? null : null,
+            agent: p.agent_id ? agentMap.get(p.agent_id) ?? null : null,
+          })),
+        })),
+      );
     })();
   }, [workspaceId]);
 
