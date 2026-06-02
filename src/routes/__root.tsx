@@ -11,6 +11,7 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { createAuthInvalidationHandler } from "@/lib/auth-invalidation";
+import { ThemeProvider } from "@/components/hypeforce/theme-provider";
 
 import appCss from "../styles.css?url";
 
@@ -126,8 +127,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster richColors position="top-right" theme="dark" />
+      <ThemeProvider>
+        <Outlet />
+        <Toaster richColors position="top-right" theme="dark" />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
