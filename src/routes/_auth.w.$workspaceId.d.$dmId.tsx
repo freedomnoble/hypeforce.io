@@ -415,6 +415,3 @@ function MessageRow({
     </div>
   );
 }
-
-// Suppress unused import warning for Fragment (kept for parity with channel page patterns).
-void Fragment;
