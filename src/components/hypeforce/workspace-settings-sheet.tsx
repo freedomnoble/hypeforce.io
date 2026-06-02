@@ -289,6 +289,7 @@ function AgentsPanel({ workspaceId }: { workspaceId: string }) {
       name,
       handle,
       provider: provider as (typeof allowed)[number],
+      model: "",
       system_prompt: `You are ${name}.`,
     });
     if (error) return toast.error(error.message);
