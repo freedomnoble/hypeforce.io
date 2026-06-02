@@ -4,6 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { WorkspaceShell } from "@/components/hypeforce/workspace-shell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  listMyConnections,
+  setAgentRoute,
+} from "@/lib/ai-connections.functions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { toast } from "sonner";
 import {
@@ -14,6 +26,7 @@ import {
   Loader2,
   ShieldAlert,
   Sparkles,
+  Plug,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/admin")({
@@ -62,6 +75,15 @@ function readAsText(file: File): Promise<string> {
   });
 }
 
+interface AgentRow {
+  id: string;
+  name: string;
+  provider: string;
+  preferred_route: string | null;
+}
+
+type ConnectedProvider = "openai" | "anthropic" | "google" | "manus";
+
 function AdminPage() {
   const { workspaceId } = Route.useParams();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -70,7 +92,12 @@ function AdminPage() {
   const [entries, setEntries] = useState<KBEntry[]>([]);
   const [files, setFiles] = useState<Record<string, FileRow>>({});
   const [uploading, setUploading] = useState(false);
+  const [agents, setAgents] = useState<AgentRow[]>([]);
+  const [myConns, setMyConns] = useState<ConnectedProvider[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const listConns = useServerFn(listMyConnections);
+  const setRouteFn = useServerFn(setAgentRoute);
 
   useEffect(() => {
     (async () => {
@@ -93,10 +120,40 @@ function AdminPage() {
         .maybeSingle();
       setBrandVoice((ws as any)?.brand_voice ?? "");
 
-      await loadKB();
+      await Promise.all([loadKB(), loadAgents(), loadConns()]);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId]);
+
+  const loadAgents = async () => {
+    const { data } = await supabase
+      .from("agents")
+      .select("id,name,provider,preferred_route")
+      .eq("workspace_id", workspaceId)
+      .order("name");
+    setAgents((data ?? []) as AgentRow[]);
+  };
+
+  const loadConns = async () => {
+    try {
+      const data = await listConns();
+      setMyConns((data ?? []).filter((c: any) => c.status === "active").map((c: any) => c.provider));
+    } catch {
+      setMyConns([]);
+    }
+  };
+
+  const updateAgentRoute = async (agentId: string, route: string) => {
+    try {
+      await setRouteFn({ data: { agent_id: agentId, route } });
+      setAgents((prev) =>
+        prev.map((a) => (a.id === agentId ? { ...a, preferred_route: route === "lovable" ? null : route } : a)),
+      );
+      toast.success("Agent route updated");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed");
+    }
+  };
 
   const loadKB = async () => {
     const { data: kb } = await supabase
@@ -328,6 +385,55 @@ function AdminPage() {
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
+        {/* Agent routing */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Plug className="w-4 h-4 text-electric" />
+            <h2 className="font-display text-lg font-semibold">Agent Routing</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Choose how each agent reaches its model. The default Lovable AI Gateway works for
+            everyone with no setup. To route an agent through your own provider account, first
+            connect a key in <span className="font-mono">Profile → AI Connections</span>.
+          </p>
+
+          <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
+            {agents.length === 0 && (
+              <li className="p-4 text-sm text-muted-foreground text-center">No agents yet.</li>
+            )}
+            {agents.map((a) => {
+              const current = a.preferred_route ?? "lovable";
+              return (
+                <li key={a.id} className="flex items-center gap-3 p-3 hover:bg-secondary/30">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{a.name}</div>
+                    <div className="text-[11px] font-mono text-muted-foreground">
+                      {a.provider}
+                    </div>
+                  </div>
+                  <Select value={current} onValueChange={(v) => updateAgentRoute(a.id, v)}>
+                    <SelectTrigger className="w-[200px] h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="lovable">Lovable AI Gateway (default)</SelectItem>
+                      {(["openai", "anthropic", "google", "manus"] as const).map((p) => (
+                        <SelectItem
+                          key={p}
+                          value={`byok:${p}`}
+                          disabled={!myConns.includes(p)}
+                        >
+                          My {p} key{!myConns.includes(p) ? " (not connected)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </li>
               );
             })}
