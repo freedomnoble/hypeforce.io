@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthProfileRouteImport } from './routes/_auth.profile'
+import { Route as AuthProfileConnectionsRouteImport } from './routes/_auth.profile.connections'
 import { Route as AuthWWorkspaceIdIndexRouteImport } from './routes/_auth.w.$workspaceId.index'
 import { Route as AuthWWorkspaceIdAdminRouteImport } from './routes/_auth.w.$workspaceId.admin'
 import { Route as AuthWWorkspaceIdCChannelIdRouteImport } from './routes/_auth.w.$workspaceId.c.$channelId'
@@ -42,6 +43,11 @@ const AuthProfileRoute = AuthProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthProfileConnectionsRoute = AuthProfileConnectionsRouteImport.update({
+  id: '/connections',
+  path: '/connections',
+  getParentRoute: () => AuthProfileRoute,
+} as any)
 const AuthWWorkspaceIdIndexRoute = AuthWWorkspaceIdIndexRouteImport.update({
   id: '/w/$workspaceId/',
   path: '/w/$workspaceId/',
@@ -63,7 +69,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
-  '/profile': typeof AuthProfileRoute
+  '/profile': typeof AuthProfileRouteWithChildren
+  '/profile/connections': typeof AuthProfileConnectionsRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
   '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
@@ -72,7 +79,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
-  '/profile': typeof AuthProfileRoute
+  '/profile': typeof AuthProfileRouteWithChildren
+  '/profile/connections': typeof AuthProfileConnectionsRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/w/$workspaceId': typeof AuthWWorkspaceIdIndexRoute
   '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
@@ -83,7 +91,8 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
-  '/_auth/profile': typeof AuthProfileRoute
+  '/_auth/profile': typeof AuthProfileRouteWithChildren
+  '/_auth/profile/connections': typeof AuthProfileConnectionsRoute
   '/_auth/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/_auth/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
   '/_auth/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/profile'
+    | '/profile/connections'
     | '/w/$workspaceId/admin'
     | '/w/$workspaceId/'
     | '/w/$workspaceId/c/$channelId'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/profile'
+    | '/profile/connections'
     | '/w/$workspaceId/admin'
     | '/w/$workspaceId'
     | '/w/$workspaceId/c/$channelId'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/_auth/profile'
+    | '/_auth/profile/connections'
     | '/_auth/w/$workspaceId/admin'
     | '/_auth/w/$workspaceId/'
     | '/_auth/w/$workspaceId/c/$channelId'
@@ -163,6 +175,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthProfileRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/profile/connections': {
+      id: '/_auth/profile/connections'
+      path: '/connections'
+      fullPath: '/profile/connections'
+      preLoaderRoute: typeof AuthProfileConnectionsRouteImport
+      parentRoute: typeof AuthProfileRoute
+    }
     '/_auth/w/$workspaceId/': {
       id: '/_auth/w/$workspaceId/'
       path: '/w/$workspaceId'
@@ -187,15 +206,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthProfileRouteChildren {
+  AuthProfileConnectionsRoute: typeof AuthProfileConnectionsRoute
+}
+
+const AuthProfileRouteChildren: AuthProfileRouteChildren = {
+  AuthProfileConnectionsRoute: AuthProfileConnectionsRoute,
+}
+
+const AuthProfileRouteWithChildren = AuthProfileRoute._addFileChildren(
+  AuthProfileRouteChildren,
+)
+
 interface AuthRouteChildren {
-  AuthProfileRoute: typeof AuthProfileRoute
+  AuthProfileRoute: typeof AuthProfileRouteWithChildren
   AuthWWorkspaceIdAdminRoute: typeof AuthWWorkspaceIdAdminRoute
   AuthWWorkspaceIdIndexRoute: typeof AuthWWorkspaceIdIndexRoute
   AuthWWorkspaceIdCChannelIdRoute: typeof AuthWWorkspaceIdCChannelIdRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthProfileRoute: AuthProfileRoute,
+  AuthProfileRoute: AuthProfileRouteWithChildren,
   AuthWWorkspaceIdAdminRoute: AuthWWorkspaceIdAdminRoute,
   AuthWWorkspaceIdIndexRoute: AuthWWorkspaceIdIndexRoute,
   AuthWWorkspaceIdCChannelIdRoute: AuthWWorkspaceIdCChannelIdRoute,
@@ -212,3 +243,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
