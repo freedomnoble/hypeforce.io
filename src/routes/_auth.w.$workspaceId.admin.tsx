@@ -120,10 +120,40 @@ function AdminPage() {
         .maybeSingle();
       setBrandVoice((ws as any)?.brand_voice ?? "");
 
-      await loadKB();
+      await Promise.all([loadKB(), loadAgents(), loadConns()]);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId]);
+
+  const loadAgents = async () => {
+    const { data } = await supabase
+      .from("agents")
+      .select("id,name,provider,preferred_route")
+      .eq("workspace_id", workspaceId)
+      .order("name");
+    setAgents((data ?? []) as AgentRow[]);
+  };
+
+  const loadConns = async () => {
+    try {
+      const data = await listConns();
+      setMyConns((data ?? []).filter((c: any) => c.status === "active").map((c: any) => c.provider));
+    } catch {
+      setMyConns([]);
+    }
+  };
+
+  const updateAgentRoute = async (agentId: string, route: string) => {
+    try {
+      await setRouteFn({ data: { agent_id: agentId, route } });
+      setAgents((prev) =>
+        prev.map((a) => (a.id === agentId ? { ...a, preferred_route: route === "lovable" ? null : route } : a)),
+      );
+      toast.success("Agent route updated");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed");
+    }
+  };
 
   const loadKB = async () => {
     const { data: kb } = await supabase
