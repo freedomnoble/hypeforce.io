@@ -90,6 +90,9 @@ function Gateway() {
         }
         if (ch) {
           log("channel ok → redirect", { channelId: ch.id });
+          // Set resolved BEFORE navigating so a re-render of this component
+          // (e.g. from auth state events) can't kick off another resolve.
+          resolvedRef.current = true;
           navigate({
             to: "/w/$workspaceId/c/$channelId",
             params: { workspaceId: ws.id, channelId: ch.id },
@@ -97,6 +100,7 @@ function Gateway() {
           });
         } else {
           log("no channel → workspace index");
+          resolvedRef.current = true;
           navigate({
             to: "/w/$workspaceId",
             params: { workspaceId: ws.id },
