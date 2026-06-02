@@ -11,6 +11,7 @@ import {
   User as UserIcon,
   Sparkles,
   ChevronDown,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -48,14 +49,21 @@ export interface Profile {
   avatar_url: string | null;
   email: string | null;
 }
+export interface DirectMessage {
+  id: string;
+  title: string | null;
+  participants: { user?: Profile | null; agent?: Agent | null }[];
+}
 
 export function WorkspaceShell({
   workspaceId,
   activeChannelId,
+  activeDmId,
   children,
 }: {
   workspaceId: string;
   activeChannelId?: string;
+  activeDmId?: string;
   children?: React.ReactNode;
 }) {
   const navigate = useNavigate();
@@ -63,6 +71,7 @@ export function WorkspaceShell({
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [dms, setDms] = useState<DirectMessage[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
@@ -91,6 +100,38 @@ export function WorkspaceShell({
         const { data: p } = await supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle();
         setProfile(p);
       }
+
+      // Load DMs the current user participates in.
+      const { data: dmRows } = await supabase
+        .from("direct_messages")
+        .select("id,title,dm_participants(user_id,agent_id,member_type)")
+        .eq("workspace_id", workspaceId)
+        .order("created_at", { ascending: false });
+      const agentMap = new Map((ag ?? []).map((a) => [a.id, a]));
+      const userIds = Array.from(
+        new Set(
+          (dmRows ?? []).flatMap((d: any) =>
+            (d.dm_participants ?? [])
+              .filter((p: any) => p.member_type === "user" && p.user_id)
+              .map((p: any) => p.user_id),
+          ),
+        ),
+      );
+      const profilesMap = new Map<string, Profile>();
+      if (userIds.length) {
+        const { data: ps } = await supabase.from("profiles").select("*").in("id", userIds);
+        (ps ?? []).forEach((p: any) => profilesMap.set(p.id, p));
+      }
+      setDms(
+        (dmRows ?? []).map((d: any) => ({
+          id: d.id,
+          title: d.title,
+          participants: (d.dm_participants ?? []).map((p: any) => ({
+            user: p.user_id ? profilesMap.get(p.user_id) ?? null : null,
+            agent: p.agent_id ? agentMap.get(p.agent_id) ?? null : null,
+          })),
+        })),
+      );
     })();
   }, [workspaceId]);
 
@@ -204,6 +245,74 @@ export function WorkspaceShell({
                 {c.is_pinned && <Sparkles className="w-3 h-3 text-electric ml-auto" />}
               </Link>
             ))}
+          </Section>
+
+          <Section
+            title="Direct Messages"
+            actionLabel="+ New"
+            onAction={async () => {
+              const handle = prompt(
+                "Start a DM with an agent. Enter the agent's @handle (e.g. claude):",
+              );
+              if (!handle) return;
+              const clean = handle.trim().replace(/^@/, "").toLowerCase();
+              const agent = agents.find((a) => a.handle.toLowerCase() === clean);
+              if (!agent) return toast.error(`No agent named @${clean} in this workspace.`);
+              const { data: u } = await supabase.auth.getUser();
+              if (!u.user) return;
+              const { data: dm, error } = await supabase
+                .from("direct_messages")
+                .insert({
+                  workspace_id: workspaceId,
+                  created_by: u.user.id,
+                  title: `@${agent.handle}`,
+                })
+                .select()
+                .single();
+              if (error || !dm) return toast.error(error?.message ?? "Failed to create DM");
+              const { error: pErr } = await supabase.from("dm_participants").insert([
+                { dm_id: dm.id, member_type: "user", user_id: u.user.id },
+                { dm_id: dm.id, member_type: "agent", agent_id: agent.id },
+              ]);
+              if (pErr) return toast.error(pErr.message);
+              navigate({ to: "/w/$workspaceId/d/$dmId", params: { workspaceId, dmId: dm.id } });
+            }}
+          >
+            {dms.length === 0 && (
+              <div className="px-2 py-1 text-[11px] text-muted-foreground font-mono">
+                No DMs yet — start one with an agent.
+              </div>
+            )}
+            {dms.map((d) => {
+              const other = d.participants.find((p) => p.agent) ?? d.participants[0];
+              const label =
+                d.title ??
+                (other?.agent
+                  ? `@${other.agent.handle}`
+                  : other?.user?.display_name ?? other?.user?.email ?? "DM");
+              const avatarUrl = other?.agent?.avatar_url ?? other?.user?.avatar_url ?? undefined;
+              return (
+                <Link
+                  key={d.id}
+                  to="/w/$workspaceId/d/$dmId"
+                  params={{ workspaceId, dmId: d.id }}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors ${
+                    d.id === activeDmId
+                      ? "bg-primary/15 text-foreground"
+                      : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                  }`}
+                >
+                  <Avatar className="w-5 h-5">
+                    <AvatarImage src={avatarUrl} />
+                    <AvatarFallback className="text-[10px]">
+                      {other?.agent ? <Bot className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate">{label}</span>
+                  <MessageSquare className="w-3 h-3 ml-auto opacity-50" />
+                </Link>
+              );
+            })}
           </Section>
 
           <Section title="Agents">
