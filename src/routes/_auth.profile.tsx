@@ -195,6 +195,22 @@ function ProfilePage() {
           </div>
         </div>
 
+        <div className="pt-2 border-t border-border">
+          <Link
+            to="/profile/connections"
+            className="flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-secondary/40 transition-colors"
+          >
+            <Plug className="w-4 h-4 text-electric" />
+            <div className="flex-1">
+              <div className="text-sm font-medium">AI Connections</div>
+              <div className="text-xs text-muted-foreground">
+                Bring your own OpenAI, Anthropic, Google, or Manus key.
+              </div>
+            </div>
+            <span className="text-muted-foreground">→</span>
+          </Link>
+        </div>
+
         <div className="flex justify-end gap-2 pt-2">
           <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button>
         </div>
