@@ -20,6 +20,7 @@ function log(...args: unknown[]) {
 
 function Gateway() {
   const navigate = useNavigate();
+  const ensureBootstrap = useServerFn(ensureUserBootstrap);
   const [status, setStatus] = useState<Status>({ kind: "loading", step: "session" });
   const [attempt, setAttempt] = useState(0);
   const inflight = useRef(false);
