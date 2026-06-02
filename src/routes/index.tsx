@@ -22,9 +22,13 @@ function Gateway() {
   const [status, setStatus] = useState<Status>({ kind: "loading", step: "session" });
   const [attempt, setAttempt] = useState(0);
   const inflight = useRef(false);
+  // Once we have resolved & navigated to a workspace/channel route, this is
+  // set to true so subsequent renders (or late effect re-runs) can never
+  // call navigate() again and cause a visible loop back to "loading workspace".
+  const resolvedRef = useRef(false);
 
   useEffect(() => {
-    if (inflight.current) return;
+    if (inflight.current || resolvedRef.current) return;
     inflight.current = true;
     let active = true;
 
