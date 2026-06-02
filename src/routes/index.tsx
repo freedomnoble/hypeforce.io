@@ -1,16 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureUserBootstrap } from "@/lib/bootstrap.functions";
 
 export const Route = createFileRoute("/")({
   component: Gateway,
 });
 
 type Status =
-  | { kind: "loading"; step: "session" | "workspace" | "channel" }
+  | { kind: "loading"; step: "session" | "workspace" | "channel" | "bootstrap" }
   | { kind: "error"; message: string; detail?: string }
-  | { kind: "no-session" }
-  | { kind: "no-workspace" };
+  | { kind: "no-session" };
 
 function log(...args: unknown[]) {
   // eslint-disable-next-line no-console
