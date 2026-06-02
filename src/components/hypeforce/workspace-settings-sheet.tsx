@@ -284,13 +284,11 @@ function AgentsPanel({ workspaceId }: { workspaceId: string }) {
     if (!(allowed as readonly string[]).includes(provider)) {
       return toast.error("Invalid provider");
     }
-    const { data: u } = await supabase.auth.getUser();
     const { error } = await supabase.from("agents").insert({
       workspace_id: workspaceId,
       name,
       handle,
       provider: provider as (typeof allowed)[number],
-      created_by: u.user?.id,
       system_prompt: `You are ${name}.`,
     });
     if (error) return toast.error(error.message);
