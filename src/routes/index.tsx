@@ -73,7 +73,7 @@ function Gateway() {
         if (!ws) {
           log("no workspace for user → running ensureUserBootstrap repair");
           setStatus({ kind: "loading", step: "bootstrap" });
-          const repaired = await ensureBootstrap({ data: undefined as never });
+          const repaired = await ensureBootstrap();
           if (!active) return;
           log("bootstrap ok → redirect", repaired);
           resolvedRef.current = true;
