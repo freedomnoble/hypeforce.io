@@ -94,11 +94,11 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
       pinned = (pf ?? []) as any;
     }
 
-    const history = (recent ?? [])
+    const history: { role: "user" | "assistant"; content: string }[] = (recent ?? [])
       .reverse()
       .map((m: any) => ({
-        role: m.author_type === "user" ? "user" : "assistant",
-        content: m.content,
+        role: (m.author_type === "user" ? "user" : "assistant") as "user" | "assistant",
+        content: m.content as string,
       }));
 
     const brandBlock = (ws as any)?.brand_voice
