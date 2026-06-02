@@ -49,14 +49,21 @@ export interface Profile {
   avatar_url: string | null;
   email: string | null;
 }
+export interface DirectMessage {
+  id: string;
+  title: string | null;
+  participants: { user?: Profile | null; agent?: Agent | null }[];
+}
 
 export function WorkspaceShell({
   workspaceId,
   activeChannelId,
+  activeDmId,
   children,
 }: {
   workspaceId: string;
   activeChannelId?: string;
+  activeDmId?: string;
   children?: React.ReactNode;
 }) {
   const navigate = useNavigate();
@@ -64,6 +71,7 @@ export function WorkspaceShell({
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [dms, setDms] = useState<DirectMessage[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
