@@ -1,16 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureUserBootstrap } from "@/lib/bootstrap.functions";
 
 export const Route = createFileRoute("/")({
   component: Gateway,
 });
 
 type Status =
-  | { kind: "loading"; step: "session" | "workspace" | "channel" }
+  | { kind: "loading"; step: "session" | "workspace" | "channel" | "bootstrap" }
   | { kind: "error"; message: string; detail?: string }
-  | { kind: "no-session" }
-  | { kind: "no-workspace" };
+  | { kind: "no-session" };
 
 function log(...args: unknown[]) {
   // eslint-disable-next-line no-console
@@ -19,6 +20,7 @@ function log(...args: unknown[]) {
 
 function Gateway() {
   const navigate = useNavigate();
+  const ensureBootstrap = useServerFn(ensureUserBootstrap);
   const [status, setStatus] = useState<Status>({ kind: "loading", step: "session" });
   const [attempt, setAttempt] = useState(0);
   const inflight = useRef(false);
@@ -69,8 +71,20 @@ function Gateway() {
           return;
         }
         if (!ws) {
-          log("no workspace for user");
-          setStatus({ kind: "no-workspace" });
+          log("no workspace for user → running ensureUserBootstrap repair");
+          setStatus({ kind: "loading", step: "bootstrap" });
+          const repaired = await ensureBootstrap();
+          if (!active) return;
+          log("bootstrap ok → redirect", repaired);
+          resolvedRef.current = true;
+          navigate({
+            to: "/w/$workspaceId/c/$channelId",
+            params: {
+              workspaceId: repaired.workspaceId,
+              channelId: repaired.channelId,
+            },
+            replace: true,
+          });
           return;
         }
         log("workspace ok", { workspaceId: ws.id });
@@ -155,19 +169,6 @@ function Gateway() {
 
         {status.kind === "no-session" && <div>redirecting to sign in…</div>}
 
-        {status.kind === "no-workspace" && (
-          <>
-            <div className="text-foreground font-display text-base">No workspace yet</div>
-            <div>Your account has no workspace. Sign out and back in to seed one, or contact support.</div>
-            <div className="flex gap-2 justify-center pt-1">
-              <button onClick={retry} className="text-electric hover:underline">Retry</button>
-              <span>·</span>
-              <button onClick={contactSupport} className="text-electric hover:underline">Contact support</button>
-              <span>·</span>
-              <button onClick={signOut} className="text-electric hover:underline">Sign out</button>
-            </div>
-          </>
-        )}
 
         {status.kind === "error" && (
           <>
