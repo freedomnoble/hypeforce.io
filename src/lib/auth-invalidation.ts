@@ -34,13 +34,28 @@ export interface AuthInvalidationHandler {
 export function createAuthInvalidationHandler(
   onTransition: (userId: string | null) => void,
 ): AuthInvalidationHandler {
-  // `undefined` sentinel so the very first SIGNED_IN with a real user fires,
-  // but repeated SIGNED_IN events for the same user do not.
+  // `undefined` means we have not observed the initial auth snapshot yet.
+  // INITIAL_SESSION establishes that baseline without invalidating the app;
+  // only later identity transitions should re-run protected route loaders.
   let lastUserId: string | null | undefined = undefined;
 
   return (event, session) => {
-    if (event !== "SIGNED_IN" && event !== "SIGNED_OUT") return;
     const uid = session?.user?.id ?? null;
+
+    if (event === "INITIAL_SESSION") {
+      lastUserId = uid;
+      return;
+    }
+
+    if (event !== "SIGNED_IN" && event !== "SIGNED_OUT") return;
+
+    if (lastUserId === undefined) {
+      lastUserId = uid;
+      if (uid === null) return;
+      onTransition(uid);
+      return;
+    }
+
     if (uid === lastUserId) return;
     lastUserId = uid;
     onTransition(uid);

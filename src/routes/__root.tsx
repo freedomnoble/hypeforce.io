@@ -117,6 +117,8 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   React.useEffect(() => {
+    // Keep exactly one root auth listener. The pure handler filters noisy
+    // Supabase events so router/query invalidation only happens on identity transitions.
     const handler = createAuthInvalidationHandler(() => {
       router.invalidate();
       queryClient.invalidateQueries();
