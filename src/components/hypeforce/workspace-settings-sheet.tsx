@@ -96,6 +96,7 @@ export function WorkspaceSettingsSheet({
         data: { workspaceId: workspace.id, name: trimmed },
       });
       setWorkspace((w: any) => (w ? { ...w, name } : w));
+      onWorkspaceUpdated?.({ id: workspace.id, name });
       toast.success("Workspace renamed");
     } catch (err: any) {
       toast.error(err?.message ?? "Couldn't rename workspace");
