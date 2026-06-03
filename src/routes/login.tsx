@@ -37,8 +37,7 @@ function LoginPage() {
           email,
           password,
           options: {
-            // Send confirmed users to the gateway resolver at "/", not "/app".
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: `${window.location.origin}/app`,
             data: { display_name: name || email.split("@")[0] },
           },
         });
