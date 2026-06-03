@@ -254,7 +254,7 @@ function ChannelPage() {
               type="button"
               onClick={handleRenameChannel}
               title="Rename channel"
-              className="comic-bubble font-display font-semibold hover:text-primary transition-colors"
+              className="comic-bubble font-display font-semibold hover:text-primary transition-colors whitespace-nowrap"
             >
               {channel?.name ?? "…"}
             </button>

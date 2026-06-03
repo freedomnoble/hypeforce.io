@@ -439,59 +439,65 @@
     0 20px 50px -22px oklch(0.30 0.06 55 / 0.30);
 }
 
-/* ---------- ARACHNA-VERSE — living comic book ---------- */
+/* ---------- ARACHNA-VERSE — neon Spider-Verse ----------
+   Inky near-black base with hot magenta, electric cyan, and red-orange
+   accents pulled from the Miles Morales / Across the Spider-Verse palette. */
 :root[data-theme="arachna-verse"] {
-  --background: oklch(0.96 0.04 95);
-  --foreground: oklch(0.14 0.02 280);
-  --card: oklch(0.99 0.02 95 / 0.95);
-  --card-foreground: oklch(0.14 0.02 280);
-  --popover: oklch(0.99 0.02 95 / 0.98);
-  --popover-foreground: oklch(0.14 0.02 280);
-  --primary: oklch(0.62 0.28 5);
-  --primary-foreground: oklch(0.99 0.01 95);
-  --secondary: oklch(0.88 0.10 95 / 0.6);
-  --secondary-foreground: oklch(0.14 0.02 280);
-  --muted: oklch(0.88 0.05 95 / 0.55);
-  --muted-foreground: oklch(0.35 0.04 280);
-  --accent: oklch(0.78 0.18 215);
-  --accent-foreground: oklch(0.14 0.02 280);
-  --destructive: oklch(0.60 0.28 25);
-  --border: oklch(0.14 0.02 280 / 0.85);
-  --input: oklch(0.14 0.02 280 / 0.08);
-  --ring: oklch(0.62 0.28 5 / 0.55);
-  --electric: oklch(0.62 0.28 5);
-  --violet: oklch(0.55 0.26 305);
+  --background: oklch(0.10 0.04 300);
+  --foreground: oklch(0.98 0.02 320);
+  --card: oklch(0.16 0.06 300 / 0.85);
+  --card-foreground: oklch(0.98 0.02 320);
+  --popover: oklch(0.14 0.06 300 / 0.96);
+  --popover-foreground: oklch(0.98 0.02 320);
+  --primary: oklch(0.68 0.32 350);            /* hot magenta/pink */
+  --primary-foreground: oklch(0.10 0.04 300);
+  --secondary: oklch(0.22 0.10 300 / 0.75);
+  --secondary-foreground: oklch(0.98 0.02 320);
+  --muted: oklch(0.20 0.08 300 / 0.70);
+  --muted-foreground: oklch(0.82 0.08 320);
+  --accent: oklch(0.78 0.22 210);             /* electric cyan */
+  --accent-foreground: oklch(0.10 0.04 300);
+  --destructive: oklch(0.66 0.30 28);          /* red-orange */
+  --destructive-foreground: oklch(0.98 0.02 320);
+  --border: oklch(0.68 0.32 350 / 0.55);
+  --input: oklch(1 0 0 / 0.06);
+  --ring: oklch(0.78 0.22 210 / 0.65);
+  --electric: oklch(0.78 0.22 210);
+  --violet: oklch(0.62 0.28 295);
   --mint: oklch(0.82 0.20 165);
-  --rail: oklch(0.92 0.08 95 / 0.85);
-  --rail-foreground: oklch(0.14 0.02 280);
-  --panel: oklch(0.99 0.02 95 / 0.9);
-  --sidebar: oklch(0.95 0.06 95 / 0.92);
-  --sidebar-foreground: oklch(0.14 0.02 280);
-  --sidebar-border: oklch(0.14 0.02 280 / 0.85);
+  --rail: oklch(0.12 0.05 300 / 0.92);
+  --rail-foreground: oklch(0.98 0.02 320);
+  --panel: oklch(0.16 0.06 300 / 0.85);
+  --sidebar: oklch(0.10 0.05 300 / 0.95);
+  --sidebar-foreground: oklch(0.98 0.02 320);
+  --sidebar-border: oklch(0.68 0.32 350 / 0.45);
   --font-display: "Bangers", "Space Grotesk", system-ui, sans-serif;
 }
 
-/* Halftone Ben-Day dot wash on cream comic paper */
+/* Inky base with neon halftone wash */
 :root[data-theme="arachna-verse"] body {
   background-image:
-    radial-gradient(oklch(0.62 0.28 5 / 0.18) 1.2px, transparent 1.6px),
-    radial-gradient(oklch(0.78 0.18 215 / 0.16) 1.2px, transparent 1.6px),
-    linear-gradient(180deg, oklch(0.97 0.05 95), oklch(0.93 0.07 90));
-  background-size: 6px 6px, 6px 6px, 100% 100%;
-  background-position: 0 0, 3px 3px, 0 0;
+    radial-gradient(oklch(0.68 0.32 350 / 0.18) 1.2px, transparent 1.6px),
+    radial-gradient(oklch(0.78 0.22 210 / 0.14) 1.2px, transparent 1.6px),
+    radial-gradient(ellipse at 15% 0%, oklch(0.62 0.28 295 / 0.45), transparent 55%),
+    radial-gradient(ellipse at 100% 100%, oklch(0.66 0.30 28 / 0.35), transparent 55%),
+    linear-gradient(180deg, oklch(0.10 0.04 300), oklch(0.07 0.04 300));
+  background-size: 6px 6px, 6px 6px, auto, auto, 100% 100%;
+  background-position: 0 0, 3px 3px, 0 0, 0 0, 0 0;
 }
 
-/* Inked comic-frame panels with offset drop shadow */
+/* Inked comic-frame panels with neon-magenta border and offset shadow */
 :root[data-theme="arachna-verse"] .glass,
 :root[data-theme="arachna-verse"] .glass-strong {
   background:
-    radial-gradient(oklch(0.14 0.02 280 / 0.08) 1px, transparent 1.2px) 0 0 / 4px 4px,
-    linear-gradient(135deg, oklch(0.99 0.02 95 / 0.96), oklch(0.95 0.06 95 / 0.92));
-  border: 2px solid oklch(0.14 0.02 280);
+    radial-gradient(oklch(0.78 0.22 210 / 0.10) 1px, transparent 1.2px) 0 0 / 4px 4px,
+    linear-gradient(135deg, oklch(0.16 0.06 300 / 0.92), oklch(0.12 0.05 300 / 0.88));
+  border: 2px solid oklch(0.68 0.32 350 / 0.85);
   border-radius: 0.5rem;
   box-shadow:
-    4px 4px 0 0 oklch(0.14 0.02 280),
-    inset 0 0 0 1px oklch(1 0 0 / 0.5);
+    4px 4px 0 0 oklch(0.78 0.22 210 / 0.75),
+    inset 0 0 0 1px oklch(1 0 0 / 0.06),
+    0 0 24px -4px oklch(0.68 0.32 350 / 0.45);
 }
 
 :root[data-theme="arachna-verse"] h1,
@@ -500,9 +506,10 @@
   text-transform: uppercase;
   letter-spacing: 0.02em;
   text-shadow:
-    2px 2px 0 oklch(0.62 0.28 5 / 0.35),
-   -1px -1px 0 oklch(0.78 0.18 215 / 0.35);
+    2px 2px 0 oklch(0.68 0.32 350 / 0.7),
+   -1px -1px 0 oklch(0.78 0.22 210 / 0.65);
 }
+
 
 /* Comic-book thought bubble — opt-in via class="comic-bubble", themed only here */
 :root[data-theme="arachna-verse"] .comic-bubble {
