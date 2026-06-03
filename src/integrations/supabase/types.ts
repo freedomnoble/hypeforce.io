@@ -147,6 +147,33 @@ export type Database = {
           },
         ]
       }
+      custom_themes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          prompt: string | null
+          tokens: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          prompt?: string | null
+          tokens: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          prompt?: string | null
+          tokens?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       direct_messages: {
         Row: {
           created_at: string

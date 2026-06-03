@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ThemeImportRouteImport } from './routes/theme.import'
 import { Route as AuthProfileRouteImport } from './routes/_auth.profile'
 import { Route as AuthProfileConnectionsRouteImport } from './routes/_auth.profile.connections'
 import { Route as AuthWWorkspaceIdIndexRouteImport } from './routes/_auth.w.$workspaceId.index'
@@ -37,6 +38,11 @@ const AuthRoute = AuthRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ThemeImportRoute = ThemeImportRouteImport.update({
+  id: '/theme/import',
+  path: '/theme/import',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthProfileRoute = AuthProfileRouteImport.update({
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/profile': typeof AuthProfileRouteWithChildren
+  '/theme/import': typeof ThemeImportRoute
   '/profile/connections': typeof AuthProfileConnectionsRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/profile': typeof AuthProfileRouteWithChildren
+  '/theme/import': typeof ThemeImportRoute
   '/profile/connections': typeof AuthProfileConnectionsRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/w/$workspaceId': typeof AuthWWorkspaceIdIndexRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/_auth/profile': typeof AuthProfileRouteWithChildren
+  '/theme/import': typeof ThemeImportRoute
   '/_auth/profile/connections': typeof AuthProfileConnectionsRoute
   '/_auth/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/_auth/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/profile'
+    | '/theme/import'
     | '/profile/connections'
     | '/w/$workspaceId/admin'
     | '/w/$workspaceId/'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/profile'
+    | '/theme/import'
     | '/profile/connections'
     | '/w/$workspaceId/admin'
     | '/w/$workspaceId'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/_auth/profile'
+    | '/theme/import'
     | '/_auth/profile/connections'
     | '/_auth/w/$workspaceId/admin'
     | '/_auth/w/$workspaceId/'
@@ -148,6 +160,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   AppRoute: typeof AppRoute
   LoginRoute: typeof LoginRoute
+  ThemeImportRoute: typeof ThemeImportRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -178,6 +191,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/theme/import': {
+      id: '/theme/import'
+      path: '/theme/import'
+      fullPath: '/theme/import'
+      preLoaderRoute: typeof ThemeImportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth/profile': {
@@ -260,6 +280,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   AppRoute: AppRoute,
   LoginRoute: LoginRoute,
+  ThemeImportRoute: ThemeImportRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
