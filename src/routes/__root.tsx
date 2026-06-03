@@ -142,6 +142,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <Outlet />
+        <SpiderverseGlitch />
         <Toaster richColors position="top-right" theme="dark" />
       </ThemeProvider>
     </QueryClientProvider>
