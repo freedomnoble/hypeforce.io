@@ -607,7 +607,20 @@ function BrandPanel({ workspaceId, initial }: { workspaceId: string; initial: st
 
 /* ============== THEMES ============== */
 function ThemesPanel() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, customThemes, deleteCustomTheme } = useTheme();
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const share = async (id: string, name: string, tokens: any) => {
+    try {
+      const payload = btoa(unescape(encodeURIComponent(JSON.stringify({ n: name, t: tokens }))));
+      const url = `${window.location.origin}/theme/import?d=${payload}`;
+      await navigator.clipboard.writeText(url);
+      toast.success("Share link copied to clipboard");
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+  };
+
   return (
     <div className="space-y-5">
       <header>
@@ -646,7 +659,75 @@ function ThemesPanel() {
             </button>
           );
         })}
+
+        {customThemes.map((c) => {
+          const id = `custom:${c.id}`;
+          const active = id === theme;
+          const swatchKeys = ["background", "panel", "primary", "accent"] as const;
+          return (
+            <div
+              key={c.id}
+              className={`relative rounded-2xl border p-4 transition-all ${
+                active
+                  ? "border-primary ring-2 ring-primary/40 bg-primary/5"
+                  : "border-border hover:border-primary/50 hover:bg-secondary/30"
+              }`}
+            >
+              <button onClick={() => setTheme(id)} className="text-left w-full">
+                <div className="flex items-center justify-between mb-3 pr-14">
+                  <div className="font-display font-semibold truncate">{c.name}</div>
+                  {active && <Check className="w-4 h-4 text-primary shrink-0" />}
+                </div>
+                <div className="flex gap-1.5 mb-3">
+                  {swatchKeys.map((k) => (
+                    <span
+                      key={k}
+                      className="w-7 h-7 rounded-md border border-border"
+                      style={{ background: (c.tokens as any)[k] }}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2">
+                  {c.prompt || "AI-generated theme"}
+                </p>
+              </button>
+              <div className="absolute top-3 right-3 flex gap-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    share(c.id, c.name, c.tokens);
+                  }}
+                  className="p-1.5 rounded-md hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition"
+                  title="Copy share link"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Delete "${c.name}"?`)) deleteCustomTheme(c.id);
+                  }}
+                  className="p-1.5 rounded-md hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition"
+                  title="Delete theme"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+
+        <button
+          onClick={() => setDialogOpen(true)}
+          className="text-left rounded-2xl border border-dashed border-border hover:border-primary/60 hover:bg-primary/5 p-4 transition-all min-h-[140px] flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <Wand2 className="w-6 h-6" />
+          <div className="font-display font-semibold">Custom Generated</div>
+          <p className="text-xs text-center">Describe a vibe — AI builds the palette.</p>
+        </button>
       </div>
+
+      <CustomThemeDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );
 }
