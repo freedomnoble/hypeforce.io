@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { TOKEN_KEYS, type ThemeTokens } from "@/lib/custom-theme.functions";
 
@@ -122,10 +123,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, [refreshCustomThemes]);
 
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Public marketing routes always render the default theme until we ship
+  // a landing-page theme switcher. Saved theme stays in localStorage.
+  const forceDefault = pathname === "/";
+
   // Decide which tokens are active and apply
   useEffect(() => {
     if (typeof document === "undefined") return;
     const root = document.documentElement;
+
+    if (forceDefault) {
+      applyCustomTokens(null);
+      root.dataset.theme = "default";
+      root.classList.remove("dark");
+      return;
+    }
 
     if (preview) {
       root.dataset.theme = "custom";
@@ -154,7 +167,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       root.classList.remove("dark");
     }
-  }, [theme, preview, customThemes]);
+  }, [theme, preview, customThemes, forceDefault]);
 
   const setTheme = (t: ThemeId) => {
     setPreview(null);
