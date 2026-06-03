@@ -325,7 +325,7 @@ function ChannelPage() {
               if (!a) return null;
               return (
                 <div key={`thinking-${id}`} className="flex gap-3 items-center opacity-80">
-                  <Avatar className="w-9 h-9">
+                  <Avatar className="spider-sense w-9 h-9">
                     <AvatarImage src={a.avatar_url ?? undefined} />
                     <AvatarFallback>
                       <Bot className="w-4 h-4" />
