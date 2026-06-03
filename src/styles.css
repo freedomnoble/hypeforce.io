@@ -602,8 +602,52 @@
 }
 @media (prefers-reduced-motion: reduce) {
   :root[data-theme="arachna-verse"] .spider-sense::before,
-  .spiderverse-glitch.is-active { animation: none !important; }
+  .spiderverse-glitch.is-active,
+  :root[data-theme="arachna-verse"] .av-glitching { animation: none !important; }
 }
+
+/* Per-element glitch — chromatic split + jitter + halftone speckle.
+   Applied transiently via JS by adding .av-glitching to a target element. */
+:root[data-theme="arachna-verse"] .av-glitching {
+  position: relative;
+  animation: av-el-jitter 0.42s steps(4) 1;
+  will-change: transform, filter;
+  z-index: 1;
+}
+:root[data-theme="arachna-verse"] .av-glitching::before,
+:root[data-theme="arachna-verse"] .av-glitching::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  animation: av-el-chroma 0.42s steps(4) 1;
+}
+:root[data-theme="arachna-verse"] .av-glitching::before {
+  background: oklch(0.65 0.30 5 / 0.55);
+  transform: translate(-3px, 1px);
+  clip-path: inset(8% 0 55% 0);
+}
+:root[data-theme="arachna-verse"] .av-glitching::after {
+  background:
+    radial-gradient(oklch(0.14 0.02 280 / 0.55) 1px, transparent 1.4px) 0 0 / 4px 4px,
+    oklch(0.78 0.22 215 / 0.45);
+  transform: translate(3px, -1px);
+  clip-path: inset(50% 0 6% 0);
+}
+@keyframes av-el-jitter {
+  0%   { transform: translate(0,0); filter: none; }
+  20%  { transform: translate(-2px, 1px) skewX(-2deg); filter: contrast(1.15) saturate(1.2); }
+  45%  { transform: translate(3px, -1px) skewX(1deg); filter: hue-rotate(-8deg) contrast(1.1); }
+  70%  { transform: translate(-1px, 2px); filter: hue-rotate(6deg); }
+  100% { transform: translate(0,0); filter: none; }
+}
+@keyframes av-el-chroma {
+  0%, 100% { opacity: 0; }
+  30%, 70% { opacity: 1; }
+}
+
 
 
 
