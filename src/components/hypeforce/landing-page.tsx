@@ -15,7 +15,7 @@ import {
   Star,
   Crown,
 } from "lucide-react";
-import heroAsset from "@/assets/hero-characters.png.asset.json";
+import heroAsset from "@/assets/hero-we-are-ready.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 
 const InfiniteGridBg = lazy(() =>
@@ -81,21 +81,16 @@ export function LandingPage() {
             Beta is open — first 1,000 users only
           </div>
 
-          <h1 className="hf-hero-stack relative">
-            <span className="hf-hero-bg block leading-[0.85] text-[16vw] sm:text-[14vw] lg:text-[200px] xl:text-[240px]">
-              HYPEFORCE
-            </span>
-            <span className="hf-hero-fg block absolute inset-x-0 -bottom-2 sm:-bottom-4">
-              <img
-                src={heroAsset.url}
-                alt="Hypeforce — work with your AI team"
-                className="mx-auto w-full max-w-[920px] select-none pointer-events-none drop-shadow-[0_25px_45px_oklch(0_0_0/0.55)]"
-                draggable={false}
-              />
-            </span>
-          </h1>
+          <div className="relative mx-auto w-full max-w-[1100px]">
+            <img
+              src={heroAsset.url}
+              alt="Hypeforce — we are ready"
+              className="w-full h-auto rounded-3xl select-none pointer-events-none drop-shadow-[0_30px_60px_oklch(0_0_0/0.55)]"
+              draggable={false}
+            />
+          </div>
 
-          <div className="relative mt-[18vw] sm:mt-[12vw] lg:mt-44 max-w-2xl mx-auto">
+          <div className="relative mt-10 sm:mt-14 max-w-2xl mx-auto">
             <p className="text-xl sm:text-2xl text-foreground/90 font-display tracking-tight">
               Work with your AI team — like Slack, but the channels are full of agents.
             </p>
