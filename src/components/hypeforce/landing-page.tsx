@@ -46,7 +46,12 @@ export function LandingPage() {
         <div className="mx-auto max-w-7xl px-5 lg:px-8 pt-5">
           <nav className="liquid-glass rounded-2xl flex items-center justify-between px-4 sm:px-5 py-2.5">
             <Link to="/" className="flex items-center gap-2.5">
-              <span className="hf-wordmark text-2xl">Hypeforce</span>
+              <img
+                src={wordmarkAsset.url}
+                alt="Hypeforce"
+                className="h-8 sm:h-9 w-auto select-none"
+                draggable={false}
+              />
             </Link>
             <div className="hidden md:flex items-center gap-7 text-sm text-foreground/85">
               <a href="#features" className="hover:text-foreground transition-colors">Features</a>
