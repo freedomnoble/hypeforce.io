@@ -202,3 +202,89 @@ export const createDmWithParticipants = createServerFn({ method: "POST" })
 
     return { dm };
   });
+
+// ---------- renameWorkspace ----------
+// Server-side so we can enforce ownership consistently and surface a clear
+// error if the caller is not the owner (RLS would otherwise silently no-op).
+
+const RenameWorkspaceInput = z.object({
+  workspaceId: z.string().uuid(),
+  name: z.string().trim().min(1).max(80),
+});
+
+export const renameWorkspace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RenameWorkspaceInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const admin = await getAdmin();
+
+    const { data: ws, error: wsErr } = await admin
+      .from("workspaces")
+      .select("id, owner_id")
+      .eq("id", data.workspaceId)
+      .maybeSingle();
+    if (wsErr) throw new Error(wsErr.message);
+    if (!ws) throw new Error("Workspace not found.");
+    if (ws.owner_id !== userId) throw new Error("Only the workspace owner can rename it.");
+
+    const { error: upErr } = await admin
+      .from("workspaces")
+      .update({ name: data.name })
+      .eq("id", data.workspaceId);
+    if (upErr) throw new Error(upErr.message);
+
+    return { workspaceId: data.workspaceId, name: data.name };
+  });
+
+// ---------- renameChannel ----------
+// Server-side so the creator-or-admin check is enforced uniformly and the
+// channel name is normalized (lowercased, hyphenated) the same way creation does.
+
+const RenameChannelInput = z.object({
+  channelId: z.string().uuid(),
+  name: z.string().trim().min(1).max(80),
+});
+
+export const renameChannel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RenameChannelInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const admin = await getAdmin();
+
+    const { data: ch, error: chErr } = await admin
+      .from("channels")
+      .select("id, workspace_id, created_by")
+      .eq("id", data.channelId)
+      .maybeSingle();
+    if (chErr) throw new Error(chErr.message);
+    if (!ch) throw new Error("Channel not found.");
+
+    const isCreator = ch.created_by === userId;
+    let isAdmin = false;
+    if (!isCreator) {
+      const { data: mem, error: memErr } = await admin
+        .from("workspace_members")
+        .select("role")
+        .eq("workspace_id", ch.workspace_id)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (memErr) throw new Error(memErr.message);
+      isAdmin = !!mem && (mem.role === "owner" || mem.role === "admin");
+    }
+    if (!isCreator && !isAdmin) {
+      throw new Error("Only the channel creator or a workspace admin can rename this channel.");
+    }
+
+    const normalized = data.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "");
+    if (!normalized) throw new Error("Channel name must contain letters or numbers.");
+
+    const { error: upErr } = await admin
+      .from("channels")
+      .update({ name: normalized })
+      .eq("id", data.channelId);
+    if (upErr) throw new Error(upErr.message);
+
+    return { channelId: data.channelId, name: normalized };
+  });
