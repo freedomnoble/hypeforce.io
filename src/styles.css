@@ -592,8 +592,8 @@
     inset 0 0 0 1px oklch(0.92 0.18 95);
   /* Ben-Day halftone — classic comic red + cyan dots, ~50% density */
   background-image:
-    radial-gradient(oklch(0.62 0.27 28 / 0.55) 1.1px, transparent 1.6px),
-    radial-gradient(oklch(0.70 0.18 215 / 0.45) 1.1px, transparent 1.6px);
+    radial-gradient(oklch(0.62 0.27 28 / 0.18) 1.1px, transparent 1.6px),
+    radial-gradient(oklch(0.70 0.18 215 / 0.14) 1.1px, transparent 1.6px);
   background-size: 5px 5px, 5px 5px;
   background-position: 0 0, 2.5px 2.5px;
   background-repeat: repeat;
