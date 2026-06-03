@@ -61,11 +61,13 @@ export function WorkspaceSettingsSheet({
   open,
   onOpenChange,
   initialSection = "members",
+  onWorkspaceUpdated,
 }: {
   workspaceId: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   initialSection?: Section;
+  onWorkspaceUpdated?: (workspace: { id: string; name: string }) => void;
 }) {
   const [section, setSection] = useState<Section>(initialSection);
   const [workspace, setWorkspace] = useState<any>(null);
