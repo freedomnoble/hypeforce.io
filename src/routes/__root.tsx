@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { createAuthInvalidationHandler } from "@/lib/auth-invalidation";
 import { ThemeProvider } from "@/components/hypeforce/theme-provider";
+import { SpiderverseGlitch } from "@/components/hypeforce/spiderverse-glitch";
 
 import appCss from "../styles.css?url";
 
@@ -95,6 +96,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Bangers&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -135,6 +142,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <Outlet />
+        <SpiderverseGlitch />
         <Toaster richColors position="top-right" theme="dark" />
       </ThemeProvider>
     </QueryClientProvider>

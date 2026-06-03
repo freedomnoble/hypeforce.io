@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
-export type ThemeId = "default" | "tool-time" | "hail-mary" | "coffee" | "paper-terminal";
+export type ThemeId = "default" | "tool-time" | "hail-mary" | "coffee" | "arachna-verse";
 
 export const THEMES: { id: ThemeId; name: string; description: string; swatch: string[] }[] = [
   {
@@ -28,10 +28,10 @@ export const THEMES: { id: ThemeId; name: string; description: string; swatch: s
     swatch: ["#f5ecdc", "#d9bfa0", "#7a5a3a", "#fff4dc"],
   },
   {
-    id: "paper-terminal",
-    name: "Paper Terminal",
-    description: "Off-white paper meets 80s ASCII terminal.",
-    swatch: ["#f3ecd8", "#e8dec0", "#3a5c2a", "#1a1a1a"],
+    id: "arachna-verse",
+    name: "Arachna-Verse",
+    description: "Living comic book — halftone dots, neon ink, and chromatic glitches.",
+    swatch: ["#fff8d6", "#ff2a6d", "#05d9e8", "#0a0a0a"],
   },
 ];
 

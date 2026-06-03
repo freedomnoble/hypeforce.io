@@ -254,7 +254,7 @@ function ChannelPage() {
               type="button"
               onClick={handleRenameChannel}
               title="Rename channel"
-              className="font-display font-semibold hover:text-primary transition-colors"
+              className="comic-bubble font-display font-semibold hover:text-primary transition-colors"
             >
               {channel?.name ?? "…"}
             </button>
@@ -325,7 +325,7 @@ function ChannelPage() {
               if (!a) return null;
               return (
                 <div key={`thinking-${id}`} className="flex gap-3 items-center opacity-80">
-                  <Avatar className="w-9 h-9">
+                  <Avatar className="spider-sense w-9 h-9">
                     <AvatarImage src={a.avatar_url ?? undefined} />
                     <AvatarFallback>
                       <Bot className="w-4 h-4" />
