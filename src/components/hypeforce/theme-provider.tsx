@@ -1,8 +1,17 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { TOKEN_KEYS, type ThemeTokens } from "@/lib/custom-theme.functions";
 
-export type ThemeId = "default" | "tool-time" | "hail-mary" | "coffee" | "arachna-verse";
+export type ThemeId = string;
 
-export const THEMES: { id: ThemeId; name: string; description: string; swatch: string[] }[] = [
+export type CustomTheme = {
+  id: string;
+  name: string;
+  prompt: string | null;
+  tokens: ThemeTokens;
+};
+
+export const THEMES: { id: string; name: string; description: string; swatch: string[] }[] = [
   {
     id: "default",
     name: "Blueprint",
@@ -35,29 +44,109 @@ export const THEMES: { id: ThemeId; name: string; description: string; swatch: s
   },
 ];
 
-/** Themes that ship with both a light and a dark variant. */
-export const THEMES_WITH_MODES: ThemeId[] = ["arachna-verse"];
+export const THEMES_WITH_MODES: string[] = ["arachna-verse"];
 
-export function themeHasModes(t: ThemeId) {
+export function themeHasModes(t: string) {
   return THEMES_WITH_MODES.includes(t);
 }
 
-const ThemeCtx = createContext<{ theme: ThemeId; setTheme: (t: ThemeId) => void }>({
+export function tokensToCss(tokens: ThemeTokens): string {
+  const lines = TOKEN_KEYS.map((k) => `  --${k}: ${tokens[k]};`);
+  let body = `:root[data-theme="custom"] {\n${lines.join("\n")}\n}`;
+  if (tokens.bodyGradient) {
+    body += `\n:root[data-theme="custom"] body { background-image: ${tokens.bodyGradient}; }`;
+  }
+  return body;
+}
+
+type Ctx = {
+  theme: ThemeId;
+  setTheme: (t: ThemeId) => void;
+  customThemes: CustomTheme[];
+  refreshCustomThemes: () => Promise<void>;
+  previewTokens: (tokens: ThemeTokens | null) => void;
+  saveCustomTheme: (name: string, prompt: string, tokens: ThemeTokens) => Promise<CustomTheme | null>;
+  deleteCustomTheme: (id: string) => Promise<void>;
+};
+
+const ThemeCtx = createContext<Ctx>({
   theme: "default",
   setTheme: () => {},
+  customThemes: [],
+  refreshCustomThemes: async () => {},
+  previewTokens: () => {},
+  saveCustomTheme: async () => null,
+  deleteCustomTheme: async () => {},
 });
+
+const STYLE_TAG_ID = "hf-custom-theme-style";
+
+function applyCustomTokens(tokens: ThemeTokens | null) {
+  if (typeof document === "undefined") return;
+  let tag = document.getElementById(STYLE_TAG_ID) as HTMLStyleElement | null;
+  if (!tokens) {
+    if (tag) tag.textContent = "";
+    return;
+  }
+  if (!tag) {
+    tag = document.createElement("style");
+    tag.id = STYLE_TAG_ID;
+    document.head.appendChild(tag);
+  }
+  tag.textContent = tokensToCss(tokens);
+}
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>("default");
+  const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
+  const [preview, setPreview] = useState<ThemeTokens | null>(null);
 
-  useEffect(() => {
-    const stored = (typeof window !== "undefined" && (localStorage.getItem("hf-theme") as ThemeId)) || "default";
-    setThemeState(stored);
+  const refreshCustomThemes = useCallback(async () => {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) {
+      setCustomThemes([]);
+      return;
+    }
+    const { data } = await supabase
+      .from("custom_themes")
+      .select("id, name, prompt, tokens")
+      .order("created_at", { ascending: false });
+    setCustomThemes((data ?? []) as CustomTheme[]);
   }, []);
 
   useEffect(() => {
+    const stored = (typeof window !== "undefined" && localStorage.getItem("hf-theme")) || "default";
+    setThemeState(stored);
+    refreshCustomThemes();
+    const { data: sub } = supabase.auth.onAuthStateChange(() => refreshCustomThemes());
+    return () => sub.subscription.unsubscribe();
+  }, [refreshCustomThemes]);
+
+  // Decide which tokens are active and apply
+  useEffect(() => {
     if (typeof document === "undefined") return;
     const root = document.documentElement;
+
+    if (preview) {
+      root.dataset.theme = "custom";
+      root.classList.remove("dark");
+      applyCustomTokens(preview);
+      return;
+    }
+
+    if (theme.startsWith("custom:")) {
+      const id = theme.slice("custom:".length);
+      const found = customThemes.find((c) => c.id === id);
+      if (found) {
+        root.dataset.theme = "custom";
+        root.classList.remove("dark");
+        applyCustomTokens(found.tokens);
+        return;
+      }
+      // Custom theme not loaded yet — fall through to default until refresh completes
+    }
+
+    applyCustomTokens(null);
     root.dataset.theme = theme;
     if (themeHasModes(theme)) {
       const stored = (localStorage.getItem("hf-arachna-mode") as "dark" | "light" | null) ?? "dark";
@@ -65,16 +154,55 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       root.classList.remove("dark");
     }
-  }, [theme]);
+  }, [theme, preview, customThemes]);
 
   const setTheme = (t: ThemeId) => {
+    setPreview(null);
     setThemeState(t);
     try {
       localStorage.setItem("hf-theme", t);
     } catch {}
   };
 
-  return <ThemeCtx.Provider value={{ theme, setTheme }}>{children}</ThemeCtx.Provider>;
+  const previewTokens = (tokens: ThemeTokens | null) => {
+    setPreview(tokens);
+  };
+
+  const saveCustomTheme = async (name: string, prompt: string, tokens: ThemeTokens) => {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return null;
+    const { data, error } = await supabase
+      .from("custom_themes")
+      .insert({ user_id: u.user.id, name, prompt, tokens })
+      .select("id, name, prompt, tokens")
+      .single();
+    if (error || !data) return null;
+    const row = data as CustomTheme;
+    setCustomThemes((prev) => [row, ...prev]);
+    return row;
+  };
+
+  const deleteCustomTheme = async (id: string) => {
+    await supabase.from("custom_themes").delete().eq("id", id);
+    setCustomThemes((prev) => prev.filter((c) => c.id !== id));
+    if (theme === `custom:${id}`) setTheme("default");
+  };
+
+  return (
+    <ThemeCtx.Provider
+      value={{
+        theme,
+        setTheme,
+        customThemes,
+        refreshCustomThemes,
+        previewTokens,
+        saveCustomTheme,
+        deleteCustomTheme,
+      }}
+    >
+      {children}
+    </ThemeCtx.Provider>
+  );
 }
 
 export function useTheme() {
