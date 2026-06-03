@@ -109,7 +109,6 @@ export function WorkspaceShell({
   const createWorkspaceFn = useServerFn(createWorkspaceWithOwner);
   const createChannelFn = useServerFn(createChannelWithMembership);
   const createDmFn = useServerFn(createDmWithParticipants);
-  const renameWorkspaceFn = useServerFn(renameWorkspace);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
