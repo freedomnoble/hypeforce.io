@@ -82,10 +82,13 @@ export function LandingPage() {
       {/* HERO */}
       <section className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 pt-14 sm:pt-20 pb-10">
         <div className="text-center">
-          <div className="inline-flex items-center gap-2 liquid-glass rounded-full px-3.5 py-1.5 text-xs uppercase tracking-[0.18em] text-foreground/85 mb-7">
+          <a
+            href="#pricing"
+            className="inline-flex items-center gap-2 liquid-glass rounded-full px-3.5 py-1.5 text-xs uppercase tracking-[0.18em] text-foreground/85 mb-7 hover:text-foreground transition-colors"
+          >
             <Crown className="w-3.5 h-3.5 text-electric" />
             Beta is open — first 1,000 users only
-          </div>
+          </a>
 
           <div className="relative mx-auto w-full max-w-[1100px]">
             <img
