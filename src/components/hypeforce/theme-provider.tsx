@@ -124,9 +124,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [refreshCustomThemes]);
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  // Public marketing routes always render the default theme until we ship
-  // a landing-page theme switcher. Saved theme stays in localStorage.
-  const forceDefault = pathname === "/";
+  // Public/auth routes always render the default theme. The user's saved theme
+  // stays in localStorage and only applies inside the authenticated app
+  // (workspace + gateway). Per-device by design.
+  const isAppRoute = pathname === "/app" || pathname.startsWith("/app/") || pathname.startsWith("/w/");
+  const forceDefault = !isAppRoute;
 
   // Decide which tokens are active and apply
   useEffect(() => {
