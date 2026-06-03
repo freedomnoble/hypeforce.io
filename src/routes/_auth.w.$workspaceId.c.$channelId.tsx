@@ -248,17 +248,17 @@ function ChannelPage() {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <header className="h-14 border-b border-border glass-strong flex items-center px-4 gap-3 flex-shrink-0">
-            <Hash className="w-4 h-4 text-muted-foreground" />
+          <header className="thought-panel h-14 flex items-center px-4 gap-3 flex-shrink-0">
+            <Hash className="w-4 h-4" />
             <button
               type="button"
               onClick={handleRenameChannel}
               title="Rename channel"
-              className="comic-bubble font-display font-semibold hover:text-primary transition-colors whitespace-nowrap"
+              className="font-display font-semibold text-lg hover:opacity-70 transition-opacity whitespace-nowrap"
             >
               {channel?.name ?? "…"}
             </button>
-            <span className="text-[10px] uppercase tracking-wider font-mono px-1.5 py-0.5 rounded bg-accent/30 text-accent-foreground border border-border">
+            <span className="text-[10px] uppercase tracking-wider font-mono px-1.5 py-0.5 rounded-none bg-background/20 border-2 border-current">
               channel
             </span>
             <Button
