@@ -21,11 +21,14 @@ import {
   User as UserIcon,
   MoreHorizontal,
   Smile,
+  Pencil,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 import { invokeAgentRouter } from "@/lib/agent-router.functions";
+import { renameChannel } from "@/lib/collab.functions";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/c/$channelId")({
   component: ChannelPage,
