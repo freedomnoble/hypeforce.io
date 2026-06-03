@@ -16,7 +16,7 @@ import {
   Crown,
 } from "lucide-react";
 import heroAsset from "@/assets/hero-we-are-ready.png.asset.json";
-import wordmarkAsset from "@/assets/hypeforce-wordmark.png.asset.json";
+import wordmarkAsset from "@/assets/hypeforce-wordmark-white.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 
 const InfiniteGridBg = lazy(() =>
