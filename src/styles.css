@@ -439,66 +439,172 @@
     0 20px 50px -22px oklch(0.30 0.06 55 / 0.30);
 }
 
-/* ---------- PAPER TERMINAL — off-white paper + 80s terminal ---------- */
-:root[data-theme="paper-terminal"] {
-  --background: oklch(0.94 0.025 85);
-  --foreground: oklch(0.20 0.03 130);
-  --card: oklch(0.97 0.018 85 / 0.95);
-  --card-foreground: oklch(0.20 0.03 130);
-  --popover: oklch(0.97 0.018 85 / 0.98);
-  --popover-foreground: oklch(0.20 0.03 130);
-  --primary: oklch(0.42 0.14 145);
-  --primary-foreground: oklch(0.97 0.02 85);
-  --secondary: oklch(0.88 0.03 85 / 0.6);
-  --secondary-foreground: oklch(0.20 0.03 130);
-  --muted: oklch(0.88 0.025 85 / 0.55);
-  --muted-foreground: oklch(0.40 0.06 130);
-  --accent: oklch(0.45 0.16 140);
-  --accent-foreground: oklch(0.97 0.02 85);
-  --border: oklch(0.20 0.03 130 / 0.25);
-  --input: oklch(0.20 0.03 130 / 0.08);
-  --ring: oklch(0.42 0.14 145 / 0.45);
-  --electric: oklch(0.42 0.16 140);
-  --violet: oklch(0.45 0.12 25);
-  --mint: oklch(0.55 0.16 140);
-  --rail: oklch(0.92 0.03 85 / 0.75);
-  --rail-foreground: oklch(0.20 0.03 130);
-  --panel: oklch(0.97 0.02 85 / 0.85);
-  --sidebar: oklch(0.95 0.025 85 / 0.85);
-  --sidebar-foreground: oklch(0.20 0.03 130);
-  --font-display: "JetBrains Mono", ui-monospace, monospace;
-  --font-sans: "JetBrains Mono", ui-monospace, monospace;
+/* ---------- ARACHNA-VERSE — living comic book ---------- */
+:root[data-theme="arachna-verse"] {
+  --background: oklch(0.96 0.04 95);
+  --foreground: oklch(0.14 0.02 280);
+  --card: oklch(0.99 0.02 95 / 0.95);
+  --card-foreground: oklch(0.14 0.02 280);
+  --popover: oklch(0.99 0.02 95 / 0.98);
+  --popover-foreground: oklch(0.14 0.02 280);
+  --primary: oklch(0.62 0.28 5);
+  --primary-foreground: oklch(0.99 0.01 95);
+  --secondary: oklch(0.88 0.10 95 / 0.6);
+  --secondary-foreground: oklch(0.14 0.02 280);
+  --muted: oklch(0.88 0.05 95 / 0.55);
+  --muted-foreground: oklch(0.35 0.04 280);
+  --accent: oklch(0.78 0.18 215);
+  --accent-foreground: oklch(0.14 0.02 280);
+  --destructive: oklch(0.60 0.28 25);
+  --border: oklch(0.14 0.02 280 / 0.85);
+  --input: oklch(0.14 0.02 280 / 0.08);
+  --ring: oklch(0.62 0.28 5 / 0.55);
+  --electric: oklch(0.62 0.28 5);
+  --violet: oklch(0.55 0.26 305);
+  --mint: oklch(0.82 0.20 165);
+  --rail: oklch(0.92 0.08 95 / 0.85);
+  --rail-foreground: oklch(0.14 0.02 280);
+  --panel: oklch(0.99 0.02 95 / 0.9);
+  --sidebar: oklch(0.95 0.06 95 / 0.92);
+  --sidebar-foreground: oklch(0.14 0.02 280);
+  --sidebar-border: oklch(0.14 0.02 280 / 0.85);
+  --font-display: "Bangers", "Space Grotesk", system-ui, sans-serif;
 }
-:root[data-theme="paper-terminal"] body {
+
+/* Halftone Ben-Day dot wash on cream comic paper */
+:root[data-theme="arachna-verse"] body {
   background-image:
-    repeating-linear-gradient(0deg, oklch(0.20 0.03 130 / 0.045) 0 1px, transparent 1px 3px),
-    radial-gradient(ellipse at 50% 0%, oklch(0.88 0.04 85 / 0.6), transparent 60%),
-    linear-gradient(180deg, oklch(0.96 0.025 85), oklch(0.92 0.03 85));
+    radial-gradient(oklch(0.62 0.28 5 / 0.18) 1.2px, transparent 1.6px),
+    radial-gradient(oklch(0.78 0.18 215 / 0.16) 1.2px, transparent 1.6px),
+    linear-gradient(180deg, oklch(0.97 0.05 95), oklch(0.93 0.07 90));
+  background-size: 6px 6px, 6px 6px, 100% 100%;
+  background-position: 0 0, 3px 3px, 0 0;
 }
-:root[data-theme="paper-terminal"] .glass,
-:root[data-theme="paper-terminal"] .glass-strong {
+
+/* Inked comic-frame panels with offset drop shadow */
+:root[data-theme="arachna-verse"] .glass,
+:root[data-theme="arachna-verse"] .glass-strong {
   background:
-    repeating-linear-gradient(0deg, oklch(0.20 0.03 130 / 0.035) 0 1px, transparent 1px 3px),
-    linear-gradient(135deg, oklch(0.98 0.018 85 / 0.95), oklch(0.94 0.03 85 / 0.92));
-  border: 1px solid oklch(0.20 0.03 130 / 0.35);
-  box-shadow:
-    inset 0 0 0 1px oklch(0.20 0.03 130 / 0.10),
-    0 4px 0 0 oklch(0.20 0.03 130 / 0.10);
+    radial-gradient(oklch(0.14 0.02 280 / 0.08) 1px, transparent 1.2px) 0 0 / 4px 4px,
+    linear-gradient(135deg, oklch(0.99 0.02 95 / 0.96), oklch(0.95 0.06 95 / 0.92));
+  border: 2px solid oklch(0.14 0.02 280);
   border-radius: 0.5rem;
+  box-shadow:
+    4px 4px 0 0 oklch(0.14 0.02 280),
+    inset 0 0 0 1px oklch(1 0 0 / 0.5);
 }
-:root[data-theme="paper-terminal"] h1,
-:root[data-theme="paper-terminal"] h2,
-:root[data-theme="paper-terminal"] h3,
-:root[data-theme="paper-terminal"] h4,
-:root[data-theme="paper-terminal"] h5 {
+
+:root[data-theme="arachna-verse"] h1,
+:root[data-theme="arachna-verse"] h2,
+:root[data-theme="arachna-verse"] h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-shadow:
+    2px 2px 0 oklch(0.62 0.28 5 / 0.35),
+   -1px -1px 0 oklch(0.78 0.18 215 / 0.35);
+}
+
+/* Comic-book thought bubble — opt-in via class="comic-bubble", themed only here */
+:root[data-theme="arachna-verse"] .comic-bubble {
+  position: relative;
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: oklch(0.97 0.14 100);
+  color: oklch(0.14 0.02 280);
+  border: 2px solid oklch(0.14 0.02 280);
+  border-radius: 0.5rem;
+  font-family: var(--font-display);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  box-shadow: 3px 3px 0 0 oklch(0.14 0.02 280);
 }
-:root[data-theme="paper-terminal"] .paper-panel {
+:root[data-theme="arachna-verse"] .comic-bubble::after {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  bottom: -8px;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  border-right: 2px solid oklch(0.14 0.02 280);
+  border-bottom: 2px solid oklch(0.14 0.02 280);
+  transform: rotate(45deg);
+}
+
+/* Spider-sense squigglies — opt-in via class="spider-sense" */
+:root[data-theme="arachna-verse"] .spider-sense {
+  position: relative;
+}
+:root[data-theme="arachna-verse"] .spider-sense::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  width: 56px;
+  height: 18px;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 56 18'><g fill='none' stroke-width='2.2' stroke-linecap='round'><path d='M2 12 q4 -8 8 0 t8 0 t8 0 t8 0 t8 0 t8 0' stroke='%23ff2a6d'/><path d='M2 9 q4 -8 8 0 t8 0 t8 0 t8 0 t8 0 t8 0 t8 0' stroke='%2305d9e8' opacity='.7'/></g></svg>");
+  background-repeat: no-repeat;
+  animation: spider-sense-wiggle 0.45s steps(2) infinite;
+}
+@keyframes spider-sense-wiggle {
+  0%   { transform: translate(-50%, 0) rotate(-3deg); }
+  50%  { transform: translate(calc(-50% + 2px), -1px) rotate(3deg); }
+  100% { transform: translate(-50%, 0) rotate(-3deg); }
+}
+
+/* Random screen glitch overlay — only visible in arachna-verse, never blocks input */
+.spiderverse-glitch {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+:root[data-theme="arachna-verse"] .spiderverse-glitch.is-active {
+  animation: glitch-flash 0.45s steps(3) 1;
+}
+.spiderverse-glitch .band {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  height: 14px;
+  background:
+    linear-gradient(90deg,
+      transparent,
+      oklch(0.65 0.28 5 / 0.65) 30%,
+      oklch(0.78 0.22 215 / 0.65) 60%,
+      transparent);
+  filter: blur(0.5px) contrast(1.3);
+  mix-blend-mode: screen;
+}
+.spiderverse-glitch .band.b1 { top: 22%; transform: translateX(-30%); }
+.spiderverse-glitch .band.b2 { top: 62%; height: 6px; transform: translateX(20%); }
+.spiderverse-glitch .dots {
+  position: absolute;
+  inset: 0;
   background-image:
-    repeating-linear-gradient(0deg, oklch(0.20 0.03 130 / 0.05) 0 1px, transparent 1px 3px),
-    linear-gradient(135deg, oklch(0.97 0.02 85), oklch(0.93 0.03 85));
+    radial-gradient(oklch(0.62 0.28 5 / 0.6) 2px, transparent 2.4px),
+    radial-gradient(oklch(0.78 0.18 215 / 0.55) 2px, transparent 2.4px);
+  background-size: 22px 22px, 22px 22px;
+  background-position: 0 0, 11px 11px;
+  opacity: 0.35;
+  -webkit-mask-image: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), black 0, transparent 220px);
+  mask-image: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), black 0, transparent 220px);
 }
+@keyframes glitch-flash {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; transform: translate(-3px, 1px); }
+  50%  { opacity: 0.8; transform: translate(2px, -2px); }
+  80%  { opacity: 1; transform: translate(-1px, 0); }
+  100% { opacity: 0; transform: translate(0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="arachna-verse"] .spider-sense::before,
+  .spiderverse-glitch.is-active { animation: none !important; }
+}
+
 
 
 
