@@ -250,10 +250,26 @@ function ChannelPage() {
           {/* Header */}
           <header className="h-14 border-b border-border glass-strong flex items-center px-4 gap-3 flex-shrink-0">
             <Hash className="w-4 h-4 text-muted-foreground" />
-            <div className="font-display font-semibold">{channel?.name ?? "…"}</div>
+            <button
+              type="button"
+              onClick={handleRenameChannel}
+              title="Rename channel"
+              className="font-display font-semibold hover:text-primary transition-colors"
+            >
+              {channel?.name ?? "…"}
+            </button>
             <span className="text-[10px] uppercase tracking-wider font-mono px-1.5 py-0.5 rounded bg-accent/30 text-accent-foreground border border-border">
               channel
             </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              title="Rename channel"
+              onClick={handleRenameChannel}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
             {channel?.topic && (
               <>
                 <div className="w-px h-4 bg-border mx-1" />
