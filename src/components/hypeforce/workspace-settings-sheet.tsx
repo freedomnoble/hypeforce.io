@@ -36,6 +36,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { THEMES, useTheme, type ThemeId } from "./theme-provider";
+import { CustomThemeDialog } from "./custom-theme-dialog";
+import { Share2, Wand2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   listMyConnections,
