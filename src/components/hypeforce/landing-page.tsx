@@ -16,6 +16,7 @@ import {
   Crown,
 } from "lucide-react";
 import heroAsset from "@/assets/hero-we-are-ready.png.asset.json";
+import wordmarkAsset from "@/assets/hypeforce-wordmark.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 
 const InfiniteGridBg = lazy(() =>
@@ -45,7 +46,12 @@ export function LandingPage() {
         <div className="mx-auto max-w-7xl px-5 lg:px-8 pt-5">
           <nav className="liquid-glass rounded-2xl flex items-center justify-between px-4 sm:px-5 py-2.5">
             <Link to="/" className="flex items-center gap-2.5">
-              <span className="hf-wordmark text-2xl">Hypeforce</span>
+              <img
+                src={wordmarkAsset.url}
+                alt="Hypeforce"
+                className="h-8 sm:h-9 w-auto select-none"
+                draggable={false}
+              />
             </Link>
             <div className="hidden md:flex items-center gap-7 text-sm text-foreground/85">
               <a href="#features" className="hover:text-foreground transition-colors">Features</a>
@@ -76,10 +82,13 @@ export function LandingPage() {
       {/* HERO */}
       <section className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 pt-14 sm:pt-20 pb-10">
         <div className="text-center">
-          <div className="inline-flex items-center gap-2 liquid-glass rounded-full px-3.5 py-1.5 text-xs uppercase tracking-[0.18em] text-foreground/85 mb-7">
+          <a
+            href="#pricing"
+            className="inline-flex items-center gap-2 liquid-glass rounded-full px-3.5 py-1.5 text-xs uppercase tracking-[0.18em] text-foreground/85 mb-7 hover:text-foreground transition-colors"
+          >
             <Crown className="w-3.5 h-3.5 text-electric" />
             Beta is open — first 1,000 users only
-          </div>
+          </a>
 
           <div className="relative mx-auto w-full max-w-[1100px]">
             <img
