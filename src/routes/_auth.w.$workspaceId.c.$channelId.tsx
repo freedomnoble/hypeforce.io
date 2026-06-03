@@ -272,8 +272,8 @@ function ChannelPage() {
             </Button>
             {channel?.topic && (
               <>
-                <div className="w-px h-4 bg-border mx-1" />
-                <div className="text-sm text-muted-foreground truncate">{channel.topic}</div>
+                <div className="w-px h-4 bg-current opacity-40 mx-1" />
+                <div className="text-sm truncate">{channel.topic}</div>
               </>
             )}
             <div className="ml-auto flex items-center gap-2">
