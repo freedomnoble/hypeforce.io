@@ -6,6 +6,7 @@ import {
   createWorkspaceWithOwner,
   createChannelWithMembership,
   createDmWithParticipants,
+  renameWorkspace,
 } from "@/lib/collab.functions";
 import {
   Hash,
@@ -107,6 +108,7 @@ export function WorkspaceShell({
   const createWorkspaceFn = useServerFn(createWorkspaceWithOwner);
   const createChannelFn = useServerFn(createChannelWithMembership);
   const createDmFn = useServerFn(createDmWithParticipants);
+  const renameWorkspaceFn = useServerFn(renameWorkspace);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -368,14 +370,37 @@ export function WorkspaceShell({
       <aside className="hidden md:flex w-64 flex-col paper-panel rounded-2xl overflow-hidden">
 
         <div className="p-4 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
               <div className="text-xs uppercase tracking-wider text-muted-foreground font-mono">workspace</div>
-              <div className="font-display font-semibold text-lg">{workspace?.name ?? "…"}</div>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!workspace) return;
+                  const next = prompt("Rename workspace", workspace.name);
+                  const trimmed = next?.trim();
+                  if (!trimmed || trimmed === workspace.name) return;
+                  try {
+                    const { name } = await renameWorkspaceFn({
+                      data: { workspaceId: workspace.id, name: trimmed },
+                    });
+                    setWorkspace((w) => (w ? { ...w, name } : w));
+                    setWorkspaces((ws) => ws.map((w) => (w.id === workspace.id ? { ...w, name } : w)));
+                    toast.success("Workspace renamed");
+                  } catch (err: any) {
+                    toast.error(err?.message ?? "Couldn't rename workspace");
+                  }
+                }}
+                title="Rename workspace"
+                className="font-display font-semibold text-lg text-left truncate hover:text-primary transition-colors"
+              >
+                {workspace?.name ?? "…"}
+              </button>
             </div>
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
           </div>
         </div>
+
 
         <div className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-4 space-y-5 pt-3">
           <Section title="Channels" actionLabel="+ New" onAction={async () => {
