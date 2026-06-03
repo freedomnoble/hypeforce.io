@@ -40,6 +40,8 @@ import appIcon from "@/assets/app-icon.png";
 import { ClientOnly } from "@tanstack/react-router";
 import { lazy } from "react";
 import { WorkspaceSettingsSheet } from "./workspace-settings-sheet";
+import { AnimatedThemeToggler } from "./animated-theme-toggler";
+import { useTheme, themeHasModes } from "./theme-provider";
 const InfiniteGridBg = lazy(() =>
   import("./infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
 );
@@ -354,6 +356,14 @@ export function WorkspaceShell({
           <Plus className="w-4 h-4" />
         </button>
         <div className="flex-1" />
+        {themeHasModes(useTheme().theme) && (
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary"
+            title="Toggle light/dark"
+          >
+            <AnimatedThemeToggler />
+          </div>
+        )}
         <button
           onClick={() => setSettingsOpen(true)}
           className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary"
