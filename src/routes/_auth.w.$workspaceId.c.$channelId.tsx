@@ -54,6 +54,20 @@ interface PinnedFile {
 function ChannelPage() {
   const { workspaceId, channelId } = Route.useParams();
   const [channel, setChannel] = useState<{ name: string; topic: string | null } | null>(null);
+  const renameChannelFn = useServerFn(renameChannel);
+  const handleRenameChannel = async () => {
+    if (!channel) return;
+    const next = prompt("Rename channel", channel.name);
+    const trimmed = next?.trim();
+    if (!trimmed || trimmed === channel.name) return;
+    try {
+      const { name } = await renameChannelFn({ data: { channelId, name: trimmed } });
+      setChannel((c) => (c ? { ...c, name } : c));
+      toast.success("Channel renamed");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Couldn't rename channel");
+    }
+  };
   const [messages, setMessages] = useState<Message[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [channelAgentIds, setChannelAgentIds] = useState<string[]>([]);
