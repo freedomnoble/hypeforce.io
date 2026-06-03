@@ -440,9 +440,9 @@
 }
 
 /* ---------- ARACHNA-VERSE — neon Spider-Verse ----------
-   Inky near-black base with hot magenta, electric cyan, and red-orange
-   accents pulled from the Miles Morales / Across the Spider-Verse palette. */
-:root[data-theme="arachna-verse"] {
+   Two variants: DARK (default, applied under `.dark`) is inky neon;
+   LIGHT (applied under `:not(.dark)`) is bright comic-book cream. */
+:root[data-theme="arachna-verse"].dark {
   --background: oklch(0.10 0.04 300);
   --foreground: oklch(0.98 0.02 320);
   --card: oklch(0.16 0.06 300 / 0.85);

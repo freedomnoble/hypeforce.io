@@ -35,6 +35,13 @@ export const THEMES: { id: ThemeId; name: string; description: string; swatch: s
   },
 ];
 
+/** Themes that ship with both a light and a dark variant. */
+export const THEMES_WITH_MODES: ThemeId[] = ["arachna-verse"];
+
+export function themeHasModes(t: ThemeId) {
+  return THEMES_WITH_MODES.includes(t);
+}
+
 const ThemeCtx = createContext<{ theme: ThemeId; setTheme: (t: ThemeId) => void }>({
   theme: "default",
   setTheme: () => {},
@@ -50,7 +57,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof document === "undefined") return;
-    document.documentElement.dataset.theme = theme;
+    const root = document.documentElement;
+    root.dataset.theme = theme;
+    if (themeHasModes(theme)) {
+      const stored = (localStorage.getItem("hf-arachna-mode") as "dark" | "light" | null) ?? "dark";
+      root.classList.toggle("dark", stored === "dark");
+    } else {
+      root.classList.remove("dark");
+    }
   }, [theme]);
 
   const setTheme = (t: ThemeId) => {
