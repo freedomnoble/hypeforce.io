@@ -6,7 +6,6 @@ import {
   createWorkspaceWithOwner,
   createChannelWithMembership,
   createDmWithParticipants,
-  renameWorkspace,
 } from "@/lib/collab.functions";
 import {
   Hash,
