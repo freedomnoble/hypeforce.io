@@ -32,6 +32,7 @@ import {
   Mail,
   Check,
   ShieldCheck,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { THEMES, useTheme, type ThemeId } from "./theme-provider";
@@ -40,6 +41,7 @@ import {
   listMyConnections,
   setAgentRoute,
 } from "@/lib/ai-connections.functions";
+import { renameWorkspace } from "@/lib/collab.functions";
 
 type Section = "members" | "agents" | "knowledge" | "brand" | "themes" | "profile";
 
@@ -65,6 +67,7 @@ export function WorkspaceSettingsSheet({
 }) {
   const [section, setSection] = useState<Section>(initialSection);
   const [workspace, setWorkspace] = useState<any>(null);
+  const renameWorkspaceFn = useServerFn(renameWorkspace);
 
   useEffect(() => {
     if (!open) return;
@@ -79,6 +82,22 @@ export function WorkspaceSettingsSheet({
     })();
   }, [open, workspaceId, initialSection]);
 
+  const handleRename = async () => {
+    if (!workspace) return;
+    const next = prompt("Rename workspace", workspace.name);
+    const trimmed = next?.trim();
+    if (!trimmed || trimmed === workspace.name) return;
+    try {
+      const { name } = await renameWorkspaceFn({
+        data: { workspaceId: workspace.id, name: trimmed },
+      });
+      setWorkspace((w: any) => (w ? { ...w, name } : w));
+      toast.success("Workspace renamed");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Couldn't rename workspace");
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -91,6 +110,15 @@ export function WorkspaceSettingsSheet({
             <SheetTitle className="font-display text-xl">
               {workspace?.name ?? "Workspace"} — Settings
             </SheetTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              title="Rename workspace"
+              onClick={handleRename}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
           </div>
           <SheetDescription className="text-xs font-mono uppercase tracking-wider">
             Admin Console
