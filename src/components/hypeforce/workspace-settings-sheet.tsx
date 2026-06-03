@@ -61,11 +61,13 @@ export function WorkspaceSettingsSheet({
   open,
   onOpenChange,
   initialSection = "members",
+  onWorkspaceUpdated,
 }: {
   workspaceId: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   initialSection?: Section;
+  onWorkspaceUpdated?: (workspace: { id: string; name: string }) => void;
 }) {
   const [section, setSection] = useState<Section>(initialSection);
   const [workspace, setWorkspace] = useState<any>(null);
@@ -94,6 +96,7 @@ export function WorkspaceSettingsSheet({
         data: { workspaceId: workspace.id, name: trimmed },
       });
       setWorkspace((w: any) => (w ? { ...w, name } : w));
+      onWorkspaceUpdated?.({ id: workspace.id, name });
       toast.success("Workspace renamed");
     } catch (err: any) {
       toast.error(err?.message ?? "Couldn't rename workspace");

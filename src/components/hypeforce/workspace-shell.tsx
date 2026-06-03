@@ -634,6 +634,12 @@ export function WorkspaceShell({
         workspaceId={workspaceId}
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+        onWorkspaceUpdated={(updated) => {
+          setWorkspace((w) => (w ? { ...w, name: updated.name } : w));
+          setWorkspaces((list) =>
+            list.map((w) => (w.id === updated.id ? { ...w, name: updated.name } : w)),
+          );
+        }}
       />
 
       <AlertDialog open={!!pendingAgent} onOpenChange={(o) => !o && setPendingAgent(null)}>
