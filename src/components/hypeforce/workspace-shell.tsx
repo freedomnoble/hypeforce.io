@@ -383,29 +383,9 @@ export function WorkspaceShell({
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="text-xs uppercase tracking-wider text-muted-foreground font-mono">workspace</div>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!workspace) return;
-                  const next = prompt("Rename workspace", workspace.name);
-                  const trimmed = next?.trim();
-                  if (!trimmed || trimmed === workspace.name) return;
-                  try {
-                    const { name } = await renameWorkspaceFn({
-                      data: { workspaceId: workspace.id, name: trimmed },
-                    });
-                    setWorkspace((w) => (w ? { ...w, name } : w));
-                    setWorkspaces((ws) => ws.map((w) => (w.id === workspace.id ? { ...w, name } : w)));
-                    toast.success("Workspace renamed");
-                  } catch (err: any) {
-                    toast.error(err?.message ?? "Couldn't rename workspace");
-                  }
-                }}
-                title="Rename workspace"
-                className="font-display font-semibold text-lg text-left truncate hover:text-primary transition-colors"
-              >
+              <div className="font-display font-semibold text-lg truncate">
                 {workspace?.name ?? "…"}
-              </button>
+              </div>
             </div>
             <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
           </div>
