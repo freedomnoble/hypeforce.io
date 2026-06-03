@@ -604,6 +604,14 @@
   padding: 0.25rem 0.75rem;
 }
 
+/* Fallback for non-arachna themes — keep the channel header looking like
+   the previous glass-strong bar so the layout doesn't regress. */
+:root:not([data-theme="arachna-verse"]) .thought-panel {
+  border-bottom: 1px solid hsl(var(--border));
+  background: oklch(1 0 0 / 0.04);
+  backdrop-filter: blur(12px);
+}
+
 
 /* Spider-sense squigglies — opt-in via class="spider-sense" */
 :root[data-theme="arachna-verse"] .spider-sense {
