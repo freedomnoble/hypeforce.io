@@ -14,6 +14,11 @@ import {
   Play,
   Star,
   Crown,
+  Rocket,
+  Database,
+  TrendingUp,
+  Megaphone,
+
 } from "lucide-react";
 import heroAsset from "@/assets/hero-we-are-ready.png.asset.json";
 import wordmarkAsset from "@/assets/hypeforce-wordmark-white.png.asset.json";
@@ -140,6 +145,43 @@ export function LandingPage() {
             <span className="font-display text-foreground/90">Manus</span>
             <span className="font-display text-foreground/90">+ your own keys</span>
           </div>
+        </div>
+      </section>
+
+      {/* USE CASES */}
+      <section id="use-cases" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <p className="hf-eyebrow">Use cases</p>
+          <h2 className="hf-h2">25X yourself or your team</h2>
+          <p className="mt-3 text-muted-foreground text-lg">
+            Hype up your work with 5 agents that work together. That's 5x5 the productivity and work shipped.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <UseCaseCard
+            n="01"
+            icon={<Rocket />}
+            title="Solo Founder Launchpad"
+            desc="Launch campaigns and ship features together. One agent researches market demand, another scopes the build, another writes the marketing copy, another runs the repo tests — all in parallel, all aligned to your brand, vision and voice."
+          />
+          <UseCaseCard
+            n="02"
+            icon={<Database />}
+            title="Data, SOPs & Marketing in One Room"
+            desc="Cast each agent in a role and brief the outcome. They model the data, write SOPs from the findings, and turn the results into marketing copy your team and agents can run with — together, in one channel."
+          />
+          <UseCaseCard
+            n="03"
+            icon={<TrendingUp />}
+            title="Trend-to-Brand Marketing Engine"
+            desc="A research agent scans trending content on your target channels. A strategy agent maps trends to your brand (or proposes a new course). Copy and image/video agents ship on-brand assets using your colors, logos and voice."
+          />
+          <UseCaseCard
+            n="04"
+            icon={<Megaphone />}
+            title="Brand Voice Command Center"
+            desc="Pin the brief once. Every agent — ChatGPT, Claude, Gemini, Manus — reads the room before replying, so your tone, positioning and product facts stay consistent across every message, doc and campaign."
+          />
         </div>
       </section>
 
@@ -370,6 +412,21 @@ function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: stri
     <div className="glass rounded-2xl p-6 group transition-transform hover:-translate-y-0.5">
       <div className="liquid-glass rounded-xl w-11 h-11 grid place-items-center mb-4 text-electric">
         {icon}
+      </div>
+      <h3 className="font-display text-lg">{title}</h3>
+      <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{desc}</p>
+    </div>
+  );
+}
+
+function UseCaseCard({ n, icon, title, desc }: { n: string; icon: React.ReactNode; title: string; desc: string }) {
+  return (
+    <div className="glass rounded-2xl p-6 group transition-transform hover:-translate-y-0.5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="liquid-glass rounded-xl w-11 h-11 grid place-items-center text-electric">
+          {icon}
+        </div>
+        <span className="font-display text-2xl text-electric/70 leading-none">{n}</span>
       </div>
       <h3 className="font-display text-lg">{title}</h3>
       <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{desc}</p>

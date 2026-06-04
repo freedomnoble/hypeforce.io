@@ -1,65 +1,35 @@
-## Goal
+## Add Use Cases Section to Landing Page
 
-Add a new theme card in workspace settings → Themes called **Custom Generated**. Clicking it opens a prompt panel where the user describes the colors/vibe; an AI call produces a palette; the user previews it live and either applies+saves it to their account or discards. Saved themes can be shared with friends via a copyable link that opens an import screen.
+Insert a new section on the landing page between "Plays well with" (logo strip) and "The platform" (features grid) showcasing four concrete use cases.
 
-## UX flow
+### Placement
+File: `src/components/hypeforce/landing-page.tsx`
+Position: After the `PLAYS WELL WITH` `<section>` and before the `#features` `<section>`.
 
-1. In `ThemesPanel`, after the preset cards, render a dashed "+ Custom Generated" card. Clicking opens a modal (shadcn `Dialog`).
-2. Modal step 1 — **Prompt**: textarea ("Describe your vibe…"), optional name field, "Generate" button. Show spinner while generating.
-3. Modal step 2 — **Preview**: shows the 6-color palette swatches + sample chips (background, panel, primary button, accent, muted text). A live preview is also applied to the app underneath the modal (theme set temporarily). Buttons: "Regenerate", "Tweak prompt", "Apply & save".
-4. On Apply & save: insert into `custom_themes` table, set as active theme.
-5. Saved custom themes appear in the Themes grid alongside presets, each with a small "Share" icon → copies `https://<host>/theme/import?d=<base64-json>` to clipboard, and a "Delete" icon.
-6. Share link route `/theme/import` decodes the payload, shows the preview, and offers "Save to my themes" (requires sign-in) or "Just preview".
+### Section Content
 
-## Data model
+**Eyebrow:** "Use cases"
+**Headline (h2):** "25X yourself or your team"
+**Subtext:** "Hype up your work with 5 agents that work together. That's 5x5 the productivity and work shipped."
 
-New table `public.custom_themes`:
-- `id uuid pk`, `user_id uuid` (auth.users), `name text`, `prompt text`, `tokens jsonb`, `created_at timestamptz`
-- RLS: users read/insert/update/delete their own rows. GRANTs to authenticated + service_role.
+**Four use case cards** in a responsive grid (1 col mobile, 2 cols tablet+):
 
-`tokens` is a flat JSON of CSS variable values (background, foreground, card, primary, primary-foreground, secondary, muted, muted-foreground, accent, accent-foreground, border, ring, panel, sidebar, rail, electric, violet) in `oklch(...)` strings, plus an optional `bodyGradient` string.
+1. **Solo Founder Launchpad** — "Launch campaigns and ship features together. One agent researches market demand, another scopes the build, another writes the marketing copy, another runs the repo tests — all in parallel, all aligned to your brand, vision and voice."
 
-## Theme engine changes
+2. **Data, SOPs & Marketing in One Room** — "Cast each agent in a role and brief the outcome. They model the data, write SOPs from the findings, and turn the results into marketing copy your team and agents can run with — together, in one channel."
 
-`src/components/hypeforce/theme-provider.tsx`:
-- `ThemeId` becomes `string` (preset ids + `custom:<uuid>` for saved + `custom:preview` for unsaved preview).
-- Add `customThemes: CustomTheme[]`, `previewTheme(tokens)`, `clearPreview()`, `saveCustomTheme(name, prompt, tokens)`, `deleteCustomTheme(id)`, `setTheme(id)`.
-- On mount, fetch user's `custom_themes` via Supabase browser client; subscribe to updates is not needed.
-- A new effect injects a `<style id="hf-custom-theme">` tag whose body is `:root[data-theme="custom"] { --background: …; … }` whenever a custom theme (saved or preview) is active, and sets `data-theme="custom"` on `<html>`.
-- `THEMES_WITH_MODES` stays as-is (custom themes are single-mode for now per user's "colors + vibe only" choice).
+3. **Trend-to-Brand Marketing Engine** — "A research agent scans trending content on your target channels. A strategy agent maps trends to your brand (or proposes a new course). Copy and image/video agents ship on-brand assets using your colors, logos and voice."
 
-## AI generation
+4. **Brand Voice Command Center** (derived from features: shared context, pinned briefs, channel memory) — "Pin the brief once. Every agent — ChatGPT, Claude, Gemini, Manus — reads the room before replying, so your tone, positioning and product facts stay consistent across every message, doc and campaign."
 
-New server function `src/lib/custom-theme.functions.ts` (no auth middleware required for generation — only for persistence which happens via direct browser supabase insert under RLS):
+### Visual Treatment
+- Match existing section rhythm: `relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20`
+- Reuse existing classes: `hf-eyebrow`, `hf-h2`, `glass rounded-2xl p-6`
+- Each card: small icon tile (`liquid-glass rounded-xl w-11 h-11`, `text-electric`) using lucide icons already imported where possible (e.g. `Rocket`, `Database`, `TrendingUp`, `Megaphone` — add new icon imports from `lucide-react`), title in `font-display text-lg`, body in `text-sm text-muted-foreground leading-relaxed`.
+- Add a small numbered tag (01–04) in `text-electric/70 font-display` above each title, mirroring the `StepCard` aesthetic for visual rhyme with "How it works".
+- No new design tokens, no style.css changes.
 
-- `generateCustomTheme({ prompt })` calls Lovable AI Gateway (`google/gemini-3-flash-preview`) with AI SDK `generateText` + `Output.object` (Zod schema for the 17 token keys, each constrained to a regex matching `oklch(...)`).
-- System prompt: "You are a theme designer producing accessible oklch color tokens for a chat app. Ensure contrast ratio ≥ 4.5 between foreground/background and primary-foreground/primary…" plus the list of token roles.
-- Returns `{ tokens, name }` (suggested name).
-
-Reads `LOVABLE_API_KEY` from `process.env` inside the handler. Uses the shared `createLovableAiGatewayProvider` helper in `src/lib/ai-gateway.server.ts` (create if missing).
-
-## Sharing
-
-- Encoding: `btoa(JSON.stringify({ n: name, t: tokens }))` (URL-safe base64).
-- New route `src/routes/theme.import.tsx` (public): decodes the `d` query param, shows the palette + sample preview, "Apply preview", "Save to my themes" (calls supabase insert if authed; otherwise prompts sign in), and "Cancel" → home.
-- Share button uses `navigator.clipboard.writeText` and toasts "Share link copied".
-
-## Files to create
-
-- `supabase/migrations/<ts>_create_custom_themes.sql` (via migration tool)
-- `src/lib/custom-theme.functions.ts`
-- `src/lib/ai-gateway.server.ts` (if not present)
-- `src/components/hypeforce/custom-theme-dialog.tsx`
-- `src/routes/theme.import.tsx`
-
-## Files to edit
-
-- `src/components/hypeforce/theme-provider.tsx` — generalize id type, custom theme loading, preview/save/delete, dynamic style injection.
-- `src/components/hypeforce/workspace-settings-sheet.tsx` — render "+ Custom Generated" card, render saved custom themes with share/delete actions, mount the dialog.
-- `src/styles.css` — add a minimal `:root[data-theme="custom"]` baseline (variables come from the injected style tag; this just provides body gradient fallback).
-
-## Out of scope (per user)
-
-- No dark/light pair for generated themes.
-- No public discovery feed — sharing is link-only.
-- Layout, fonts, animations untouched.
+### Scope Guardrails
+- Frontend-only edit to one file.
+- No routing, auth, or backend changes.
+- Do not touch theme provider, hero, nav, pricing, FAQ, or footer.
