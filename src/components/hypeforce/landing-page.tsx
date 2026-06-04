@@ -367,10 +367,15 @@ export function LandingPage({
               <Bullet>Early access to new agents and features</Bullet>
               <Bullet>Direct line to the team in #founders</Bullet>
             </ul>
-            <Button asChild size="lg" variant="liquid" className="mt-7 w-full h-12 text-base">
-              <Link to="/login">
-                Claim my founder spot <ArrowRight className="w-4 h-4" />
-              </Link>
+            <Button
+              size="lg"
+              variant="liquid"
+              className="mt-7 w-full h-12 text-base"
+              onClick={handleCheckout}
+              disabled={checkoutLoading}
+            >
+              {checkoutLoading ? "Opening checkout…" : "Claim my founder spot"}{" "}
+              <ArrowRight className="w-4 h-4" />
             </Button>
             <p className="mt-3 text-center text-xs text-muted-foreground">
               Cancel anytime · Own your work and data
