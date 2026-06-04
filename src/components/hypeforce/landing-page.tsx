@@ -14,6 +14,11 @@ import {
   Play,
   Star,
   Crown,
+  Rocket,
+  Database,
+  TrendingUp,
+  Megaphone,
+
 } from "lucide-react";
 import heroAsset from "@/assets/hero-we-are-ready.png.asset.json";
 import wordmarkAsset from "@/assets/hypeforce-wordmark-white.png.asset.json";
