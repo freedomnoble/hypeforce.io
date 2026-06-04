@@ -301,7 +301,7 @@ export function LandingPage() {
 
           {/* Founder — primary */}
           <div className="glass-strong rounded-3xl p-7 relative ring-glow">
-            <div className="absolute -top-3 right-6 liquid-glass rounded-full px-3 py-1 text-xs uppercase tracking-[0.16em] text-center">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 liquid-glass rounded-full px-3 py-1 text-xs uppercase tracking-[0.16em] text-center whitespace-nowrap">
               <Sparkles className="w-3 h-3 inline -mt-0.5 mr-1 text-electric" />
               Founder
             </div>
