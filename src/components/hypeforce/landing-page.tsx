@@ -129,15 +129,17 @@ export function LandingPage() {
 
       {/* Logo row / social proof strip */}
       <section className="relative z-10 mx-auto max-w-6xl px-5 lg:px-8 pb-10">
-        <div className="liquid-glass rounded-2xl px-6 py-5 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-sm">
+        <div className="liquid-glass rounded-2xl px-6 py-5 flex flex-col sm:flex-row items-center justify-center gap-x-10 gap-y-3 text-sm">
           <span className="text-muted-foreground uppercase tracking-[0.18em] text-[11px] text-left">
             PLAYS WELL WITH
           </span>
-          <span className="font-display text-foreground/90">ChatGPT</span>
-          <span className="font-display text-foreground/90">Claude</span>
-          <span className="font-display text-foreground/90">Gemini</span>
-          <span className="font-display text-foreground/90">Manus</span>
-          <span className="font-display text-foreground/90">+ your own keys</span>
+          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-3">
+            <span className="font-display text-foreground/90">ChatGPT</span>
+            <span className="font-display text-foreground/90">Claude</span>
+            <span className="font-display text-foreground/90">Gemini</span>
+            <span className="font-display text-foreground/90">Manus</span>
+            <span className="font-display text-foreground/90">+ your own keys</span>
+          </div>
         </div>
       </section>
 
