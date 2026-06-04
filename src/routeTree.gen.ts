@@ -23,6 +23,7 @@ import { Route as PretentiousBillingRouteImport } from './routes/pretentious.bil
 import { Route as AuthProfileRouteImport } from './routes/_auth.profile'
 import { Route as AuthProfileConnectionsRouteImport } from './routes/_auth.profile.connections'
 import { Route as AuthWWorkspaceIdIndexRouteImport } from './routes/_auth.w.$workspaceId.index'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AuthWWorkspaceIdAdminRouteImport } from './routes/_auth.w.$workspaceId.admin'
 import { Route as AuthWWorkspaceIdDDmIdRouteImport } from './routes/_auth.w.$workspaceId.d.$dmId'
 import { Route as AuthWWorkspaceIdCChannelIdRouteImport } from './routes/_auth.w.$workspaceId.c.$channelId'
@@ -96,6 +97,12 @@ const AuthWWorkspaceIdIndexRoute = AuthWWorkspaceIdIndexRouteImport.update({
   path: '/w/$workspaceId/',
   getParentRoute: () => AuthRoute,
 } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthWWorkspaceIdAdminRoute = AuthWWorkspaceIdAdminRouteImport.update({
   id: '/w/$workspaceId/admin',
   path: '/w/$workspaceId/admin',
@@ -127,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/pretentious/': typeof PretentiousIndexRoute
   '/profile/connections': typeof AuthProfileConnectionsRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
   '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
   '/w/$workspaceId/d/$dmId': typeof AuthWWorkspaceIdDDmIdRoute
@@ -144,6 +152,7 @@ export interface FileRoutesByTo {
   '/pretentious': typeof PretentiousIndexRoute
   '/profile/connections': typeof AuthProfileConnectionsRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/w/$workspaceId': typeof AuthWWorkspaceIdIndexRoute
   '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
   '/w/$workspaceId/d/$dmId': typeof AuthWWorkspaceIdDDmIdRoute
@@ -164,6 +173,7 @@ export interface FileRoutesById {
   '/pretentious/': typeof PretentiousIndexRoute
   '/_auth/profile/connections': typeof AuthProfileConnectionsRoute
   '/_auth/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/_auth/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
   '/_auth/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
   '/_auth/w/$workspaceId/d/$dmId': typeof AuthWWorkspaceIdDDmIdRoute
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/pretentious/'
     | '/profile/connections'
     | '/w/$workspaceId/admin'
+    | '/api/public/payments/webhook'
     | '/w/$workspaceId/'
     | '/w/$workspaceId/c/$channelId'
     | '/w/$workspaceId/d/$dmId'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/pretentious'
     | '/profile/connections'
     | '/w/$workspaceId/admin'
+    | '/api/public/payments/webhook'
     | '/w/$workspaceId'
     | '/w/$workspaceId/c/$channelId'
     | '/w/$workspaceId/d/$dmId'
@@ -220,6 +232,7 @@ export interface FileRouteTypes {
     | '/pretentious/'
     | '/_auth/profile/connections'
     | '/_auth/w/$workspaceId/admin'
+    | '/api/public/payments/webhook'
     | '/_auth/w/$workspaceId/'
     | '/_auth/w/$workspaceId/c/$channelId'
     | '/_auth/w/$workspaceId/d/$dmId'
@@ -232,6 +245,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PretentiousRoute: typeof PretentiousRouteWithChildren
   ThemeImportRoute: typeof ThemeImportRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -334,6 +348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthWWorkspaceIdIndexRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_auth/w/$workspaceId/admin': {
       id: '/_auth/w/$workspaceId/admin'
       path: '/w/$workspaceId/admin'
@@ -415,7 +436,18 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PretentiousRoute: PretentiousRouteWithChildren,
   ThemeImportRoute: ThemeImportRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
