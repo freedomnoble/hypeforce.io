@@ -101,11 +101,11 @@ export function LandingPage() {
 
           <div className="relative mt-10 sm:mt-14 max-w-2xl mx-auto">
             <p className="text-xl sm:text-2xl text-foreground/90 font-display tracking-tight">
-              Work with your AI team — like Slack, but the channels are full of agents.
+              Work with your AI team — like Slack, but built for human & robot shared goals.
             </p>
             <p className="mt-4 text-base sm:text-lg text-muted-foreground">
               Brief ChatGPT, Claude, Gemini and Manus in one room. @-mention to target,
-              broadcast to brief the whole crew. Ship faster than a one-person team ever could.
+              broadcast to brief the whole crew. Share context and ship faster.
             </p>
             <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg" variant="liquid" className="text-base h-12 px-6">
@@ -121,7 +121,7 @@ export function LandingPage() {
               </Button>
             </div>
             <p className="mt-4 text-xs text-muted-foreground/80">
-              Cancel anytime · Own your work and data · No credit card to preview
+              Cancel anytime · Own your work and data
             </p>
           </div>
         </div>
@@ -130,8 +130,8 @@ export function LandingPage() {
       {/* Logo row / social proof strip */}
       <section className="relative z-10 mx-auto max-w-6xl px-5 lg:px-8 pb-10">
         <div className="liquid-glass rounded-2xl px-6 py-5 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-sm">
-          <span className="text-muted-foreground uppercase tracking-[0.18em] text-[11px]">
-            Plays well with
+          <span className="text-muted-foreground uppercase tracking-[0.18em] text-[11px] text-left">
+            PLAYS WELL WITH
           </span>
           <span className="font-display text-foreground/90">ChatGPT</span>
           <span className="font-display text-foreground/90">Claude</span>
@@ -145,7 +145,7 @@ export function LandingPage() {
       <section id="features" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <p className="hf-eyebrow">The platform</p>
-          <h2 className="hf-h2">A room for every project. A team for every room.</h2>
+          <h2 className="hf-h2">An intentional space for alignment across chatbots and humans.</h2>
           <p className="mt-3 text-muted-foreground text-lg">
             Hypeforce is a chat-first workspace where humans and agents collaborate
             in shared channels with shared context, shared memory and shared goals.
@@ -156,7 +156,7 @@ export function LandingPage() {
           <FeatureCard icon={<Bot />} title="A roster of agents" desc="ChatGPT, Claude, Gemini, Manus and custom agents — each with their own avatar, prompt and tools." />
           <FeatureCard icon={<Users />} title="@-mention to target" desc="@claude for the long thinking, @gemini for the fast pass, or just send a message and let the whole crew weigh in." />
           <FeatureCard icon={<Workflow />} title="Shared context" desc="Channel memory, pinned briefs, uploaded docs — every agent reads the room before it replies." />
-          <FeatureCard icon={<Zap />} title="Built for speed" desc="Glass UI tuned for keyboard-first humans. Switch channels, brief agents and ship in seconds." />
+          <FeatureCard icon={<Zap />} title="Built for speed" desc="Simple to navigate and set context, brand voice, and more.  Switch channels, brief agents and ship in seconds." />
           <FeatureCard icon={<Lock />} title="Your data, your keys" desc="Bring your own provider keys. Export anything, delete anything. Founders own their workspace." />
         </div>
       </section>
@@ -197,9 +197,9 @@ export function LandingPage() {
           <h2 className="hf-h2">Three steps from idea to shipped.</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <StepCard n="01" title="Make a channel" desc="Spin up #launch-plan, #brand-voice, #build-log — any project you'd open a Slack channel for." />
-          <StepCard n="02" title="Invite your team" desc="Drop in the agents you want — ChatGPT, Claude, Gemini, Manus — and a teammate or two." />
-          <StepCard n="03" title="Brief and ship" desc="Pin the brief, @-mention the right agent, and let the work happen in one place." />
+          <StepCard n="01" title="Make a channel" desc="Spin up #launch-plan, #brand-voice, #build-log — any project you'd open a channel for." />
+          <StepCard n="02" title="Invite your team" desc="Drop in the agents you want — ChatGPT, Claude, Gemini, Manus — and add teammate or two!" />
+          <StepCard n="03" title="Brief and ship" desc="Pin the brief, @-mention the agents, and let the work happen in one placewith one context." />
         </div>
       </section>
 
@@ -257,7 +257,7 @@ export function LandingPage() {
 
           {/* Founder — primary */}
           <div className="glass-strong rounded-3xl p-7 relative ring-glow">
-            <div className="absolute -top-3 right-6 liquid-glass rounded-full px-3 py-1 text-xs uppercase tracking-[0.16em]">
+            <div className="absolute -top-3 right-6 liquid-glass rounded-full px-3 py-1 text-xs uppercase tracking-[0.16em] text-center">
               <Sparkles className="w-3 h-3 inline -mt-0.5 mr-1 text-electric" />
               Founder
             </div>
@@ -333,7 +333,7 @@ export function LandingPage() {
       <section className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 pb-16">
         <div className="glass-strong rounded-3xl p-8 sm:p-12 text-center">
           <h2 className="font-display text-3xl sm:text-5xl tracking-tight">
-            Your AI team is waiting in <span className="text-electric">#launch-plan</span>.
+            Your Hypeforce is waiting in <span className="text-electric">#launch-plan</span>.
           </h2>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
             Claim one of the 1,000 founder seats and lock in $9/mo for life.
