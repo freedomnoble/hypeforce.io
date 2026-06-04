@@ -290,6 +290,9 @@ export function LandingPage({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Anchor — regular pricing */}
           <div className="glass rounded-3xl p-7 relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 liquid-glass rounded-full px-3 py-1 text-xs uppercase tracking-[0.16em] text-center whitespace-nowrap">
+              After first 1000 users
+            </div>
             <p className="hf-eyebrow opacity-80">Regular</p>
             <h3 className="font-display text-2xl mt-1">Standard seat</h3>
             <div className="mt-5 flex items-baseline gap-1.5">
