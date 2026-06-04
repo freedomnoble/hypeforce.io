@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createAuthInvalidationHandler } from "@/lib/auth-invalidation";
 import { ThemeProvider } from "@/components/hypeforce/theme-provider";
 import { SpiderverseGlitch } from "@/components/hypeforce/spiderverse-glitch";
+import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 
 import appCss from "../styles.css?url";
 
