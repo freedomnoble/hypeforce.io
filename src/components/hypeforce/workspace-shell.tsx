@@ -652,6 +652,14 @@ export function WorkspaceShell({
         }}
       />
 
+      <SupportFlyout
+        open={supportOpen}
+        onOpenChange={setSupportOpen}
+        defaultName={profile?.display_name ?? undefined}
+        defaultEmail={profile?.email ?? undefined}
+        userId={profile?.id ?? null}
+      />
+
       <AlertDialog open={!!pendingAgent} onOpenChange={(o) => !o && setPendingAgent(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
