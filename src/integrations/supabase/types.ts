@@ -585,13 +585,20 @@ export type Database = {
         Row: {
           admin_note: string | null
           amount_cents: number
+          cancel_at_period_end: boolean | null
           cancel_requested_at: string | null
           canceled_at: string | null
           created_at: string
           current_period_end: string | null
+          current_period_start: string | null
+          environment: string
           id: string
           interval: string
+          paddle_customer_id: string | null
+          paddle_subscription_id: string | null
           plan: string
+          price_id: string | null
+          product_id: string | null
           started_at: string
           status: string
           updated_at: string
@@ -600,13 +607,20 @@ export type Database = {
         Insert: {
           admin_note?: string | null
           amount_cents?: number
+          cancel_at_period_end?: boolean | null
           cancel_requested_at?: string | null
           canceled_at?: string | null
           created_at?: string
           current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
           id?: string
           interval?: string
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
           plan?: string
+          price_id?: string | null
+          product_id?: string | null
           started_at?: string
           status?: string
           updated_at?: string
@@ -615,13 +629,20 @@ export type Database = {
         Update: {
           admin_note?: string | null
           amount_cents?: number
+          cancel_at_period_end?: boolean | null
           cancel_requested_at?: string | null
           canceled_at?: string | null
           created_at?: string
           current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
           id?: string
           interval?: string
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
           plan?: string
+          price_id?: string | null
+          product_id?: string | null
           started_at?: string
           status?: string
           updated_at?: string
@@ -930,6 +951,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_active_subscription: {
+        Args: { check_env?: string; user_uuid: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
