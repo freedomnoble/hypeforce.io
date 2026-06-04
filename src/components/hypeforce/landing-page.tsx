@@ -23,6 +23,8 @@ import {
 import heroAsset from "@/assets/hero-we-are-ready.png.asset.json";
 import wordmarkAsset from "@/assets/hypeforce-wordmark-white.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
+import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { toast } from "sonner";
 
 const InfiniteGridBg = lazy(() =>
   import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
@@ -36,11 +38,35 @@ export function LandingPage({
   videoUrl?: string | null;
 } = {}) {
   const [signedIn, setSignedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | undefined>();
+  const [userId, setUserId] = useState<string | undefined>();
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+  const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    supabase.auth.getSession().then(({ data }) => {
+      setSignedIn(!!data.session);
+      setUserEmail(data.session?.user.email);
+      setUserId(data.session?.user.id);
+    });
   }, []);
+
+  const handleCheckout = async () => {
+    if (!signedIn) {
+      window.location.href = `/login?redirect=${encodeURIComponent("/#pricing")}`;
+      return;
+    }
+    try {
+      await openCheckout({
+        priceId: billing === "annual" ? "founder_annual" : "founder_monthly",
+        customerEmail: userEmail,
+        customData: userId ? { userId } : undefined,
+      });
+    } catch (e) {
+      console.error(e);
+      toast.error("Checkout failed to open. Please try again.");
+    }
+  };
 
   const monthly = 9;
   const annualPerMonth = +(monthly * 12 * 0.9 / 12).toFixed(2); // 10% off annual
@@ -341,10 +367,15 @@ export function LandingPage({
               <Bullet>Early access to new agents and features</Bullet>
               <Bullet>Direct line to the team in #founders</Bullet>
             </ul>
-            <Button asChild size="lg" variant="liquid" className="mt-7 w-full h-12 text-base">
-              <Link to="/login">
-                Claim my founder spot <ArrowRight className="w-4 h-4" />
-              </Link>
+            <Button
+              size="lg"
+              variant="liquid"
+              className="mt-7 w-full h-12 text-base"
+              onClick={handleCheckout}
+              disabled={checkoutLoading}
+            >
+              {checkoutLoading ? "Opening checkout…" : "Claim my founder spot"}{" "}
+              <ArrowRight className="w-4 h-4" />
             </Button>
             <p className="mt-3 text-center text-xs text-muted-foreground">
               Cancel anytime · Own your work and data
