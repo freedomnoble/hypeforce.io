@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_user_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          read_at: string | null
+          recipient_user_id: string
+          sender_user_id: string | null
+          subject: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          recipient_user_id: string
+          sender_user_id?: string | null
+          subject?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          recipient_user_id?: string
+          sender_user_id?: string | null
+          subject?: string | null
+        }
+        Relationships: []
+      }
       agents: {
         Row: {
           avatar_url: string | null
@@ -366,6 +396,36 @@ export type Database = {
           },
         ]
       }
+      landing_content: {
+        Row: {
+          content: Json
+          demo_video_url: string | null
+          hero_image_url: string | null
+          id: number
+          theme_key: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content?: Json
+          demo_video_url?: string | null
+          hero_image_url?: string | null
+          id?: number
+          theme_key?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: Json
+          demo_video_url?: string | null
+          hero_image_url?: string | null
+          id?: number
+          theme_key?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           attachments: Json
@@ -437,6 +497,48 @@ export type Database = {
           },
         ]
       }
+      pricing_config: {
+        Row: {
+          discount_percent: number
+          founder_active: boolean
+          founder_price_monthly: number
+          founder_seats_remaining: number
+          id: number
+          pro_price_annual: number
+          pro_price_monthly: number
+          standard_seat_active: boolean
+          team_price_annual: number
+          team_price_monthly: number
+          updated_at: string
+        }
+        Insert: {
+          discount_percent?: number
+          founder_active?: boolean
+          founder_price_monthly?: number
+          founder_seats_remaining?: number
+          id?: number
+          pro_price_annual?: number
+          pro_price_monthly?: number
+          standard_seat_active?: boolean
+          team_price_annual?: number
+          team_price_monthly?: number
+          updated_at?: string
+        }
+        Update: {
+          discount_percent?: number
+          founder_active?: boolean
+          founder_price_monthly?: number
+          founder_seats_remaining?: number
+          id?: number
+          pro_price_annual?: number
+          pro_price_monthly?: number
+          standard_seat_active?: boolean
+          team_price_annual?: number
+          team_price_monthly?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_generated_at: string | null
@@ -476,6 +578,202 @@ export type Database = {
           id?: string
           updated_at?: string
           voice_sample_url?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          admin_note: string | null
+          amount_cents: number
+          cancel_requested_at: string | null
+          canceled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          id: string
+          interval: string
+          plan: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          amount_cents?: number
+          cancel_requested_at?: string | null
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          interval?: string
+          plan?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          amount_cents?: number
+          cancel_requested_at?: string | null
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          interval?: string
+          plan?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      super_admins: {
+        Row: {
+          created_at: string
+          email: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+        }
+        Relationships: []
+      }
+      support_rate_limit: {
+        Row: {
+          count: number
+          ip: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          ip: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          ip?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+      support_ticket_attachments: {
+        Row: {
+          created_at: string
+          file_path: string
+          id: string
+          kind: string
+          mime: string
+          size_bytes: number
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          id?: string
+          kind: string
+          mime: string
+          size_bytes: number
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          id?: string
+          kind?: string
+          mime?: string
+          size_bytes?: number
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_attachments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_ticket_messages: {
+        Row: {
+          author: string
+          author_user_id: string | null
+          body: string
+          created_at: string
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          author: string
+          author_user_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          author?: string
+          author_user_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          page_url: string | null
+          priority: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          page_url?: string | null
+          priority?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          page_url?: string | null
+          priority?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -540,6 +838,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_usage_limits: {
+        Row: {
+          lovable_gateway_paused: boolean
+          monthly_message_cap: number | null
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          lovable_gateway_paused?: boolean
+          monthly_message_cap?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          lovable_gateway_paused?: boolean
+          monthly_message_cap?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       workspace_members: {
         Row: {
@@ -620,6 +942,7 @@ export type Database = {
         Args: { _dm_id: string; _user_id: string }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_workspace_admin: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
