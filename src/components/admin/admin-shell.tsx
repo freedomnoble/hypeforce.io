@@ -4,13 +4,13 @@ import { LayoutDashboard, Users, LifeBuoy, FileText, CreditCard, LogOut } from "
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 
-const NAV = [
+const NAV: { to: string; label: string; icon: any; exact?: boolean }[] = [
   { to: "/pretentious", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/pretentious/users", label: "Users", icon: Users },
   { to: "/pretentious/support", label: "Support", icon: LifeBuoy },
   { to: "/pretentious/landing", label: "Landing CMS", icon: FileText },
   { to: "/pretentious/billing", label: "Billing", icon: CreditCard },
-] as const;
+];
 
 export function AdminShell() {
   const navigate = useNavigate();
