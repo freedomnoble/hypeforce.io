@@ -23,6 +23,8 @@ import {
 import heroAsset from "@/assets/hero-we-are-ready.png.asset.json";
 import wordmarkAsset from "@/assets/hypeforce-wordmark-white.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
+import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { toast } from "sonner";
 
 const InfiniteGridBg = lazy(() =>
   import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
