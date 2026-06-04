@@ -28,7 +28,13 @@ const InfiniteGridBg = lazy(() =>
   import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
 );
 
-export function LandingPage() {
+export function LandingPage({
+  heroUrl,
+  videoUrl,
+}: {
+  heroUrl?: string | null;
+  videoUrl?: string | null;
+} = {}) {
   const [signedIn, setSignedIn] = useState(false);
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
@@ -97,7 +103,7 @@ export function LandingPage() {
 
           <div className="relative mx-auto w-full max-w-[1100px]">
             <img
-              src={heroAsset.url}
+              src={heroUrl || heroAsset.url}
               alt="Hypeforce — we are ready"
               className="w-full h-auto rounded-3xl select-none pointer-events-none drop-shadow-[0_30px_60px_oklch(0_0_0/0.55)]"
               draggable={false}
@@ -213,23 +219,23 @@ export function LandingPage() {
         </div>
         <div className="glass-strong rounded-3xl p-2 sm:p-3">
           <div className="aspect-video rounded-2xl overflow-hidden relative bg-[oklch(0.15_0.08_262)] grid-blueprint">
-            {/* Replace src with the user's uploaded video. */}
-            <video
-              className="absolute inset-0 w-full h-full object-cover"
-              controls
-              playsInline
-              preload="metadata"
-              poster=""
-            >
-              {/* Drop the demo video file into src/assets and import its asset URL here */}
-            </video>
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 pointer-events-none">
-              <div className="liquid-glass rounded-full w-20 h-20 grid place-items-center mb-4">
-                <Play className="w-8 h-8" />
+            {videoUrl ? (
+              <video
+                className="absolute inset-0 w-full h-full object-cover"
+                controls
+                playsInline
+                preload="metadata"
+                src={videoUrl}
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 pointer-events-none">
+                <div className="liquid-glass rounded-full w-20 h-20 grid place-items-center mb-4">
+                  <Play className="w-8 h-8" />
+                </div>
+                <p className="text-foreground/90 font-display text-lg">Demo video coming up</p>
+                <p className="text-sm text-muted-foreground mt-1">Upload your clip in /pretentious → Landing CMS.</p>
               </div>
-              <p className="text-foreground/90 font-display text-lg">Demo video coming up</p>
-              <p className="text-sm text-muted-foreground mt-1">Upload your clip and I'll wire it in here.</p>
-            </div>
+            )}
           </div>
         </div>
       </section>
