@@ -419,6 +419,21 @@ function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: stri
   );
 }
 
+function UseCaseCard({ n, icon, title, desc }: { n: string; icon: React.ReactNode; title: string; desc: string }) {
+  return (
+    <div className="glass rounded-2xl p-6 group transition-transform hover:-translate-y-0.5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="liquid-glass rounded-xl w-11 h-11 grid place-items-center text-electric">
+          {icon}
+        </div>
+        <span className="font-display text-2xl text-electric/70 leading-none">{n}</span>
+      </div>
+      <h3 className="font-display text-lg">{title}</h3>
+      <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{desc}</p>
+    </div>
+  );
+}
+
 function StepCard({ n, title, desc }: { n: string; title: string; desc: string }) {
   return (
     <div className="glass rounded-2xl p-6 relative">
