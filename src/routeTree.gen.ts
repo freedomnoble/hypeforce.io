@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PretentiousRouteImport } from './routes/pretentious'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PretentiousIndexRouteImport } from './routes/pretentious.index'
 import { Route as ThemeImportRouteImport } from './routes/theme.import'
+import { Route as PretentiousUsersRouteImport } from './routes/pretentious.users'
+import { Route as PretentiousSupportRouteImport } from './routes/pretentious.support'
+import { Route as PretentiousLandingRouteImport } from './routes/pretentious.landing'
+import { Route as PretentiousBillingRouteImport } from './routes/pretentious.billing'
 import { Route as AuthProfileRouteImport } from './routes/_auth.profile'
 import { Route as AuthProfileConnectionsRouteImport } from './routes/_auth.profile.connections'
 import { Route as AuthWWorkspaceIdIndexRouteImport } from './routes/_auth.w.$workspaceId.index'
@@ -21,6 +27,11 @@ import { Route as AuthWWorkspaceIdAdminRouteImport } from './routes/_auth.w.$wor
 import { Route as AuthWWorkspaceIdDDmIdRouteImport } from './routes/_auth.w.$workspaceId.d.$dmId'
 import { Route as AuthWWorkspaceIdCChannelIdRouteImport } from './routes/_auth.w.$workspaceId.c.$channelId'
 
+const PretentiousRoute = PretentiousRouteImport.update({
+  id: '/pretentious',
+  path: '/pretentious',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -40,10 +51,35 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PretentiousIndexRoute = PretentiousIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PretentiousRoute,
+} as any)
 const ThemeImportRoute = ThemeImportRouteImport.update({
   id: '/theme/import',
   path: '/theme/import',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PretentiousUsersRoute = PretentiousUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => PretentiousRoute,
+} as any)
+const PretentiousSupportRoute = PretentiousSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => PretentiousRoute,
+} as any)
+const PretentiousLandingRoute = PretentiousLandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
+  getParentRoute: () => PretentiousRoute,
+} as any)
+const PretentiousBillingRoute = PretentiousBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => PretentiousRoute,
 } as any)
 const AuthProfileRoute = AuthProfileRouteImport.update({
   id: '/profile',
@@ -81,8 +117,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
+  '/pretentious': typeof PretentiousRouteWithChildren
   '/profile': typeof AuthProfileRouteWithChildren
+  '/pretentious/billing': typeof PretentiousBillingRoute
+  '/pretentious/landing': typeof PretentiousLandingRoute
+  '/pretentious/support': typeof PretentiousSupportRoute
+  '/pretentious/users': typeof PretentiousUsersRoute
   '/theme/import': typeof ThemeImportRoute
+  '/pretentious/': typeof PretentiousIndexRoute
   '/profile/connections': typeof AuthProfileConnectionsRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
@@ -94,7 +136,12 @@ export interface FileRoutesByTo {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/profile': typeof AuthProfileRouteWithChildren
+  '/pretentious/billing': typeof PretentiousBillingRoute
+  '/pretentious/landing': typeof PretentiousLandingRoute
+  '/pretentious/support': typeof PretentiousSupportRoute
+  '/pretentious/users': typeof PretentiousUsersRoute
   '/theme/import': typeof ThemeImportRoute
+  '/pretentious': typeof PretentiousIndexRoute
   '/profile/connections': typeof AuthProfileConnectionsRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/w/$workspaceId': typeof AuthWWorkspaceIdIndexRoute
@@ -107,8 +154,14 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteWithChildren
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
+  '/pretentious': typeof PretentiousRouteWithChildren
   '/_auth/profile': typeof AuthProfileRouteWithChildren
+  '/pretentious/billing': typeof PretentiousBillingRoute
+  '/pretentious/landing': typeof PretentiousLandingRoute
+  '/pretentious/support': typeof PretentiousSupportRoute
+  '/pretentious/users': typeof PretentiousUsersRoute
   '/theme/import': typeof ThemeImportRoute
+  '/pretentious/': typeof PretentiousIndexRoute
   '/_auth/profile/connections': typeof AuthProfileConnectionsRoute
   '/_auth/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/_auth/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
@@ -121,8 +174,14 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/login'
+    | '/pretentious'
     | '/profile'
+    | '/pretentious/billing'
+    | '/pretentious/landing'
+    | '/pretentious/support'
+    | '/pretentious/users'
     | '/theme/import'
+    | '/pretentious/'
     | '/profile/connections'
     | '/w/$workspaceId/admin'
     | '/w/$workspaceId/'
@@ -134,7 +193,12 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/profile'
+    | '/pretentious/billing'
+    | '/pretentious/landing'
+    | '/pretentious/support'
+    | '/pretentious/users'
     | '/theme/import'
+    | '/pretentious'
     | '/profile/connections'
     | '/w/$workspaceId/admin'
     | '/w/$workspaceId'
@@ -146,8 +210,14 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/app'
     | '/login'
+    | '/pretentious'
     | '/_auth/profile'
+    | '/pretentious/billing'
+    | '/pretentious/landing'
+    | '/pretentious/support'
+    | '/pretentious/users'
     | '/theme/import'
+    | '/pretentious/'
     | '/_auth/profile/connections'
     | '/_auth/w/$workspaceId/admin'
     | '/_auth/w/$workspaceId/'
@@ -160,11 +230,19 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   AppRoute: typeof AppRoute
   LoginRoute: typeof LoginRoute
+  PretentiousRoute: typeof PretentiousRouteWithChildren
   ThemeImportRoute: typeof ThemeImportRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pretentious': {
+      id: '/pretentious'
+      path: '/pretentious'
+      fullPath: '/pretentious'
+      preLoaderRoute: typeof PretentiousRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -193,12 +271,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pretentious/': {
+      id: '/pretentious/'
+      path: '/'
+      fullPath: '/pretentious/'
+      preLoaderRoute: typeof PretentiousIndexRouteImport
+      parentRoute: typeof PretentiousRoute
+    }
     '/theme/import': {
       id: '/theme/import'
       path: '/theme/import'
       fullPath: '/theme/import'
       preLoaderRoute: typeof ThemeImportRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/pretentious/users': {
+      id: '/pretentious/users'
+      path: '/users'
+      fullPath: '/pretentious/users'
+      preLoaderRoute: typeof PretentiousUsersRouteImport
+      parentRoute: typeof PretentiousRoute
+    }
+    '/pretentious/support': {
+      id: '/pretentious/support'
+      path: '/support'
+      fullPath: '/pretentious/support'
+      preLoaderRoute: typeof PretentiousSupportRouteImport
+      parentRoute: typeof PretentiousRoute
+    }
+    '/pretentious/landing': {
+      id: '/pretentious/landing'
+      path: '/landing'
+      fullPath: '/pretentious/landing'
+      preLoaderRoute: typeof PretentiousLandingRouteImport
+      parentRoute: typeof PretentiousRoute
+    }
+    '/pretentious/billing': {
+      id: '/pretentious/billing'
+      path: '/billing'
+      fullPath: '/pretentious/billing'
+      preLoaderRoute: typeof PretentiousBillingRouteImport
+      parentRoute: typeof PretentiousRoute
     }
     '/_auth/profile': {
       id: '/_auth/profile'
@@ -275,11 +388,32 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface PretentiousRouteChildren {
+  PretentiousBillingRoute: typeof PretentiousBillingRoute
+  PretentiousLandingRoute: typeof PretentiousLandingRoute
+  PretentiousSupportRoute: typeof PretentiousSupportRoute
+  PretentiousUsersRoute: typeof PretentiousUsersRoute
+  PretentiousIndexRoute: typeof PretentiousIndexRoute
+}
+
+const PretentiousRouteChildren: PretentiousRouteChildren = {
+  PretentiousBillingRoute: PretentiousBillingRoute,
+  PretentiousLandingRoute: PretentiousLandingRoute,
+  PretentiousSupportRoute: PretentiousSupportRoute,
+  PretentiousUsersRoute: PretentiousUsersRoute,
+  PretentiousIndexRoute: PretentiousIndexRoute,
+}
+
+const PretentiousRouteWithChildren = PretentiousRoute._addFileChildren(
+  PretentiousRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   AppRoute: AppRoute,
   LoginRoute: LoginRoute,
+  PretentiousRoute: PretentiousRouteWithChildren,
   ThemeImportRoute: ThemeImportRoute,
 }
 export const routeTree = rootRouteImport
