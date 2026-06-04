@@ -38,11 +38,35 @@ export function LandingPage({
   videoUrl?: string | null;
 } = {}) {
   const [signedIn, setSignedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | undefined>();
+  const [userId, setUserId] = useState<string | undefined>();
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+  const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
+    supabase.auth.getSession().then(({ data }) => {
+      setSignedIn(!!data.session);
+      setUserEmail(data.session?.user.email);
+      setUserId(data.session?.user.id);
+    });
   }, []);
+
+  const handleCheckout = async () => {
+    if (!signedIn) {
+      window.location.href = `/login?redirect=${encodeURIComponent("/#pricing")}`;
+      return;
+    }
+    try {
+      await openCheckout({
+        priceId: billing === "annual" ? "founder_annual" : "founder_monthly",
+        customerEmail: userEmail,
+        customData: userId ? { userId } : undefined,
+      });
+    } catch (e) {
+      console.error(e);
+      toast.error("Checkout failed to open. Please try again.");
+    }
+  };
 
   const monthly = 9;
   const annualPerMonth = +(monthly * 12 * 0.9 / 12).toFixed(2); // 10% off annual
