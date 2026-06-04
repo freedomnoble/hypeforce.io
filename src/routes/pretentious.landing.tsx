@@ -63,7 +63,7 @@ function LandingCMS() {
 
   useEffect(() => {
     if (landing) {
-      setContent({ ...(landing.content ?? {}) });
+      setContent({ ...((landing.content as Record<string, string>) ?? {}) });
       setTheme(landing.theme_key ?? "default");
       setHero(landing.hero_image_url ?? "");
       setVideo(landing.demo_video_url ?? "");

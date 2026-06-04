@@ -42,7 +42,7 @@ function PretentiousLayout() {
       </div>
     );
   }
-  if (state === "no-auth") return <Navigate to="/auth" as any />;
+  if (state === "no-auth") return <Navigate to="/login" />;
   if (state === "not-admin") return <Navigate to="/" />;
 
   return <AdminShell />;

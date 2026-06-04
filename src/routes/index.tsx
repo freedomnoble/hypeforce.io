@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LandingPage } from "@/components/hypeforce/landing-page";
+import { getPublicLandingContent } from "@/lib/landing.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -21,5 +22,23 @@ export const Route = createFileRoute("/")({
     ],
     links: [{ rel: "canonical", href: "https://hypeforce.io" }],
   }),
-  component: LandingPage,
+  loader: async () => {
+    try {
+      const res = await getPublicLandingContent();
+      return {
+        heroUrl: res.content?.hero_image_url ?? null,
+        videoUrl: res.content?.demo_video_url ?? null,
+      };
+    } catch {
+      return { heroUrl: null, videoUrl: null };
+    }
+  },
+  component: IndexPage,
+  errorComponent: () => <LandingPage />,
+  notFoundComponent: () => <LandingPage />,
 });
+
+function IndexPage() {
+  const { heroUrl, videoUrl } = Route.useLoaderData();
+  return <LandingPage heroUrl={heroUrl} videoUrl={videoUrl} />;
+}

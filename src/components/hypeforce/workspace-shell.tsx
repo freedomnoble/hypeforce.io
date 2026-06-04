@@ -19,6 +19,7 @@ import {
   ChevronDown,
   MessageSquare,
   X,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -40,6 +41,7 @@ import { ClientOnly } from "@tanstack/react-router";
 import { lazy } from "react";
 import { WorkspaceSettingsSheet } from "./workspace-settings-sheet";
 import { AnimatedThemeToggler } from "./animated-theme-toggler";
+import { SupportFlyout } from "./support-flyout";
 import { useTheme, themeHasModes } from "./theme-provider";
 const InfiniteGridBg = lazy(() =>
   import("./infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
@@ -116,6 +118,7 @@ export function WorkspaceShell({
   const [dms, setDms] = useState<DirectMessage[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const [lastByDm, setLastByDm] = useState<Record<string, LastMessage>>({});
   const [readVersion, setReadVersion] = useState(0); // bump to recompute unread counts
   const [dmQuery, setDmQuery] = useState("");
@@ -368,6 +371,13 @@ export function WorkspaceShell({
           title="Workspace settings"
         >
           <Settings className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => setSupportOpen(true)}
+          className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary"
+          title="Get help"
+        >
+          <HelpCircle className="w-4 h-4" />
         </button>
         <button onClick={signOut} className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground">
           <LogOut className="w-4 h-4" />
@@ -640,6 +650,14 @@ export function WorkspaceShell({
             list.map((w) => (w.id === updated.id ? { ...w, name: updated.name } : w)),
           );
         }}
+      />
+
+      <SupportFlyout
+        open={supportOpen}
+        onOpenChange={setSupportOpen}
+        defaultName={profile?.display_name ?? undefined}
+        defaultEmail={profile?.email ?? undefined}
+        userId={profile?.id ?? null}
       />
 
       <AlertDialog open={!!pendingAgent} onOpenChange={(o) => !o && setPendingAgent(null)}>
