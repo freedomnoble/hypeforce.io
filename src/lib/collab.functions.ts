@@ -163,6 +163,28 @@ export const createDmWithParticipants = createServerFn({ method: "POST" })
       }
     }
 
+    // Validate any referenced user participants are members of this workspace.
+    // Without this, a member can add foreign-workspace users as DM participants
+    // and leak conversations via is_dm_participant() RLS.
+    const userIds = data.participants
+      .filter((p): p is { kind: "user"; userId: string } => p.kind === "user")
+      .map((p) => p.userId)
+      .filter((id) => id !== userId);
+    if (userIds.length > 0) {
+      const { data: foundMembers, error: mErr } = await admin
+        .from("workspace_members")
+        .select("user_id")
+        .eq("workspace_id", data.workspaceId)
+        .in("user_id", userIds);
+      if (mErr) throw new Error(mErr.message);
+      const foundSet = new Set((foundMembers ?? []).map((m: any) => m.user_id));
+      const unique = Array.from(new Set(userIds));
+      if (unique.some((id) => !foundSet.has(id))) {
+        throw new Error("One or more users are not members of this workspace.");
+      }
+    }
+
+
     const { data: dm, error: dmErr } = await admin
       .from("direct_messages")
       .insert({
