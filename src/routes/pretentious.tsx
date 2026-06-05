@@ -39,7 +39,8 @@ function PretentiousLayout() {
     return () => {
       active = false;
     };
-  }, [check]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (state === "checking") {
     return (
