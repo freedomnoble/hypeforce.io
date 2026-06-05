@@ -24,24 +24,53 @@ import heroAsset from "@/assets/hero-we-are-ready.png.asset.json";
 import wordmarkAsset from "@/assets/hypeforce-wordmark-white.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { useTheme } from "@/components/hypeforce/theme-provider";
 import { toast } from "sonner";
 
 const InfiniteGridBg = lazy(() =>
   import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
 );
 
+const FEATURE_ICONS: Record<string, React.ReactNode> = {
+  MessageSquare: <MessageSquare />,
+  Bot: <Bot />,
+  Users: <Users />,
+  Workflow: <Workflow />,
+  Zap: <Zap />,
+  Lock: <Lock />,
+  Rocket: <Rocket />,
+  Database: <Database />,
+  TrendingUp: <TrendingUp />,
+  Megaphone: <Megaphone />,
+  Sparkles: <Sparkles />,
+  Crown: <Crown />,
+};
+
+type FeatureItem = { icon?: string; title: string; desc: string };
+type UseCaseItem = { icon?: string; title: string; desc: string };
+type FaqItem = { q: string; a: string };
+type PlaysWithItem = { label: string; logo_url?: string };
+type FooterLink = { label: string; href: string };
+
 export function LandingPage({
   heroUrl,
   videoUrl,
+  themeKey,
+  content,
+  pricing,
 }: {
   heroUrl?: string | null;
   videoUrl?: string | null;
+  themeKey?: string | null;
+  content?: Record<string, any> | null;
+  pricing?: Record<string, any> | null;
 } = {}) {
   const [signedIn, setSignedIn] = useState(false);
   const [userEmail, setUserEmail] = useState<string | undefined>();
   const [userId, setUserId] = useState<string | undefined>();
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
+  const { setLandingThemeOverride } = useTheme();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -51,26 +80,39 @@ export function LandingPage({
     });
   }, []);
 
-  const handleCheckout = async () => {
-    if (!signedIn) {
-      window.location.href = `/login?redirect=${encodeURIComponent("/#pricing")}`;
-      return;
+  // Apply CMS theme override on the public landing page only. Cleanup restores
+  // the default behavior (user's own theme) on unmount or when themeKey changes.
+  useEffect(() => {
+    if (themeKey && themeKey !== "default") {
+      setLandingThemeOverride(themeKey);
+    } else {
+      setLandingThemeOverride(null);
     }
-    try {
-      await openCheckout({
-        priceId: billing === "annual" ? "founder_annual" : "founder_monthly",
-        customerEmail: userEmail,
-        customData: userId ? { userId } : undefined,
-      });
-    } catch (e) {
-      console.error(e);
-      toast.error("Checkout failed to open. Please try again.");
-    }
+    return () => setLandingThemeOverride(null);
+  }, [themeKey, setLandingThemeOverride]);
+
+  const t = (key: string, fallback: string): string => {
+    const v = content?.[key];
+    return typeof v === "string" && v.trim() ? v : fallback;
   };
 
-  const monthly = 9;
-  const annualPerMonth = +(monthly * 12 * 0.9 / 12).toFixed(2); // 10% off annual
-  const annualTotal = +(monthly * 12 * 0.9).toFixed(0);
+  const arr = <T,>(key: string, fallback: T[]): T[] => {
+    const v = content?.[key];
+    return Array.isArray(v) && v.length ? (v as T[]) : fallback;
+  };
+
+  // Pricing from CMS, with sensible defaults
+  const founderActive = pricing?.founder_active ?? true;
+  const monthlyCents = (pricing?.founder_price_monthly as number | undefined) ?? 900;
+  const monthly = +(monthlyCents / 100).toFixed(2);
+  const discountPct = (pricing?.discount_percent as number | undefined) ?? 10;
+  const annualFactor = (100 - discountPct) / 100;
+  const annualPerMonth = +(monthly * annualFactor).toFixed(2);
+  const annualTotal = +(monthly * 12 * annualFactor).toFixed(0);
+  const standardCents = (pricing?.pro_price_monthly as number | undefined) ?? 1900;
+  const standardMonthly = +(standardCents / 100).toFixed(2);
+  const seatsRemaining = pricing?.founder_seats_remaining as number | undefined;
+
 
   return (
     <div className="relative min-h-screen overflow-x-hidden">
