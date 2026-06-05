@@ -68,6 +68,8 @@ type Ctx = {
   previewTokens: (tokens: ThemeTokens | null) => void;
   saveCustomTheme: (name: string, prompt: string, tokens: ThemeTokens) => Promise<CustomTheme | null>;
   deleteCustomTheme: (id: string) => Promise<void>;
+  /** Apply a built-in theme override on the public landing route only. Pass null to clear. Not persisted. */
+  setLandingThemeOverride: (t: ThemeId | null) => void;
 };
 
 const ThemeCtx = createContext<Ctx>({
@@ -78,6 +80,7 @@ const ThemeCtx = createContext<Ctx>({
   previewTokens: () => {},
   saveCustomTheme: async () => null,
   deleteCustomTheme: async () => {},
+  setLandingThemeOverride: () => {},
 });
 
 const STYLE_TAG_ID = "hf-custom-theme-style";
@@ -101,6 +104,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>("default");
   const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
   const [preview, setPreview] = useState<ThemeTokens | null>(null);
+  const [landingOverride, setLandingOverride] = useState<ThemeId | null>(null);
 
   const refreshCustomThemes = useCallback(async () => {
     const { data: u } = await supabase.auth.getUser();
@@ -124,11 +128,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [refreshCustomThemes]);
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  // Public/auth routes always render the default theme. The user's saved theme
-  // stays in localStorage and only applies inside the authenticated app
-  // (workspace + gateway). Per-device by design.
+  // Public/auth routes always render the default theme — UNLESS the public
+  // landing page provided an override (CMS theme_key). Override is in-memory
+  // only; user's saved theme is untouched.
   const isAppRoute = pathname === "/app" || pathname.startsWith("/app/") || pathname.startsWith("/w/");
-  const forceDefault = !isAppRoute;
+  const isLandingRoute = pathname === "/";
+  const activeLandingOverride =
+    isLandingRoute && landingOverride && THEMES.some((t) => t.id === landingOverride)
+      ? landingOverride
+      : null;
+  const forceDefault = !isAppRoute && !activeLandingOverride;
 
   // Decide which tokens are active and apply
   useEffect(() => {
@@ -161,15 +170,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       // Custom theme not loaded yet — fall through to default until refresh completes
     }
 
+    const effectiveTheme = activeLandingOverride ?? theme;
     applyCustomTokens(null);
-    root.dataset.theme = theme;
-    if (themeHasModes(theme)) {
+    root.dataset.theme = effectiveTheme;
+    if (themeHasModes(effectiveTheme)) {
       const stored = (localStorage.getItem("hf-arachna-mode") as "dark" | "light" | null) ?? "dark";
       root.classList.toggle("dark", stored === "dark");
     } else {
       root.classList.remove("dark");
     }
-  }, [theme, preview, customThemes, forceDefault]);
+  }, [theme, preview, customThemes, forceDefault, activeLandingOverride]);
 
   const setTheme = (t: ThemeId) => {
     setPreview(null);
@@ -213,6 +223,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         previewTokens,
         saveCustomTheme,
         deleteCustomTheme,
+        setLandingThemeOverride: setLandingOverride,
       }}
     >
       {children}

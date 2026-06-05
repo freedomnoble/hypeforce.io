@@ -43,6 +43,14 @@ const FIELDS: { key: string; label: string; multiline?: boolean }[] = [
   { key: "footer_cta_subhead", label: "Footer CTA — subhead", multiline: true },
 ];
 
+const LIST_FIELDS: { key: string; label: string; hint: string }[] = [
+  { key: "features", label: "Features (JSON array)", hint: '[{"icon":"MessageSquare","title":"...","desc":"..."}]' },
+  { key: "use_cases", label: "Use cases (JSON array)", hint: '[{"icon":"Rocket","title":"...","desc":"..."}]' },
+  { key: "faqs", label: "FAQ (JSON array)", hint: '[{"q":"...","a":"..."}]' },
+  { key: "plays_with", label: "Plays well with (JSON array)", hint: '[{"label":"ChatGPT","logo_url":"..."}]' },
+  { key: "footer_links", label: "Footer links (JSON array)", hint: '[{"label":"Features","href":"#features"}]' },
+];
+
 const THEMES = ["default", "spider-noir", "hail-mary", "miles-morales", "gwen-stacy", "cyberpunk"];
 
 function LandingCMS() {
@@ -94,9 +102,28 @@ function LandingCMS() {
   const save = async () => {
     setBusy(true);
     try {
+      // Parse JSON list fields; reject save on invalid JSON.
+      const parsed: Record<string, any> = { ...content };
+      for (const f of LIST_FIELDS) {
+        const v = parsed[f.key];
+        if (typeof v === "string") {
+          const s = v.trim();
+          if (!s) {
+            delete parsed[f.key];
+          } else {
+            try {
+              const j = JSON.parse(s);
+              if (!Array.isArray(j)) throw new Error("must be an array");
+              parsed[f.key] = j;
+            } catch (err: any) {
+              throw new Error(`${f.label}: ${err.message}`);
+            }
+          }
+        }
+      }
       await saveFn({
         data: {
-          content,
+          content: parsed,
           theme_key: theme === "default" ? null : theme,
           hero_image_url: hero || null,
           demo_video_url: video || null,
@@ -181,6 +208,27 @@ function LandingCMS() {
             )}
           </label>
         ))}
+      </GlassPanel>
+
+      <GlassPanel className="p-5 space-y-3">
+        <h3 className="font-display text-lg">Repeating sections</h3>
+        <p className="text-xs text-white/50">Paste a JSON array. Leave blank to use the defaults baked into the page. Invalid JSON blocks save.</p>
+        {LIST_FIELDS.map((f) => {
+          const current = content[f.key];
+          const text = typeof current === "string" ? current : current ? JSON.stringify(current, null, 2) : "";
+          return (
+            <label key={f.key} className="block">
+              <span className="text-[10px] uppercase tracking-[0.18em] text-white/45 font-mono">{f.label}</span>
+              <textarea
+                value={text}
+                onChange={(e) => setContent({ ...content, [f.key]: e.target.value })}
+                rows={5}
+                placeholder={f.hint}
+                className="mt-1 w-full px-2 py-1.5 rounded bg-white/5 border border-white/10 text-xs font-mono"
+              />
+            </label>
+          );
+        })}
       </GlassPanel>
 
       <GlassPanel className="p-5 space-y-3">

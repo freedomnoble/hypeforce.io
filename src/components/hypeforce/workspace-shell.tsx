@@ -20,6 +20,7 @@ import {
   MessageSquare,
   X,
   HelpCircle,
+  Inbox,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -42,6 +43,9 @@ import { lazy } from "react";
 import { WorkspaceSettingsSheet } from "./workspace-settings-sheet";
 import { AnimatedThemeToggler } from "./animated-theme-toggler";
 import { SupportFlyout } from "./support-flyout";
+import { AdminInboxFlyout } from "./admin-inbox-flyout";
+import { useQuery } from "@tanstack/react-query";
+import { getUnreadCount } from "@/lib/inbox.functions";
 import { useTheme, themeHasModes } from "./theme-provider";
 const InfiniteGridBg = lazy(() =>
   import("./infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
@@ -119,6 +123,15 @@ export function WorkspaceShell({
   const [profile, setProfile] = useState<Profile | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const fetchUnread = useServerFn(getUnreadCount);
+  const { data: unread } = useQuery({
+    queryKey: ["admin-inbox-unread"],
+    queryFn: () => fetchUnread(),
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  });
+  const unreadCount = unread?.count ?? 0;
   const [lastByDm, setLastByDm] = useState<Record<string, LastMessage>>({});
   const [readVersion, setReadVersion] = useState(0); // bump to recompute unread counts
   const [dmQuery, setDmQuery] = useState("");
@@ -371,6 +384,18 @@ export function WorkspaceShell({
           title="Workspace settings"
         >
           <Settings className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => setInboxOpen(true)}
+          className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary relative"
+          title="Inbox"
+        >
+          <Inbox className="w-4 h-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-electric text-[10px] font-semibold text-background grid place-items-center">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
         </button>
         <button
           onClick={() => setSupportOpen(true)}
@@ -651,6 +676,8 @@ export function WorkspaceShell({
           );
         }}
       />
+
+      <AdminInboxFlyout open={inboxOpen} onOpenChange={setInboxOpen} />
 
       <SupportFlyout
         open={supportOpen}
