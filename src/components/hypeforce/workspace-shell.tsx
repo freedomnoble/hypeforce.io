@@ -43,7 +43,6 @@ import { WorkspaceSettingsSheet } from "./workspace-settings-sheet";
 import { AnimatedThemeToggler } from "./animated-theme-toggler";
 import { SupportFlyout } from "./support-flyout";
 import { AdminInboxFlyout } from "./admin-inbox-flyout";
-import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getUnreadCount } from "@/lib/inbox.functions";
 import { useTheme, themeHasModes } from "./theme-provider";
