@@ -54,8 +54,16 @@ function LoginPage() {
         toast.success("Check your email for a reset link.");
         setMode("signin");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        // Preview's fetch proxy can occasionally hang Supabase auth POSTs,
+        // leaving the button stuck on "…". Race with a timeout so the user
+        // can retry instead of waiting forever.
+        const result = await Promise.race([
+          supabase.auth.signInWithPassword({ email, password }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Sign-in timed out. Try again, or use the published site.")), 15000),
+          ),
+        ]);
+        if (result.error) throw result.error;
         navigate({ to: "/app", replace: true });
       }
     } catch (err: any) {
