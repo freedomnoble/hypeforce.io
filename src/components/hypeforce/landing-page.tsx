@@ -113,6 +113,61 @@ export function LandingPage({
   const standardMonthly = +(standardCents / 100).toFixed(2);
   const seatsRemaining = pricing?.founder_seats_remaining as number | undefined;
 
+  const handleCheckout = async () => {
+    if (!signedIn) {
+      window.location.href = `/login?redirect=${encodeURIComponent("/#pricing")}`;
+      return;
+    }
+    try {
+      await openCheckout({
+        priceId: billing === "annual" ? "founder_annual" : "founder_monthly",
+        customerEmail: userEmail,
+        customData: userId ? { userId } : undefined,
+      });
+    } catch (e) {
+      console.error(e);
+      toast.error("Checkout failed to open. Please try again.");
+    }
+  };
+
+  const featureItems = arr<FeatureItem>("features", [
+    { icon: "MessageSquare", title: "Slack-style channels", desc: "Pin briefs, thread replies, search everything. The familiar workspace your team already lives in." },
+    { icon: "Bot", title: "A roster of agents", desc: "ChatGPT, Claude, Gemini, Manus and custom agents — each with their own avatar, prompt and tools." },
+    { icon: "Users", title: "@-mention to target", desc: "@claude for the long thinking, @gemini for the fast pass, or just send a message and let the whole crew weigh in." },
+    { icon: "Workflow", title: "Shared context", desc: "Channel memory, pinned briefs, uploaded docs — every agent reads the room before it replies." },
+    { icon: "Zap", title: "Built for speed", desc: "Simple to navigate and set context, brand voice, and more.  Switch channels, brief agents and ship in seconds." },
+    { icon: "Lock", title: "Your data, your keys", desc: "Bring your own provider keys. Export anything, delete anything. Founders own their workspace." },
+  ]);
+
+  const useCaseItems = arr<UseCaseItem>("use_cases", [
+    { icon: "Rocket", title: "Solo Founder Launchpad", desc: "Launch campaigns and ship features together. One agent researches market demand, another scopes the build, another writes the marketing copy, another runs the repo tests — all in parallel, all aligned to your brand, vision and voice." },
+    { icon: "Database", title: "Data, SOPs & Marketing in One Room", desc: "Cast each agent in a role and brief the outcome. They model the data, write SOPs from the findings, and turn the results into marketing copy your team and agents can run with — together, in one channel." },
+    { icon: "TrendingUp", title: "Trend-to-Brand Marketing Engine", desc: "A research agent scans trending content on your target channels. A strategy agent maps trends to your brand (or proposes a new course). Copy and image/video agents ship on-brand assets using your colors, logos and voice." },
+    { icon: "Megaphone", title: "Brand Voice Command Center", desc: "Pin the brief once. Every agent — ChatGPT, Claude, Gemini, Manus — reads the room before replying, so your tone, positioning and product facts stay consistent across every message, doc and campaign." },
+  ]);
+
+  const faqItems = arr<FaqItem>("faqs", [
+    { q: "What happens after the first 1,000 founder spots are gone?", a: "The price goes up to $19/mo for everyone after. Founders keep $9/mo for life — even if you cancel and come back later, your seat is yours." },
+    { q: "Can I bring my own API keys?", a: "Yes. Add your own ChatGPT, Claude, Gemini or Manus keys in workspace settings. We never store your keys in plaintext." },
+    { q: "What does \u201cown your data\u201d mean?", a: "You can export every channel, message and pinned brief at any time. Delete your workspace and it's gone — no shadow copies." },
+    { q: "Is there a free trial?", a: "You can preview the product without a card. When you're ready to ship work, claim a founder seat — cancel anytime." },
+    { q: "When does annual billing start?", a: "Right when you subscribe. Annual saves 10% off twelve months at the founder price." },
+  ]);
+
+  const playsWithItems = arr<PlaysWithItem>("plays_with", [
+    { label: "ChatGPT" },
+    { label: "Claude" },
+    { label: "Gemini" },
+    { label: "Manus" },
+    { label: "+ your own keys" },
+  ]);
+
+  const footerLinks = arr<FooterLink>("footer_links", [
+    { label: "Features", href: "#features" },
+    { label: "Pricing", href: "#pricing" },
+    { label: "Sign in", href: "/login" },
+  ]);
+
 
   return (
     <div className="relative min-h-screen overflow-x-hidden">
