@@ -192,6 +192,27 @@ function LandingCMS() {
       </GlassPanel>
 
       <GlassPanel className="p-5 space-y-3">
+        <h3 className="font-display text-lg">Repeating sections</h3>
+        <p className="text-xs text-white/50">Paste a JSON array. Leave blank to use the defaults baked into the page. Invalid JSON blocks save.</p>
+        {LIST_FIELDS.map((f) => {
+          const current = content[f.key];
+          const text = typeof current === "string" ? current : current ? JSON.stringify(current, null, 2) : "";
+          return (
+            <label key={f.key} className="block">
+              <span className="text-[10px] uppercase tracking-[0.18em] text-white/45 font-mono">{f.label}</span>
+              <textarea
+                value={text}
+                onChange={(e) => setContent({ ...content, [f.key]: e.target.value })}
+                rows={5}
+                placeholder={f.hint}
+                className="mt-1 w-full px-2 py-1.5 rounded bg-white/5 border border-white/10 text-xs font-mono"
+              />
+            </label>
+          );
+        })}
+      </GlassPanel>
+
+      <GlassPanel className="p-5 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-lg">Pricing & monetization</h3>
           <button onClick={savePricing} disabled={busy || !price} className="px-3 py-1.5 rounded-lg bg-purple-500/30 hover:bg-purple-500/40 text-sm">Save pricing</button>
