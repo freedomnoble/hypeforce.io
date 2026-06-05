@@ -366,109 +366,115 @@ export function LandingPage({
 
 
       {/* PRICING */}
-      <section id="pricing" className="relative z-10 mx-auto max-w-5xl px-5 lg:px-8 py-20">
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 liquid-glass rounded-full px-3.5 py-1.5 text-xs uppercase tracking-[0.18em] text-foreground/85 mb-5">
-            <Star className="w-3.5 h-3.5 text-electric" />
-            Founding 1,000 — locked-in pricing
-          </div>
-          <h2 className="hf-h2">$9/mo. Forever. For founders only.</h2>
-          <p className="mt-3 text-muted-foreground text-lg">
-            Regular price will be <span className="line-through opacity-70">$19/mo</span>.
-            The first 1,000 beta users keep <span className="text-foreground font-semibold">$9/mo for life</span>{" "}
-            and get the <span className="text-electric">Founding Member</span> badge.
-          </p>
-
-          <div className="inline-flex liquid-glass rounded-full p-1 mt-7" role="tablist" aria-label="Billing period">
-            <button
-              role="tab"
-              aria-selected={billing === "monthly"}
-              onClick={() => setBilling("monthly")}
-              className={`px-4 py-1.5 rounded-full text-sm transition-colors ${billing === "monthly" ? "bg-foreground/15 text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Monthly
-            </button>
-            <button
-              role="tab"
-              aria-selected={billing === "annual"}
-              onClick={() => setBilling("annual")}
-              className={`px-4 py-1.5 rounded-full text-sm transition-colors ${billing === "annual" ? "bg-foreground/15 text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              Annual <span className="text-electric ml-1">−10%</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Anchor — regular pricing */}
-          <div className="glass rounded-3xl p-7 relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 liquid-glass rounded-full px-3 py-1 text-xs uppercase tracking-[0.16em] text-center whitespace-nowrap">
-              After first 1000 users
+      {founderActive && (
+        <section id="pricing" className="relative z-10 mx-auto max-w-5xl px-5 lg:px-8 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <div className="inline-flex items-center gap-2 liquid-glass rounded-full px-3.5 py-1.5 text-xs uppercase tracking-[0.18em] text-foreground/85 mb-5">
+              <Star className="w-3.5 h-3.5 text-electric" />
+              {typeof seatsRemaining === "number"
+                ? `Founding 1,000 — ${seatsRemaining} seats left`
+                : "Founding 1,000 — locked-in pricing"}
             </div>
-            <p className="hf-eyebrow opacity-80">Regular</p>
-            <h3 className="font-display text-2xl mt-1">Standard seat</h3>
-            <div className="mt-5 flex items-baseline gap-1.5">
-              <span className="text-5xl font-display line-through opacity-60">$19</span>
-              <span className="text-muted-foreground">/mo</span>
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">After the 1,000 founder spots are claimed.</p>
-            <ul className="mt-6 space-y-2.5 text-sm">
-              <Bullet>Unlimited channels and agents</Bullet>
-              <Bullet>ChatGPT, Claude, Gemini, Manus</Bullet>
-              <Bullet>Bring your own keys</Bullet>
-              <Bullet>Export anything, delete anything</Bullet>
-            </ul>
-          </div>
-
-          {/* Founder — primary */}
-          <div className="glass-strong rounded-3xl p-7 relative ring-glow">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 liquid-glass rounded-full px-3 py-1 text-xs uppercase tracking-[0.16em] text-center whitespace-nowrap">
-              <Sparkles className="w-3 h-3 inline -mt-0.5 mr-1 text-electric" />
-              Founder
-            </div>
-            <p className="hf-eyebrow">Beta · First 1,000</p>
-            <h3 className="font-display text-2xl mt-1">Founding Member</h3>
-            <div className="mt-5 flex items-baseline gap-1.5">
-              {billing === "monthly" ? (
-                <>
-                  <span className="text-6xl font-display text-foreground">${monthly}</span>
-                  <span className="text-muted-foreground">/mo</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-6xl font-display text-foreground">${annualPerMonth}</span>
-                  <span className="text-muted-foreground">/mo · billed ${annualTotal}/yr</span>
-                </>
+            <h2 className="hf-h2">{t("pricing_headline", `$${monthly}/mo. Forever. For founders only.`)}</h2>
+            <p className="mt-3 text-muted-foreground text-lg">
+              {t(
+                "pricing_subhead",
+                `Regular price will be $${standardMonthly}/mo. The first 1,000 beta users keep $${monthly}/mo for life and get the Founding Member badge.`,
               )}
+            </p>
+
+            <div className="inline-flex liquid-glass rounded-full p-1 mt-7" role="tablist" aria-label="Billing period">
+              <button
+                role="tab"
+                aria-selected={billing === "monthly"}
+                onClick={() => setBilling("monthly")}
+                className={`px-4 py-1.5 rounded-full text-sm transition-colors ${billing === "monthly" ? "bg-foreground/15 text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Monthly
+              </button>
+              <button
+                role="tab"
+                aria-selected={billing === "annual"}
+                onClick={() => setBilling("annual")}
+                className={`px-4 py-1.5 rounded-full text-sm transition-colors ${billing === "annual" ? "bg-foreground/15 text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Annual <span className="text-electric ml-1">−{discountPct}%</span>
+              </button>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {billing === "monthly"
-                ? "Locked in forever. Cancel anytime."
-                : "10% off · locked in forever · cancel anytime."}
-            </p>
-            <ul className="mt-6 space-y-2.5 text-sm">
-              <Bullet><span className="text-electric font-semibold">Founding Member</span> badge on your profile</Bullet>
-              <Bullet>$9/mo price locked for life</Bullet>
-              <Bullet>Everything in Standard</Bullet>
-              <Bullet>Early access to new agents and features</Bullet>
-              <Bullet>Direct line to the team in #founders</Bullet>
-            </ul>
-            <Button
-              size="lg"
-              variant="liquid"
-              className="mt-7 w-full h-12 text-base"
-              onClick={handleCheckout}
-              disabled={checkoutLoading}
-            >
-              {checkoutLoading ? "Opening checkout…" : "Claim my founder spot"}{" "}
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              Cancel anytime · Own your work and data
-            </p>
           </div>
-        </div>
-      </section>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Anchor — regular pricing */}
+            <div className="glass rounded-3xl p-7 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 liquid-glass rounded-full px-3 py-1 text-xs uppercase tracking-[0.16em] text-center whitespace-nowrap">
+                After first 1000 users
+              </div>
+              <p className="hf-eyebrow opacity-80">Regular</p>
+              <h3 className="font-display text-2xl mt-1">Standard seat</h3>
+              <div className="mt-5 flex items-baseline gap-1.5">
+                <span className="text-5xl font-display line-through opacity-60">${standardMonthly}</span>
+                <span className="text-muted-foreground">/mo</span>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">After the 1,000 founder spots are claimed.</p>
+              <ul className="mt-6 space-y-2.5 text-sm">
+                <Bullet>Unlimited channels and agents</Bullet>
+                <Bullet>ChatGPT, Claude, Gemini, Manus</Bullet>
+                <Bullet>Bring your own keys</Bullet>
+                <Bullet>Export anything, delete anything</Bullet>
+              </ul>
+            </div>
+
+            {/* Founder — primary */}
+            <div className="glass-strong rounded-3xl p-7 relative ring-glow">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 liquid-glass rounded-full px-3 py-1 text-xs uppercase tracking-[0.16em] text-center whitespace-nowrap">
+                <Sparkles className="w-3 h-3 inline -mt-0.5 mr-1 text-electric" />
+                Founder
+              </div>
+              <p className="hf-eyebrow">Beta · First 1,000</p>
+              <h3 className="font-display text-2xl mt-1">Founding Member</h3>
+              <div className="mt-5 flex items-baseline gap-1.5">
+                {billing === "monthly" ? (
+                  <>
+                    <span className="text-6xl font-display text-foreground">${monthly}</span>
+                    <span className="text-muted-foreground">/mo</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-6xl font-display text-foreground">${annualPerMonth}</span>
+                    <span className="text-muted-foreground">/mo · billed ${annualTotal}/yr</span>
+                  </>
+                )}
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {billing === "monthly"
+                  ? "Locked in forever. Cancel anytime."
+                  : `${discountPct}% off · locked in forever · cancel anytime.`}
+              </p>
+              <ul className="mt-6 space-y-2.5 text-sm">
+                <Bullet><span className="text-electric font-semibold">Founding Member</span> badge on your profile</Bullet>
+                <Bullet>${monthly}/mo price locked for life</Bullet>
+                <Bullet>Everything in Standard</Bullet>
+                <Bullet>Early access to new agents and features</Bullet>
+                <Bullet>Direct line to the team in #founders</Bullet>
+              </ul>
+              <Button
+                size="lg"
+                variant="liquid"
+                className="mt-7 w-full h-12 text-base"
+                onClick={handleCheckout}
+                disabled={checkoutLoading}
+              >
+                {checkoutLoading ? "Opening checkout…" : "Claim my founder spot"}{" "}
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                Cancel anytime · Own your work and data
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
 
       {/* FAQ */}
       <section id="faq" className="relative z-10 mx-auto max-w-3xl px-5 lg:px-8 py-20">
