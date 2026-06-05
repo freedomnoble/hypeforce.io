@@ -128,11 +128,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [refreshCustomThemes]);
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  // Public/auth routes always render the default theme. The user's saved theme
-  // stays in localStorage and only applies inside the authenticated app
-  // (workspace + gateway). Per-device by design.
+  // Public/auth routes always render the default theme — UNLESS the public
+  // landing page provided an override (CMS theme_key). Override is in-memory
+  // only; user's saved theme is untouched.
   const isAppRoute = pathname === "/app" || pathname.startsWith("/app/") || pathname.startsWith("/w/");
-  const forceDefault = !isAppRoute;
+  const isLandingRoute = pathname === "/";
+  const activeLandingOverride =
+    isLandingRoute && landingOverride && THEMES.some((t) => t.id === landingOverride)
+      ? landingOverride
+      : null;
+  const forceDefault = !isAppRoute && !activeLandingOverride;
 
   // Decide which tokens are active and apply
   useEffect(() => {
