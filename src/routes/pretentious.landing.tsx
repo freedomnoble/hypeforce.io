@@ -43,6 +43,14 @@ const FIELDS: { key: string; label: string; multiline?: boolean }[] = [
   { key: "footer_cta_subhead", label: "Footer CTA — subhead", multiline: true },
 ];
 
+const LIST_FIELDS: { key: string; label: string; hint: string }[] = [
+  { key: "features", label: "Features (JSON array)", hint: '[{"icon":"MessageSquare","title":"...","desc":"..."}]' },
+  { key: "use_cases", label: "Use cases (JSON array)", hint: '[{"icon":"Rocket","title":"...","desc":"..."}]' },
+  { key: "faqs", label: "FAQ (JSON array)", hint: '[{"q":"...","a":"..."}]' },
+  { key: "plays_with", label: "Plays well with (JSON array)", hint: '[{"label":"ChatGPT","logo_url":"..."}]' },
+  { key: "footer_links", label: "Footer links (JSON array)", hint: '[{"label":"Features","href":"#features"}]' },
+];
+
 const THEMES = ["default", "spider-noir", "hail-mary", "miles-morales", "gwen-stacy", "cyberpunk"];
 
 function LandingCMS() {
