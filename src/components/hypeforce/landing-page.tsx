@@ -325,8 +325,8 @@ export function LandingPage({
       {/* DEMO VIDEO */}
       <section id="demo" className="relative z-10 mx-auto max-w-6xl px-5 lg:px-8 py-16">
         <div className="text-center max-w-2xl mx-auto mb-8">
-          <p className="hf-eyebrow">See it move</p>
-          <h2 className="hf-h2">90 seconds inside a Hypeforce channel.</h2>
+          <p className="hf-eyebrow">{t("demo_eyebrow", "See it move")}</p>
+          <h2 className="hf-h2">{t("demo_headline", "90 seconds inside a Hypeforce channel.")}</h2>
         </div>
         <div className="glass-strong rounded-3xl p-2 sm:p-3">
           <div className="aspect-video rounded-2xl overflow-hidden relative bg-[oklch(0.15_0.08_262)] grid-blueprint">
@@ -354,8 +354,8 @@ export function LandingPage({
       {/* HOW IT WORKS */}
       <section id="how" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <p className="hf-eyebrow">How it works</p>
-          <h2 className="hf-h2">Three steps from idea to shipped.</h2>
+          <p className="hf-eyebrow">{t("how_eyebrow", "How it works")}</p>
+          <h2 className="hf-h2">{t("how_headline", "Three steps from idea to shipped.")}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <StepCard n="01" title="Make a channel" desc="Spin up #launch-plan, #brand-voice, #build-log — any project you'd open a channel for." />
@@ -363,6 +363,7 @@ export function LandingPage({
           <StepCard n="03" title="Brief and ship" desc="Pin the brief, @-mention the agents, and let the work happen in one placewith one context." />
         </div>
       </section>
+
 
       {/* PRICING */}
       <section id="pricing" className="relative z-10 mx-auto max-w-5xl px-5 lg:px-8 py-20">
