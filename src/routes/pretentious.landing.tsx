@@ -102,9 +102,28 @@ function LandingCMS() {
   const save = async () => {
     setBusy(true);
     try {
+      // Parse JSON list fields; reject save on invalid JSON.
+      const parsed: Record<string, any> = { ...content };
+      for (const f of LIST_FIELDS) {
+        const v = parsed[f.key];
+        if (typeof v === "string") {
+          const s = v.trim();
+          if (!s) {
+            delete parsed[f.key];
+          } else {
+            try {
+              const j = JSON.parse(s);
+              if (!Array.isArray(j)) throw new Error("must be an array");
+              parsed[f.key] = j;
+            } catch (err: any) {
+              throw new Error(`${f.label}: ${err.message}`);
+            }
+          }
+        }
+      }
       await saveFn({
         data: {
-          content,
+          content: parsed,
           theme_key: theme === "default" ? null : theme,
           hero_image_url: hero || null,
           demo_video_url: video || null,
