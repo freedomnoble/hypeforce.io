@@ -386,6 +386,18 @@ export function WorkspaceShell({
           <Settings className="w-4 h-4" />
         </button>
         <button
+          onClick={() => setInboxOpen(true)}
+          className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary relative"
+          title="Inbox"
+        >
+          <Inbox className="w-4 h-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-electric text-[10px] font-semibold text-background grid place-items-center">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </button>
+        <button
           onClick={() => setSupportOpen(true)}
           className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary"
           title="Get help"
