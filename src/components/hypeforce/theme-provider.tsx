@@ -170,15 +170,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       // Custom theme not loaded yet — fall through to default until refresh completes
     }
 
+    const effectiveTheme = activeLandingOverride ?? theme;
     applyCustomTokens(null);
-    root.dataset.theme = theme;
-    if (themeHasModes(theme)) {
+    root.dataset.theme = effectiveTheme;
+    if (themeHasModes(effectiveTheme)) {
       const stored = (localStorage.getItem("hf-arachna-mode") as "dark" | "light" | null) ?? "dark";
       root.classList.toggle("dark", stored === "dark");
     } else {
       root.classList.remove("dark");
     }
-  }, [theme, preview, customThemes, forceDefault]);
+  }, [theme, preview, customThemes, forceDefault, activeLandingOverride]);
 
   const setTheme = (t: ThemeId) => {
     setPreview(null);
