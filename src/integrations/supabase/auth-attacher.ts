@@ -4,12 +4,30 @@ import { supabase } from './client'
 
 // Must be registered as a global `functionMiddleware` in `src/start.ts`; otherwise
 // the browser never attaches the bearer token to serverFn RPCs.
+//
+// IMPORTANT: getSession() can stall behind the Lovable preview proxy or a
+// flaky network. Because this middleware runs in front of EVERY serverFn
+// call, a stall freezes the whole app (e.g. /pretentious sitting on
+// "verifying access…" forever). Race the lookup with a short timeout and
+// fall through unauthenticated rather than blocking indefinitely — the
+// server-side `requireSupabaseAuth` will reject the call cleanly if the
+// caller really had no session.
 export const attachSupabaseAuth = createMiddleware({ type: 'function' }).client(
   async ({ next }) => {
-    const { data } = await supabase.auth.getSession()
-    const token = data.session?.access_token
-    return next({
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
+    try {
+      const data = await Promise.race([
+        supabase.auth.getSession().then((r) => r.data),
+        new Promise<{ session: null }>((_, reject) =>
+          setTimeout(() => reject(new Error('getSession timeout')), 3000),
+        ),
+      ])
+      const token = data.session?.access_token
+      return next({
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+    } catch (err) {
+      console.warn('[auth-attacher] getSession failed or timed out — proceeding without bearer', err)
+      return next({ headers: {} })
+    }
   },
 )

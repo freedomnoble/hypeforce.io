@@ -141,31 +141,39 @@ export function WorkspaceShell({
 
   useEffect(() => {
     (async () => {
-      const { data: ws } = await supabase.from("workspaces").select("*").order("created_at");
+      // Run the four independent top-level queries in parallel instead of
+      // waterfalling them. This cuts the shell's blank-state on mount from
+      // ~4 sequential RTTs to 1.
+      const [wsRes, chRes, agRes, userRes] = await Promise.all([
+        supabase.from("workspaces").select("*").order("created_at"),
+        supabase
+          .from("channels")
+          .select("*")
+          .eq("workspace_id", workspaceId)
+          .order("is_pinned", { ascending: false })
+          .order("name"),
+        supabase
+          .from("agents")
+          .select("*")
+          .eq("workspace_id", workspaceId)
+          .order("name"),
+        supabase.auth.getUser(),
+      ]);
+      const ws = wsRes.data;
+      const ch = chRes.data;
+      const ag = agRes.data;
+      const u = userRes.data;
       setWorkspaces(ws ?? []);
       setWorkspace((ws ?? []).find((w) => w.id === workspaceId) ?? null);
-
-      const { data: ch } = await supabase
-        .from("channels")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .order("is_pinned", { ascending: false })
-        .order("name");
       setChannels(ch ?? []);
-
-      const { data: ag } = await supabase
-        .from("agents")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .order("name");
       setAgents(ag ?? []);
 
-      const { data: u } = await supabase.auth.getUser();
       if (u.user) {
         meIdRef.current = u.user.id;
         const { data: p } = await supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle();
         setProfile(p);
       }
+
 
       const { data: dmRows } = await supabase
         .from("direct_messages")
