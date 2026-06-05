@@ -107,8 +107,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [landingOverride, setLandingOverride] = useState<ThemeId | null>(null);
 
   const refreshCustomThemes = useCallback(async () => {
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) {
+    // Use getSession() (reads from memory/localStorage) instead of getUser()
+    // (network round-trip that itself emits auth events). The previous
+    // getUser() call inside an onAuthStateChange handler created a silent
+    // infinite loop that saturated the browser's 6-connection pool to
+    // Supabase, deadlocking /login and /pretentious.
+    const { data: sess } = await supabase.auth.getSession();
+    const userId = sess.session?.user?.id;
+    if (!userId) {
       setCustomThemes([]);
       return;
     }
@@ -123,7 +129,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const stored = (typeof window !== "undefined" && localStorage.getItem("hf-theme")) || "default";
     setThemeState(stored);
     refreshCustomThemes();
-    const { data: sub } = supabase.auth.onAuthStateChange(() => refreshCustomThemes());
+    // Only refetch on real identity transitions. INITIAL_SESSION /
+    // TOKEN_REFRESHED / USER_UPDATED would otherwise re-trigger the handler
+    // on every tab focus and hourly token refresh.
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        refreshCustomThemes();
+      }
+    });
     return () => sub.subscription.unsubscribe();
   }, [refreshCustomThemes]);
 
