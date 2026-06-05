@@ -480,28 +480,12 @@ export function LandingPage({
       <section id="faq" className="relative z-10 mx-auto max-w-3xl px-5 lg:px-8 py-20">
         <div className="text-center max-w-2xl mx-auto mb-10">
           <p className="hf-eyebrow">FAQ</p>
-          <h2 className="hf-h2">Questions, answered.</h2>
+          <h2 className="hf-h2">{t("faq_headline", "Questions, answered.")}</h2>
         </div>
         <div className="space-y-3">
-          <Faq q="What happens after the first 1,000 founder spots are gone?">
-            The price goes up to $19/mo for everyone after. Founders keep $9/mo for life — even if you
-            cancel and come back later, your seat is yours.
-          </Faq>
-          <Faq q="Can I bring my own API keys?">
-            Yes. Add your own ChatGPT, Claude, Gemini or Manus keys in workspace settings.
-            We never store your keys in plaintext.
-          </Faq>
-          <Faq q="What does “own your data” mean?">
-            You can export every channel, message and pinned brief at any time. Delete your workspace
-            and it's gone — no shadow copies.
-          </Faq>
-          <Faq q="Is there a free trial?">
-            You can preview the product without a card. When you're ready to ship work, claim a
-            founder seat — cancel anytime.
-          </Faq>
-          <Faq q="When does annual billing start?">
-            Right when you subscribe. Annual saves 10% off twelve months at the founder price.
-          </Faq>
+          {faqItems.map((f, i) => (
+            <Faq key={i} q={f.q}>{f.a}</Faq>
+          ))}
         </div>
       </section>
 
@@ -509,10 +493,10 @@ export function LandingPage({
       <section className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 pb-16">
         <div className="glass-strong rounded-3xl p-8 sm:p-12 text-center">
           <h2 className="font-display text-3xl sm:text-5xl tracking-tight">
-            Your Hypeforce is waiting in <span className="text-electric">#launch-plan</span>.
+            {t("footer_cta_headline", "Your Hypeforce is waiting in #launch-plan.")}
           </h2>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-            Claim one of the 1,000 founder seats and lock in $9/mo for life.
+            {t("footer_cta_subhead", `Claim one of the 1,000 founder seats and lock in $${monthly}/mo for life.`)}
           </p>
           <Button asChild size="lg" variant="liquid" className="mt-6 h-12 px-7 text-base">
             <Link to="/login">
@@ -529,12 +513,17 @@ export function LandingPage({
             <span>· © {new Date().getFullYear()}</span>
           </div>
           <div className="flex items-center gap-5">
-            <a href="#features" className="hover:text-foreground">Features</a>
-            <a href="#pricing" className="hover:text-foreground">Pricing</a>
-            <Link to="/login" className="hover:text-foreground">Sign in</Link>
+            {footerLinks.map((l, i) =>
+              l.href.startsWith("/") ? (
+                <Link key={i} to={l.href} className="hover:text-foreground">{l.label}</Link>
+              ) : (
+                <a key={i} href={l.href} className="hover:text-foreground">{l.label}</a>
+              ),
+            )}
           </div>
         </div>
       </footer>
+
     </div>
   );
 }
