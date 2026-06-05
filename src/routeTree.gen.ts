@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PretentiousRouteImport } from './routes/pretentious'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
@@ -28,6 +29,11 @@ import { Route as AuthWWorkspaceIdAdminRouteImport } from './routes/_auth.w.$wor
 import { Route as AuthWWorkspaceIdDDmIdRouteImport } from './routes/_auth.w.$workspaceId.d.$dmId'
 import { Route as AuthWWorkspaceIdCChannelIdRouteImport } from './routes/_auth.w.$workspaceId.c.$channelId'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PretentiousRoute = PretentiousRouteImport.update({
   id: '/pretentious',
   path: '/pretentious',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/pretentious': typeof PretentiousRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/profile': typeof AuthProfileRouteWithChildren
   '/pretentious/billing': typeof PretentiousBillingRoute
   '/pretentious/landing': typeof PretentiousLandingRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/profile': typeof AuthProfileRouteWithChildren
   '/pretentious/billing': typeof PretentiousBillingRoute
   '/pretentious/landing': typeof PretentiousLandingRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/pretentious': typeof PretentiousRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/_auth/profile': typeof AuthProfileRouteWithChildren
   '/pretentious/billing': typeof PretentiousBillingRoute
   '/pretentious/landing': typeof PretentiousLandingRoute
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/pretentious'
+    | '/reset-password'
     | '/profile'
     | '/pretentious/billing'
     | '/pretentious/landing'
@@ -203,6 +213,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/login'
+    | '/reset-password'
     | '/profile'
     | '/pretentious/billing'
     | '/pretentious/landing'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/pretentious'
+    | '/reset-password'
     | '/_auth/profile'
     | '/pretentious/billing'
     | '/pretentious/landing'
@@ -244,12 +256,20 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRoute
   LoginRoute: typeof LoginRoute
   PretentiousRoute: typeof PretentiousRouteWithChildren
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ThemeImportRoute: typeof ThemeImportRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pretentious': {
       id: '/pretentious'
       path: '/pretentious'
@@ -435,6 +455,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRoute,
   LoginRoute: LoginRoute,
   PretentiousRoute: PretentiousRouteWithChildren,
+  ResetPasswordRoute: ResetPasswordRoute,
   ThemeImportRoute: ThemeImportRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
