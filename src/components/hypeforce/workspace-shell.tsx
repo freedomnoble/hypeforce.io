@@ -122,6 +122,15 @@ export function WorkspaceShell({
   const [profile, setProfile] = useState<Profile | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const fetchUnread = useServerFn(getUnreadCount);
+  const { data: unread } = useQuery({
+    queryKey: ["admin-inbox-unread"],
+    queryFn: () => fetchUnread(),
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  });
+  const unreadCount = unread?.count ?? 0;
   const [lastByDm, setLastByDm] = useState<Record<string, LastMessage>>({});
   const [readVersion, setReadVersion] = useState(0); // bump to recompute unread counts
   const [dmQuery, setDmQuery] = useState("");
