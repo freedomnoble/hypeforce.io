@@ -677,6 +677,8 @@ export function WorkspaceShell({
         }}
       />
 
+      <AdminInboxFlyout open={inboxOpen} onOpenChange={setInboxOpen} />
+
       <SupportFlyout
         open={supportOpen}
         onOpenChange={setSupportOpen}
