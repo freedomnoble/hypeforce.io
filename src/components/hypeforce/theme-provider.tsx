@@ -104,6 +104,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>("default");
   const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
   const [preview, setPreview] = useState<ThemeTokens | null>(null);
+  const [landingOverride, setLandingOverride] = useState<ThemeId | null>(null);
 
   const refreshCustomThemes = useCallback(async () => {
     const { data: u } = await supabase.auth.getUser();
