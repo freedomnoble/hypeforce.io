@@ -48,6 +48,31 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
     const { supabase } = context;
     const { workspace_id, channel_id, dm_id, mention_agent_ids } = data;
 
+    // Verify the supplied channel_id / dm_id actually belong to workspace_id.
+    // Without this, a caller can inject agent messages into channels in
+    // workspaces they no longer (or never) had access to by supplying their
+    // current workspace_id with a foreign channel_id.
+    if (channel_id) {
+      const { data: ch } = await supabaseAdmin
+        .from("channels")
+        .select("workspace_id")
+        .eq("id", channel_id)
+        .maybeSingle();
+      if (!ch || ch.workspace_id !== workspace_id) {
+        throw new Error("Channel does not belong to this workspace.");
+      }
+    }
+    if (dm_id) {
+      const { data: dm } = await supabaseAdmin
+        .from("direct_messages")
+        .select("workspace_id")
+        .eq("id", dm_id)
+        .maybeSingle();
+      if (!dm || dm.workspace_id !== workspace_id) {
+        throw new Error("DM does not belong to this workspace.");
+      }
+    }
+
     // Determine which agents should reply.
     let agentIds: string[] = mention_agent_ids;
     if (agentIds.length === 0 && channel_id) {
@@ -59,6 +84,7 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
       agentIds = (members ?? []).map((m: any) => m.agent_id).filter(Boolean);
     }
     if (agentIds.length === 0) return { dispatched: 0 };
+
 
     const { data: agents } = await supabase.from("agents").select("*").in("id", agentIds);
 
