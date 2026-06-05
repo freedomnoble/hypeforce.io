@@ -1,13 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestIP } from "@tanstack/react-start/server";
+import { getRequestIP, getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
 
 const SubmitSchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(255),
   message: z.string().trim().min(1).max(5000),
   page_url: z.string().max(500).optional(),
-  user_id: z.string().uuid().nullable().optional(),
   attachments: z
     .array(
       z.object({
@@ -21,42 +21,77 @@ const SubmitSchema = z.object({
     .optional(),
 });
 
+// Derive the calling user id from the optional bearer token. Returns null
+// for anonymous callers — never trusts a client-supplied user_id.
+async function deriveUserIdFromAuth(): Promise<string | null> {
+  let authHeader: string | null | undefined;
+  try {
+    authHeader = getRequestHeader("authorization");
+  } catch {
+    return null;
+  }
+  const token = authHeader?.replace(/^Bearer\s+/i, "");
+  if (!token) return null;
+  const url = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !anonKey) return null;
+  try {
+    const client = createClient(url, anonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data } = await client.auth.getUser();
+    return data.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Shared rate limit: `limit` calls/hour/ip per action key.
+async function checkRateLimit(action: string, limit: number) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  let ip = "unknown";
+  try {
+    ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
+  } catch {
+    // no request context
+  }
+  const key = `${action}:${ip}`;
+  const now = new Date();
+  const { data: rl } = await supabaseAdmin
+    .from("support_rate_limit")
+    .select("*")
+    .eq("ip", key)
+    .maybeSingle();
+  if (rl) {
+    const windowAge = (now.getTime() - new Date(rl.window_start).getTime()) / 1000;
+    if (windowAge < 3600 && rl.count >= limit) {
+      throw new Error("Too many requests. Try again in an hour.");
+    }
+    if (windowAge >= 3600) {
+      await supabaseAdmin
+        .from("support_rate_limit")
+        .update({ count: 1, window_start: now.toISOString() })
+        .eq("ip", key);
+    } else {
+      await supabaseAdmin
+        .from("support_rate_limit")
+        .update({ count: rl.count + 1 })
+        .eq("ip", key);
+    }
+  } else {
+    await supabaseAdmin.from("support_rate_limit").insert({ ip: key, count: 1 });
+  }
+}
+
 export const submitSupportTicket = createServerFn({ method: "POST" })
   .inputValidator((i: any) => SubmitSchema.parse(i))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // simple rate limit: 5 tickets / hour / ip
-    let ip = "unknown";
-    try {
-      ip = getRequestIP({ xForwardedFor: true }) ?? "unknown";
-    } catch {
-      // not in request context
-    }
-    const now = new Date();
-    const { data: rl } = await supabaseAdmin
-      .from("support_rate_limit")
-      .select("*")
-      .eq("ip", ip)
-      .maybeSingle();
-    if (rl) {
-      const windowAge = (now.getTime() - new Date(rl.window_start).getTime()) / 1000;
-      if (windowAge < 3600 && rl.count >= 5) {
-        throw new Error("Too many support requests. Try again in an hour.");
-      }
-      if (windowAge >= 3600) {
-        await supabaseAdmin
-          .from("support_rate_limit")
-          .update({ count: 1, window_start: now.toISOString() })
-          .eq("ip", ip);
-      } else {
-        await supabaseAdmin
-          .from("support_rate_limit")
-          .update({ count: rl.count + 1 })
-          .eq("ip", ip);
-      }
-    } else {
-      await supabaseAdmin.from("support_rate_limit").insert({ ip, count: 1 });
-    }
+    await checkRateLimit("submit", 5);
+
+    // Derive user_id server-side from the bearer token; never trust the client.
+    const derivedUserId = await deriveUserIdFromAuth();
 
     const { data: ticket, error } = await supabaseAdmin
       .from("support_tickets")
@@ -65,7 +100,7 @@ export const submitSupportTicket = createServerFn({ method: "POST" })
         email: data.email,
         message: data.message,
         page_url: data.page_url ?? null,
-        user_id: data.user_id ?? null,
+        user_id: derivedUserId,
       })
       .select("id")
       .single();
@@ -90,6 +125,8 @@ export const createSupportUploadUrl = createServerFn({ method: "POST" })
     kind: z.enum(["image", "video", "other"]),
   }).parse(i))
   .handler(async ({ data }) => {
+    // Prevent storage cost abuse on unauth endpoint: 20 signed URLs / hour / IP.
+    await checkRateLimit("upload", 20);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const safe = data.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `${data.kind}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safe}`;
