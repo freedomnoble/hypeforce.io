@@ -20,9 +20,11 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+type Mode = "signin" | "signup" | "forgot";
+
 function LoginPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -44,6 +46,13 @@ function LoginPage() {
         if (error) throw error;
         toast.success("Check your email to confirm your account, then sign in.");
         setMode("signin");
+      } else if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast.success("Check your email for a reset link.");
+        setMode("signin");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -55,6 +64,9 @@ function LoginPage() {
       setLoading(false);
     }
   };
+
+  const title =
+    mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link";
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative">
@@ -79,23 +91,49 @@ function LoginPage() {
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@studio.com" />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
-          </div>
+          {mode !== "forgot" && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                {mode === "signin" && (
+                  <button
+                    type="button"
+                    onClick={() => setMode("forgot")}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+              <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+            </div>
+          )}
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "..." : mode === "signin" ? "Sign in" : "Create account"}
+            {loading ? "..." : title}
           </Button>
         </form>
 
-        <button
-          type="button"
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-          className="mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-center"
-        >
-          {mode === "signin" ? "Need an account? Sign up" : "Have an account? Sign in"}
-        </button>
+        <div className="mt-4 text-sm text-muted-foreground text-center space-y-1">
+          {mode === "forgot" ? (
+            <button
+              type="button"
+              onClick={() => setMode("signin")}
+              className="hover:text-foreground transition-colors"
+            >
+              Back to sign in
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+              className="hover:text-foreground transition-colors w-full"
+            >
+              {mode === "signin" ? "Need an account? Sign up" : "Have an account? Sign in"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
 }
+
