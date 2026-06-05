@@ -17,16 +17,22 @@ function PretentiousLayout() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session?.user) {
         if (active) setState("no-auth");
         return;
       }
       try {
-        const res = await check();
+        const res = await Promise.race([
+          check(),
+          new Promise<never>((_, rej) =>
+            setTimeout(() => rej(new Error("check timeout")), 15000),
+          ),
+        ]);
         if (!active) return;
         setState(res.isSuperAdmin ? "ok" : "not-admin");
-      } catch {
+      } catch (e) {
+        console.error("[pretentious] checkSuperAdmin failed", e);
         if (active) setState("not-admin");
       }
     })();
