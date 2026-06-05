@@ -25,12 +25,22 @@ export const Route = createFileRoute("/")({
   loader: async () => {
     try {
       const res = await getPublicLandingContent();
+      const row: any = res.content ?? null;
       return {
-        heroUrl: res.content?.hero_image_url ?? null,
-        videoUrl: res.content?.demo_video_url ?? null,
+        heroUrl: (row?.hero_image_url as string | null) ?? null,
+        videoUrl: (row?.demo_video_url as string | null) ?? null,
+        themeKey: (row?.theme_key as string | null) ?? null,
+        content: (row?.content as Record<string, any> | null) ?? null,
+        pricing: (res.pricing as Record<string, any> | null) ?? null,
       };
     } catch {
-      return { heroUrl: null, videoUrl: null };
+      return {
+        heroUrl: null,
+        videoUrl: null,
+        themeKey: null,
+        content: null,
+        pricing: null,
+      };
     }
   },
   component: IndexPage,
@@ -39,6 +49,14 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
-  const { heroUrl, videoUrl } = Route.useLoaderData();
-  return <LandingPage heroUrl={heroUrl} videoUrl={videoUrl} />;
+  const { heroUrl, videoUrl, themeKey, content, pricing } = Route.useLoaderData();
+  return (
+    <LandingPage
+      heroUrl={heroUrl}
+      videoUrl={videoUrl}
+      themeKey={themeKey}
+      content={content}
+      pricing={pricing}
+    />
+  );
 }
