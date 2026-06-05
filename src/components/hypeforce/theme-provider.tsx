@@ -68,6 +68,8 @@ type Ctx = {
   previewTokens: (tokens: ThemeTokens | null) => void;
   saveCustomTheme: (name: string, prompt: string, tokens: ThemeTokens) => Promise<CustomTheme | null>;
   deleteCustomTheme: (id: string) => Promise<void>;
+  /** Apply a built-in theme override on the public landing route only. Pass null to clear. Not persisted. */
+  setLandingThemeOverride: (t: ThemeId | null) => void;
 };
 
 const ThemeCtx = createContext<Ctx>({
@@ -78,6 +80,7 @@ const ThemeCtx = createContext<Ctx>({
   previewTokens: () => {},
   saveCustomTheme: async () => null,
   deleteCustomTheme: async () => {},
+  setLandingThemeOverride: () => {},
 });
 
 const STYLE_TAG_ID = "hf-custom-theme-style";
