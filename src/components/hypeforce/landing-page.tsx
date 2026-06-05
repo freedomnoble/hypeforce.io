@@ -221,7 +221,7 @@ export function LandingPage({
             className="inline-flex items-center gap-2 liquid-glass rounded-full px-3.5 py-1.5 text-xs uppercase tracking-[0.18em] text-foreground/85 mb-7 hover:text-foreground transition-colors"
           >
             <Crown className="w-3.5 h-3.5 text-electric" />
-            Beta is open — first 1,000 users only
+            {t("hero_eyebrow", "Beta is open — first 1,000 users only")}
           </a>
 
           <div className="relative mx-auto w-full max-w-[1100px]">
@@ -235,27 +235,26 @@ export function LandingPage({
 
           <div className="relative mt-10 sm:mt-14 max-w-2xl mx-auto">
             <h2 className="text-xl sm:text-2xl text-foreground/90 font-display tracking-tight">
-              Work with your AI team — like Slack, but built for human & robot shared goals.
+              {t("hero_headline", "Work with your AI team — like Slack, but built for human & robot shared goals.")}
             </h2>
             <p className="mt-4 text-base sm:text-lg text-muted-foreground">
-              Brief ChatGPT, Claude, Gemini and Manus in one room. @-mention to target,
-              broadcast to brief the whole crew. Share context and ship faster.
+              {t("hero_subhead", "Brief ChatGPT, Claude, Gemini and Manus in one room. @-mention to target, broadcast to brief the whole crew. Share context and ship faster.")}
             </p>
             <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg" variant="liquid" className="text-base h-12 px-6">
                 <a href="#pricing">
-                  Get founder access — $9/mo
+                  {t("hero_cta_primary", `Get founder access — $${monthly}/mo`)}
                   <ArrowRight className="w-4 h-4 ml-0.5" />
                 </a>
               </Button>
               <Button asChild size="lg" variant="ghost" className="text-base h-12 px-6">
                 <a href="#demo">
-                  <Play className="w-4 h-4" /> Watch the 90-second tour
+                  <Play className="w-4 h-4" /> {t("hero_cta_secondary", "Watch the 90-second tour")}
                 </a>
               </Button>
             </div>
             <p className="mt-4 text-xs text-muted-foreground/80">
-              Cancel anytime · Own your work and data
+              {t("hero_footnote", "Cancel anytime · Own your work and data")}
             </p>
           </div>
         </div>
@@ -265,14 +264,16 @@ export function LandingPage({
       <section className="relative z-10 mx-auto max-w-6xl px-5 lg:px-8 pb-10">
         <div className="liquid-glass rounded-2xl px-6 py-5 flex flex-col sm:flex-row items-center justify-center gap-x-10 gap-y-3 text-sm">
           <span className="text-muted-foreground uppercase tracking-[0.18em] text-[11px] text-left">
-            PLAYS WELL WITH
+            {t("plays_with_label", "PLAYS WELL WITH")}
           </span>
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-3">
-            <span className="font-display text-foreground/90">ChatGPT</span>
-            <span className="font-display text-foreground/90">Claude</span>
-            <span className="font-display text-foreground/90">Gemini</span>
-            <span className="font-display text-foreground/90">Manus</span>
-            <span className="font-display text-foreground/90">+ your own keys</span>
+            {playsWithItems.map((p, i) =>
+              p.logo_url ? (
+                <img key={i} src={p.logo_url} alt={p.label} className="h-6 w-auto opacity-90" />
+              ) : (
+                <span key={i} className="font-display text-foreground/90">{p.label}</span>
+              ),
+            )}
           </div>
         </div>
       </section>
@@ -280,59 +281,46 @@ export function LandingPage({
       {/* USE CASES */}
       <section id="use-cases" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <p className="hf-eyebrow">Use cases</p>
-          <h2 className="hf-h2">25X yourself or your team</h2>
+          <p className="hf-eyebrow">{t("use_cases_eyebrow", "Use cases")}</p>
+          <h2 className="hf-h2">{t("use_cases_headline", "25X yourself or your team")}</h2>
           <p className="mt-3 text-muted-foreground text-lg">
-            Hype up your work with 5 agents that work together. That's 5x5 the productivity and work shipped.
+            {t("use_cases_subhead", "Hype up your work with 5 agents that work together. That's 5x5 the productivity and work shipped.")}
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <UseCaseCard
-            n="01"
-            icon={<Rocket />}
-            title="Solo Founder Launchpad"
-            desc="Launch campaigns and ship features together. One agent researches market demand, another scopes the build, another writes the marketing copy, another runs the repo tests — all in parallel, all aligned to your brand, vision and voice."
-          />
-          <UseCaseCard
-            n="02"
-            icon={<Database />}
-            title="Data, SOPs & Marketing in One Room"
-            desc="Cast each agent in a role and brief the outcome. They model the data, write SOPs from the findings, and turn the results into marketing copy your team and agents can run with — together, in one channel."
-          />
-          <UseCaseCard
-            n="03"
-            icon={<TrendingUp />}
-            title="Trend-to-Brand Marketing Engine"
-            desc="A research agent scans trending content on your target channels. A strategy agent maps trends to your brand (or proposes a new course). Copy and image/video agents ship on-brand assets using your colors, logos and voice."
-          />
-          <UseCaseCard
-            n="04"
-            icon={<Megaphone />}
-            title="Brand Voice Command Center"
-            desc="Pin the brief once. Every agent — ChatGPT, Claude, Gemini, Manus — reads the room before replying, so your tone, positioning and product facts stay consistent across every message, doc and campaign."
-          />
+          {useCaseItems.map((u, i) => (
+            <UseCaseCard
+              key={i}
+              n={String(i + 1).padStart(2, "0")}
+              icon={FEATURE_ICONS[u.icon ?? ""] ?? <Rocket />}
+              title={u.title}
+              desc={u.desc}
+            />
+          ))}
         </div>
       </section>
 
       {/* FEATURES GRID */}
       <section id="features" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <p className="hf-eyebrow">The platform</p>
-          <h2 className="hf-h2">An intentional space for alignment across chatbots and humans.</h2>
+          <p className="hf-eyebrow">{t("features_eyebrow", "The platform")}</p>
+          <h2 className="hf-h2">{t("features_headline", "An intentional space for alignment across chatbots and humans.")}</h2>
           <p className="mt-3 text-muted-foreground text-lg">
-            Hypeforce is a chat-first workspace where humans and agents collaborate
-            in shared channels with shared context, shared memory and shared goals.
+            {t("features_subhead", "Hypeforce is a chat-first workspace where humans and agents collaborate in shared channels with shared context, shared memory and shared goals.")}
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <FeatureCard icon={<MessageSquare />} title="Slack-style channels" desc="Pin briefs, thread replies, search everything. The familiar workspace your team already lives in." />
-          <FeatureCard icon={<Bot />} title="A roster of agents" desc="ChatGPT, Claude, Gemini, Manus and custom agents — each with their own avatar, prompt and tools." />
-          <FeatureCard icon={<Users />} title="@-mention to target" desc="@claude for the long thinking, @gemini for the fast pass, or just send a message and let the whole crew weigh in." />
-          <FeatureCard icon={<Workflow />} title="Shared context" desc="Channel memory, pinned briefs, uploaded docs — every agent reads the room before it replies." />
-          <FeatureCard icon={<Zap />} title="Built for speed" desc="Simple to navigate and set context, brand voice, and more.  Switch channels, brief agents and ship in seconds." />
-          <FeatureCard icon={<Lock />} title="Your data, your keys" desc="Bring your own provider keys. Export anything, delete anything. Founders own their workspace." />
+          {featureItems.map((f, i) => (
+            <FeatureCard
+              key={i}
+              icon={FEATURE_ICONS[f.icon ?? ""] ?? <Sparkles />}
+              title={f.title}
+              desc={f.desc}
+            />
+          ))}
         </div>
       </section>
+
 
       {/* DEMO VIDEO */}
       <section id="demo" className="relative z-10 mx-auto max-w-6xl px-5 lg:px-8 py-16">
