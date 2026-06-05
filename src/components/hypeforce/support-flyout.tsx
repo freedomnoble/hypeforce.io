@@ -81,7 +81,7 @@ export function SupportFlyout({
           email: email.trim(),
           message: message.trim(),
           page_url: typeof window !== "undefined" ? window.location.href : undefined,
-          user_id: userId ?? null,
+          
           attachments: uploaded.length ? uploaded : undefined,
         },
       });
