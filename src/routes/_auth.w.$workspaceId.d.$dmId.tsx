@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { WorkspaceShell, type Agent, type Profile } from "@/components/hypeforce/workspace-shell";
+import { WorkspaceShell, MobileChatTopBar, type Agent, type Profile } from "@/components/hypeforce/workspace-shell";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Bot, Loader2, Send, AtSign, User as UserIcon, MessageSquare } from "lucide-react";
@@ -35,6 +36,7 @@ function DmPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [thinking, setThinking] = useState<string[]>([]);
+  const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const thinkingTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
