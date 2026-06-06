@@ -951,6 +951,64 @@ function ProfileSheetRow({
   );
 }
 
+export function MobileChatTopBar({
+  title,
+  prefix,
+  onOpenDetails,
+}: {
+  title: string;
+  prefix?: "#" | "@";
+  onOpenDetails?: () => void;
+}) {
+  const ctx = useMobileShell();
+  const navigate = useNavigate();
+  const ws = ctx?.workspace;
+  const profile = ctx?.profile;
+  return (
+    <header className="sm:hidden h-14 flex items-center px-2 gap-1 flex-shrink-0 glass-strong border-b border-border">
+      <button
+        onClick={() => ctx?.openWorkspaces()}
+        className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-display font-semibold bg-primary text-primary-foreground"
+        title="Workspaces"
+      >
+        {ws ? ws.name.slice(0, 2).toUpperCase() : "··"}
+      </button>
+      <button
+        onClick={() => {
+          if (ws) navigate({ to: "/w/$workspaceId", params: { workspaceId: ws.id } });
+        }}
+        className="flex-1 min-w-0 flex items-center gap-1 px-1 py-1 text-left"
+        title="Back to channels"
+      >
+        <ChevronLeft className="w-4 h-4 text-muted-foreground shrink-0" />
+        <span className="font-display font-semibold text-base truncate">
+          {prefix ? <span className="text-muted-foreground mr-0.5">{prefix}</span> : null}
+          {title || "…"}
+        </span>
+      </button>
+      {onOpenDetails && (
+        <button
+          onClick={onOpenDetails}
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground"
+          title="Details"
+        >
+          <PanelRight className="w-4 h-4" />
+        </button>
+      )}
+      <button
+        onClick={() => ctx?.openProfile()}
+        className="ml-0.5"
+        title="Your profile"
+      >
+        <Avatar className="w-9 h-9">
+          <AvatarImage src={profile?.avatar_url ?? undefined} />
+          <AvatarFallback><UserIcon className="w-4 h-4" /></AvatarFallback>
+        </Avatar>
+      </button>
+    </header>
+  );
+}
+
 
 function Section({
   title,
