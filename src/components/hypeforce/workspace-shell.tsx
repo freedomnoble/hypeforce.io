@@ -152,7 +152,12 @@ export function WorkspaceShell({
   const [dmQuery, setDmQuery] = useState("");
   const [dmFilter, setDmFilter] = useState<DmFilter>("all");
   const [pendingAgent, setPendingAgent] = useState<Agent | null>(null);
+  // Mobile-only sheets (off-canvas drawers)
+  const [workspacesSheetOpen, setWorkspacesSheetOpen] = useState(false);
+  const [profileSheetOpen, setProfileSheetOpen] = useState(false);
   const meIdRef = useRef<string | null>(null);
+
+  const hasActive = !!(activeChannelId || activeDmId);
 
   useEffect(() => {
     (async () => {
