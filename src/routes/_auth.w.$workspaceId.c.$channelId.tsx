@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useMemo, Fragment, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { WorkspaceShell, type Agent, type Profile } from "@/components/hypeforce/workspace-shell";
+import { WorkspaceShell, useMobileShell, type Agent, type Profile } from "@/components/hypeforce/workspace-shell";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Link } from "@tanstack/react-router";
+import { ChevronLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -78,6 +81,7 @@ function ChannelPage() {
   const [sending, setSending] = useState(false);
   const [thinkingAgentIds, setThinkingAgentIds] = useState<string[]>([]);
   const [detailsOpen, setDetailsOpen] = useState(true);
+  const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const thinkingTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -248,7 +252,13 @@ function ChannelPage() {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <header className="thought-panel h-14 flex items-center px-4 gap-3 flex-shrink-0">
+          <MobileChatTopBar
+            title={channel?.name ?? ""}
+            prefix="#"
+            onOpenDetails={() => setMobileDetailsOpen(true)}
+          />
+          <header className="thought-panel h-14 hidden sm:flex items-center px-4 gap-3 flex-shrink-0">
+
             <Hash className="w-4 h-4" />
             <button
               type="button"
