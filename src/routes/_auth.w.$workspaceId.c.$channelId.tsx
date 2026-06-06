@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useMemo, Fragment, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { WorkspaceShell, useMobileShell, type Agent, type Profile } from "@/components/hypeforce/workspace-shell";
+import { WorkspaceShell, MobileChatTopBar, useMobileShell, type Agent, type Profile } from "@/components/hypeforce/workspace-shell";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
