@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { WorkspaceShell, type Agent, type Profile } from "@/components/hypeforce/workspace-shell";
+import { WorkspaceShell, MobileChatTopBar, type Agent, type Profile } from "@/components/hypeforce/workspace-shell";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Bot, Loader2, Send, AtSign, User as UserIcon, MessageSquare } from "lucide-react";
@@ -35,6 +36,7 @@ function DmPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [thinking, setThinking] = useState<string[]>([]);
+  const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const thinkingTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -195,7 +197,12 @@ function DmPage() {
     <WorkspaceShell workspaceId={workspaceId} activeDmId={dmId}>
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="h-14 border-b border-border glass-strong flex items-center px-4 gap-3 flex-shrink-0">
+          <MobileChatTopBar
+            title={headerTitle}
+            prefix={otherAgent ? "@" : undefined}
+            onOpenDetails={() => setMobileDetailsOpen(true)}
+          />
+          <header className="h-14 border-b border-border glass-strong hidden sm:flex items-center px-4 gap-3 flex-shrink-0">
             <MessageSquare className="w-4 h-4 text-muted-foreground" />
             <div className="font-display font-semibold">{headerTitle}</div>
             <span className="text-[10px] uppercase tracking-wider font-mono px-1.5 py-0.5 rounded bg-accent/30 text-accent-foreground border border-border">
@@ -292,36 +299,62 @@ function DmPage() {
               <div className="font-display font-semibold text-sm">{headerTitle}</div>
             </div>
           </div>
-          <div className="px-4 py-4">
-            <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground mb-3">
-              Participants
-            </div>
-            <div className="space-y-2.5">
-              {me && (
-                <MemberRow
-                  name={me.display_name ?? me.email ?? "You"}
-                  subtitle="You"
-                  avatar={me.avatar_url ?? undefined}
-                  fallback={<UserIcon className="w-3.5 h-3.5" />}
-                  online
-                />
-              )}
-              {participantAgents.map((a) => (
-                <MemberRow
-                  key={a.id}
-                  name={a.name}
-                  subtitle={a.description ?? a.provider}
-                  avatar={a.avatar_url ?? undefined}
-                  badge={a.provider}
-                  fallback={<Bot className="w-3.5 h-3.5" />}
-                  online
-                />
-              ))}
-            </div>
-          </div>
+          <DmDetailsBody me={me} participantAgents={participantAgents} />
         </aside>
+
+        <Sheet open={mobileDetailsOpen} onOpenChange={setMobileDetailsOpen}>
+          <SheetContent side="right" className="p-0 w-80 lg:hidden flex flex-col">
+            <div className="px-4 h-14 border-b border-border flex items-center flex-shrink-0">
+              <div>
+                <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">Details</div>
+                <div className="font-display font-semibold text-sm">{headerTitle}</div>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto scrollbar-thin">
+              <DmDetailsBody me={me} participantAgents={participantAgents} />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </WorkspaceShell>
+  );
+}
+
+function DmDetailsBody({
+  me,
+  participantAgents,
+}: {
+  me: Profile | null;
+  participantAgents: Agent[];
+}) {
+  return (
+    <div className="px-4 py-4">
+      <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground mb-3">
+        Participants
+      </div>
+      <div className="space-y-2.5">
+        {me && (
+          <MemberRow
+            name={me.display_name ?? me.email ?? "You"}
+            subtitle="You"
+            avatar={me.avatar_url ?? undefined}
+            fallback={<UserIcon className="w-3.5 h-3.5" />}
+            online
+          />
+        )}
+        {participantAgents.map((a) => (
+          <MemberRow
+            key={a.id}
+            name={a.name}
+            subtitle={a.description ?? a.provider}
+            avatar={a.avatar_url ?? undefined}
+            badge={a.provider}
+            fallback={<Bot className="w-3.5 h-3.5" />}
+            online
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
