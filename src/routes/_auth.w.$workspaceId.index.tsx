@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkspaceShell } from "@/components/hypeforce/workspace-shell";
@@ -13,6 +13,9 @@ function WorkspaceIndex() {
   useEffect(() => {
     let active = true;
     (async () => {
+      // On phones (<sm) we land on the channel list instead of auto-jumping
+      // to the first channel — matches Slack's mobile Home flow.
+      if (typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches) return;
       const { data: ch } = await supabase
         .from("channels")
         .select("id")
@@ -34,3 +37,4 @@ function WorkspaceIndex() {
 
   return <WorkspaceShell workspaceId={workspaceId} />;
 }
+
