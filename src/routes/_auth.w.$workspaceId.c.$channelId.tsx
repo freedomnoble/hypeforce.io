@@ -252,7 +252,13 @@ function ChannelPage() {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <header className="thought-panel h-14 flex items-center px-4 gap-3 flex-shrink-0">
+          <MobileChatTopBar
+            title={channel?.name ?? ""}
+            prefix="#"
+            onOpenDetails={() => setMobileDetailsOpen(true)}
+          />
+          <header className="thought-panel h-14 hidden sm:flex items-center px-4 gap-3 flex-shrink-0">
+
             <Hash className="w-4 h-4" />
             <button
               type="button"
