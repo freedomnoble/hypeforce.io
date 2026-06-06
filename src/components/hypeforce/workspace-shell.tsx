@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, createContext, useContext } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,9 @@ import {
   X,
   HelpCircle,
   Inbox,
+  Home,
+  Bell,
+  MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,6 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import appIcon from "@/assets/app-icon.png";
 import { ClientOnly } from "@tanstack/react-router";
@@ -50,6 +54,17 @@ import { useTheme, themeHasModes } from "./theme-provider";
 const InfiniteGridBg = lazy(() =>
   import("./infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
 );
+
+// Mobile context: lets chat pages open the workspaces / profile sheets that
+// live inside WorkspaceShell, without prop-drilling. Used on phones (<sm).
+export interface MobileShellApi {
+  openWorkspaces: () => void;
+  openProfile: () => void;
+  workspace: { id: string; name: string; slug: string } | null;
+  profile: { id: string; display_name: string | null; avatar_url: string | null; email: string | null } | null;
+}
+const MobileShellCtx = createContext<MobileShellApi | null>(null);
+export const useMobileShell = () => useContext(MobileShellCtx);
 
 export interface Workspace {
   id: string;
