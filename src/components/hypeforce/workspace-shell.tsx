@@ -24,6 +24,8 @@ import {
   Home,
   Bell,
   MoreHorizontal,
+  PanelRight,
+  ChevronLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
