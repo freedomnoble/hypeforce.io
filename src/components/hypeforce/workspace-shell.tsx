@@ -754,9 +754,201 @@ export function WorkspaceShell({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* === Mobile-only navigation (phones, < sm) === */}
+
+      {/* Workspaces drawer (mirrors the desktop far-left rail) */}
+      <Sheet open={workspacesSheetOpen} onOpenChange={setWorkspacesSheetOpen}>
+        <SheetContent side="left" className="p-0 w-72 sm:hidden flex flex-col">
+          <div className="px-5 pt-6 pb-4 border-b border-border">
+            <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">Workspaces</div>
+          </div>
+          <div className="flex-1 overflow-y-auto scrollbar-thin px-3 py-3 space-y-1">
+            {workspaces.map((w) => (
+              <button
+                key={w.id}
+                onClick={() => {
+                  setWorkspacesSheetOpen(false);
+                  navigate({ to: "/w/$workspaceId", params: { workspaceId: w.id } });
+                }}
+                className={`w-full flex items-center gap-3 px-2 py-2 rounded-xl text-left transition-colors ${
+                  w.id === workspaceId ? "bg-primary/15" : "hover:bg-secondary/50"
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-display font-semibold ${
+                  w.id === workspaceId ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground/80"
+                }`}>
+                  {w.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <div className="font-display font-semibold text-sm truncate">{w.name}</div>
+                  <div className="text-[11px] font-mono text-muted-foreground truncate">{w.slug}</div>
+                </div>
+              </button>
+            ))}
+            <button
+              onClick={async () => {
+                const name = prompt("New workspace name");
+                if (!name) return;
+                try {
+                  const { workspaceId: newId } = await createWorkspaceFn({ data: { name } });
+                  setWorkspacesSheetOpen(false);
+                  navigate({ to: "/w/$workspaceId", params: { workspaceId: newId } });
+                } catch (err: any) {
+                  toast.error(err?.message ?? "Couldn't create workspace");
+                }
+              }}
+              className="w-full flex items-center gap-3 px-2 py-2 rounded-xl text-left text-muted-foreground hover:bg-secondary/50"
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60">
+                <Plus className="w-4 h-4" />
+              </div>
+              <div className="text-sm font-medium">Add a workspace</div>
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Profile sheet (mirrors desktop rail bottom: theme, settings, inbox, help, sign-out) */}
+      <Sheet open={profileSheetOpen} onOpenChange={setProfileSheetOpen}>
+        <SheetContent side="right" className="p-0 w-80 sm:hidden flex flex-col">
+          <div className="px-5 pt-6 pb-5 border-b border-border flex items-center gap-3">
+            <Avatar className="w-12 h-12">
+              <AvatarImage src={profile?.avatar_url ?? undefined} />
+              <AvatarFallback><UserIcon className="w-5 h-5" /></AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <div className="font-display font-semibold text-base truncate">
+                {profile?.display_name ?? profile?.email ?? "You"}
+              </div>
+              <div className="text-[10px] font-mono text-mint">● online</div>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto scrollbar-thin py-2">
+            {themeHasModes(useTheme().theme) && (
+              <div className="flex items-center gap-3 px-5 py-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-secondary/60">
+                  <AnimatedThemeToggler />
+                </div>
+                <div className="text-sm">Toggle light / dark</div>
+              </div>
+            )}
+            <ProfileSheetRow
+              icon={<Settings className="w-4 h-4" />}
+              label="Workspace settings"
+              onClick={() => { setProfileSheetOpen(false); setSettingsOpen(true); }}
+            />
+            <ProfileSheetRow
+              icon={<Inbox className="w-4 h-4" />}
+              label="Inbox"
+              badge={unreadCount > 0 ? (unreadCount > 99 ? "99+" : String(unreadCount)) : undefined}
+              onClick={() => { setProfileSheetOpen(false); setInboxOpen(true); }}
+            />
+            <ProfileSheetRow
+              icon={<HelpCircle className="w-4 h-4" />}
+              label="Get help"
+              onClick={() => { setProfileSheetOpen(false); setSupportOpen(true); }}
+            />
+            <div className="h-px bg-border my-2 mx-5" />
+            <ProfileSheetRow
+              icon={<LogOut className="w-4 h-4" />}
+              label="Sign out"
+              onClick={() => { setProfileSheetOpen(false); signOut(); }}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Bottom tab bar (phones only) */}
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 h-14 z-30 border-t border-border bg-background/95 backdrop-blur flex items-stretch">
+        <MobileTabButton
+          icon={<Home className="w-5 h-5" />}
+          label="Home"
+          active={!hasActive}
+          onClick={() => navigate({ to: "/w/$workspaceId", params: { workspaceId } })}
+        />
+        <MobileTabButton
+          icon={<MessageSquare className="w-5 h-5" />}
+          label="DMs"
+          onClick={() => navigate({ to: "/w/$workspaceId", params: { workspaceId } })}
+        />
+        <MobileTabButton
+          icon={<Bell className="w-5 h-5" />}
+          label="Activity"
+          badge={unreadCount > 0}
+          onClick={() => setInboxOpen(true)}
+        />
+        <MobileTabButton
+          icon={<MoreHorizontal className="w-5 h-5" />}
+          label="More"
+          onClick={() => setProfileSheetOpen(true)}
+        />
+      </nav>
     </div>
+    </MobileShellCtx.Provider>
   );
 }
+
+function MobileTabButton({
+  icon,
+  label,
+  active,
+  badge,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+  badge?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative ${
+        active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      <div className="relative">
+        {icon}
+        {badge && (
+          <span className="absolute -top-0.5 -right-1.5 w-1.5 h-1.5 rounded-full bg-electric" />
+        )}
+      </div>
+      <span className="text-[10px] font-mono uppercase tracking-wider">{label}</span>
+    </button>
+  );
+}
+
+function ProfileSheetRow({
+  icon,
+  label,
+  badge,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  badge?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 px-5 py-3 hover:bg-secondary/50 transition-colors text-left"
+    >
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-secondary/60 text-foreground">
+        {icon}
+      </div>
+      <div className="flex-1 text-sm font-medium">{label}</div>
+      {badge && (
+        <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-electric text-[10px] font-semibold text-background grid place-items-center">
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
 
 function Section({
   title,
