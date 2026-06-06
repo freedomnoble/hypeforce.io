@@ -183,7 +183,7 @@ export function LandingPage({
               <img
                 src={wordmarkAsset.url}
                 alt="Hypeforce"
-                className="h-16 sm:h-[4.5rem] w-auto select-none"
+                className="h-8 sm:h-9 w-auto select-none"
                 draggable={false}
               />
             </Link>
