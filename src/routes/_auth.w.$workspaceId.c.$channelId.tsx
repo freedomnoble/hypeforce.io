@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useMemo, Fragment, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { WorkspaceShell, MobileChatTopBar, useMobileShell, type Agent, type Profile } from "@/components/hypeforce/workspace-shell";
+import { WorkspaceShell, MobileChatTopBar, type Agent, type Profile } from "@/components/hypeforce/workspace-shell";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
@@ -445,7 +445,7 @@ function ChannelPage() {
           </div>
         </div>
 
-        {/* Right Details panel */}
+        {/* Right Details panel (desktop) */}
         {detailsOpen && (
           <aside className="hidden lg:flex w-72 flex-col border-l border-border glass-strong overflow-y-auto scrollbar-thin">
             <div className="flex items-center justify-between px-4 h-14 border-b border-border flex-shrink-0">
@@ -457,69 +457,96 @@ function ChannelPage() {
                 <X className="w-4 h-4" />
               </Button>
             </div>
-
-            {/* In this room */}
-            <div className="px-4 py-4 border-b border-border">
-              <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground mb-3">
-                In this room
-              </div>
-              <div className="space-y-2.5">
-                <MemberRow
-                  name={me?.display_name ?? me?.email ?? "You"}
-                  subtitle="You"
-                  avatar={me?.avatar_url ?? undefined}
-                  fallback={<UserIcon className="w-3.5 h-3.5" />}
-                  online
-                />
-                {roomAgents.map((a) => (
-                  <MemberRow
-                    key={a.id}
-                    name={a.name}
-                    subtitle={a.description ?? a.provider}
-                    avatar={a.avatar_url ?? undefined}
-                    badge={a.provider}
-                    fallback={<Bot className="w-3.5 h-3.5" />}
-                    online
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Pinned files */}
-            <div className="px-4 py-4 border-b border-border">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">
-                  Pinned files
-                </div>
-                <Pin className="w-3 h-3 text-muted-foreground" />
-              </div>
-              {pinnedFiles.length === 0 ? (
-                <div className="text-xs text-muted-foreground">
-                  Pin files to give every agent in this channel persistent context.
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {pinnedFiles.map((f) => (
-                    <PinnedFileRow key={f.id} file={f} />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Channel context */}
-            <div className="px-4 py-4">
-              <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground mb-2">
-                Channel context
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Knowledge base, brand voice, and pinned files from your Admin Console are automatically attached to
-                every agent reply in this channel.
-              </p>
-            </div>
+            <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} />
           </aside>
         )}
+
+        {/* Right Details sheet (mobile) */}
+        <Sheet open={mobileDetailsOpen} onOpenChange={setMobileDetailsOpen}>
+          <SheetContent side="right" className="p-0 w-80 lg:hidden flex flex-col">
+            <div className="px-4 h-14 border-b border-border flex items-center flex-shrink-0">
+              <div>
+                <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">Details</div>
+                <div className="font-display font-semibold text-sm">#{channel?.name ?? ""}</div>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto scrollbar-thin">
+              <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </WorkspaceShell>
+  );
+}
+
+function ChannelDetailsBody({
+  me,
+  roomAgents,
+  pinnedFiles,
+}: {
+  me: Profile | null;
+  roomAgents: Agent[];
+  pinnedFiles: PinnedFile[];
+}) {
+  return (
+    <>
+      <div className="px-4 py-4 border-b border-border">
+        <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground mb-3">
+          In this room
+        </div>
+        <div className="space-y-2.5">
+          <MemberRow
+            name={me?.display_name ?? me?.email ?? "You"}
+            subtitle="You"
+            avatar={me?.avatar_url ?? undefined}
+            fallback={<UserIcon className="w-3.5 h-3.5" />}
+            online
+          />
+          {roomAgents.map((a) => (
+            <MemberRow
+              key={a.id}
+              name={a.name}
+              subtitle={a.description ?? a.provider}
+              avatar={a.avatar_url ?? undefined}
+              badge={a.provider}
+              fallback={<Bot className="w-3.5 h-3.5" />}
+              online
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="px-4 py-4 border-b border-border">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">
+            Pinned files
+          </div>
+          <Pin className="w-3 h-3 text-muted-foreground" />
+        </div>
+        {pinnedFiles.length === 0 ? (
+          <div className="text-xs text-muted-foreground">
+            Pin files to give every agent in this channel persistent context.
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {pinnedFiles.map((f) => (
+              <PinnedFileRow key={f.id} file={f} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="px-4 py-4">
+        <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground mb-2">
+          Channel context
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Knowledge base, brand voice, and pinned files from your Admin Console are automatically attached to
+          every agent reply in this channel.
+        </p>
+      </div>
+    </>
   );
 }
 
