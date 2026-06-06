@@ -699,7 +699,7 @@ export function WorkspaceShell({
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col overflow-hidden glass rounded-2xl">{children}</main>
+      <main className={`${hasActive ? "flex" : "hidden sm:flex"} flex-1 flex-col overflow-hidden glass rounded-2xl`}>{children}</main>
 
       <WorkspaceSettingsSheet
         workspaceId={workspaceId}
