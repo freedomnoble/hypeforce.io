@@ -89,8 +89,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "Hypeforce" },
       { name: "twitter:description", content: "Get work done with all your favorite models (& Humans)" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/1S9s3HU9Tqacr1tSi3abu0E43Ep1/social-images/social-1780451825264-hypeforce_hero_group_selfie_4x3.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/1S9s3HU9Tqacr1tSi3abu0E43Ep1/social-images/social-1780451825264-hypeforce_hero_group_selfie_4x3.webp" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/r1sK4IJsokTrWn8LXHUhwgxKgWW2/social-images/social-1780757780179-IMG_2174.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/r1sK4IJsokTrWn8LXHUhwgxKgWW2/social-images/social-1780757780179-IMG_2174.webp" },
     ],
     links: [
       {
