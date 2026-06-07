@@ -75,7 +75,7 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative">
-      <ClientOnly fallback={null}><InfiniteGridBg interactive /></ClientOnly>
+      <SafeBg interactive />
       <div className="glass-strong rounded-3xl p-8 w-full max-w-md ring-glow relative z-10">
         <div className="flex items-center gap-3 mb-6">
           <img src="/app-icon.png" alt="Hypeforce" className="w-10 h-10 rounded-xl" />
