@@ -91,9 +91,8 @@ function WelcomePage() {
 
   return (
     <div className="min-h-[100dvh] w-full flex items-center justify-center px-4 py-8 relative">
-      <ClientOnly fallback={null}>
-        <InfiniteGridBg />
-      </ClientOnly>
+      <SafeBg />
+
 
       <div className="w-full max-w-[440px] relative z-10 text-center">
         <img
