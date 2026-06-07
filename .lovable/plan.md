@@ -1,38 +1,29 @@
-## Goal
+I reviewed the recording and current runtime signals. The loop is no longer just a background chunk issue: the app is repeatedly bouncing through the `/app` gateway (`loading workspace… step: session`) and sometimes landing in the root error boundary (`This page didn't load`). The fix should make `/app` a stable one-shot resolver instead of a route that can re-run repeatedly during auth/session invalidation.
 
-You hit glitching right after submitting the Create Profile form on `/welcome`. The session replay shows the app bouncing between `/app` and `/login` ("This page didn't load") and the console throws repeated `TypeError: Importing a module script failed` errors. I want to reproduce it end‑to‑end in the live preview, identify the exact failure, then fix it.
+Plan:
 
-## Likely causes (ranked)
+1. Harden the auth gate
+- Update `src/routes/_auth.tsx` so protected routes tolerate the post-signup/session write race the same way `/app` partially does: retry `getSession()` briefly before redirecting to `/login`.
+- Avoid console-noisy redirects and make the redirect destination deterministic.
 
-1. **Chunk-load failure on a lazy import** (`InfiniteGridBg` is `lazy()`‑imported in `welcome.tsx`, `login.tsx`, and the onboarding layout). When a lazy chunk 404s, React Suspense throws and — because there's no `errorComponent` on `/welcome`, `/login`, or `/app` — the page renders blank/"didn't load". TanStack then re-evaluates `beforeLoad` on the next navigation and we pinball between routes.
-2. **Session race after signup** — `welcome.tsx` calls `supabase.auth.signUp(...)`, then immediately `navigate("/app")`. `/app` reads `getSession()`; if the persisted session hasn't been flushed to `localStorage` yet, it sees "no session" and redirects to `/login`. `/login`'s `beforeLoad` then sees the session (now flushed) and redirects back to `/app` → loop.
-3. **Onboarding redirect race** — `/app` checks `profiles.onboarding_step` via the browser supabase client. If RLS rejects (e.g. profile row not yet created by the `handle_new_user` trigger), the try/catch swallows it and falls through to a workspace query that also fails, surfacing as an error page.
+2. Make `/app` loop-proof
+- Replace the current `useEffect` gateway resolver with a guarded resolver that:
+  - only runs once per mount/attempt,
+  - ignores stale async completions,
+  - waits for auth state to settle before deciding there is no session,
+  - navigates directly to `/onboarding/*` when onboarding is incomplete,
+  - does not get restarted by harmless auth/query invalidations.
+- Add better error detail in the `/app` route error UI so if it fails again the actual message is visible.
 
-## Plan
+3. Stop global auth invalidation from interrupting onboarding
+- Adjust the root auth-state invalidation behavior so sign-in still refreshes app state, but it does not repeatedly invalidate while the user is already inside `/app` or `/onboarding` resolution.
+- Keep query invalidation for real sign-in/sign-out transitions only.
 
-### Step 1 — Reproduce in the browser
-- Open `/welcome` in the preview, sign up with a fresh email, and capture:
-  - Console errors (which chunk URL failed)
-  - Network tab (which `/_build/assets/*.js` returned 404)
-  - The final URL after the loop settles
-- Confirm whether the loop happens before or after the lazy `InfiniteGridBg` chunk fails.
+4. Stabilize onboarding index and step screens
+- Add error handling around `getOnboardingState()` in `/onboarding` index and the first steps so a transient server-function/auth failure shows a retryable error instead of throwing into the root boundary.
+- If onboarding state says the user is complete, navigate once to `/app`; otherwise navigate once to the correct next step.
 
-### Step 2 — Fix root cause based on what we see
-Depending on findings, apply one or more of:
-
-- **(A) Make lazy backgrounds non‑fatal.** Wrap the `<ClientOnly>` + `lazy(InfiniteGridBg)` in an error boundary that renders `null` on failure, so a missing chunk never blanks the page. Apply on `welcome.tsx`, `login.tsx`, and `OnboardingLayout.tsx`.
-- **(B) Add `errorComponent` + `notFoundComponent` to `/welcome`, `/login`, `/app`, and `_auth.onboarding.*`.** Currently none of them define one, so any thrown chunk/load error shows the generic "This page didn't load". The boundary should offer a Retry that calls `router.invalidate()`.
-- **(C) Stabilize the post‑signup handoff in `welcome.tsx`.**
-  - After `signUp`, instead of navigating immediately, await one tick of `supabase.auth.getSession()` (or `onAuthStateChange("SIGNED_IN")`) so the session is persisted before we leave the page.
-  - Navigate straight to `/onboarding` (not `/app`) since we already know this is a brand‑new user — skips the Gateway round‑trip and the loop window entirely.
-- **(D) Harden `/app` Gateway.** If `getSession()` returns null, retry once after ~150 ms before redirecting to `/login`, to absorb the post‑signup write delay.
-
-### Step 3 — Verify
-- Sign up with a fresh email in the preview. Expected: `welcome` → `onboarding/team` with no flicker, no console errors, no `/login` detour.
-- Sign in with an existing onboarded user from `/login`. Expected: lands in `/w/.../c/...`.
-- Hard‑refresh `/onboarding/team` while signed in. Expected: stays on the step, no redirect loop.
-
-## Out of scope
-- The post‑payment Paddle redirect (already fixed in a prior turn).
-- Email/verification infrastructure.
-- Any DB schema or RLS changes unless Step 1 proves a policy is blocking the profile read.
+5. Verify the exact flow from the recording
+- Test mobile-sized `/welcome` → create profile → `/onboarding/team`.
+- Test tapping Continue on the team step to ensure it advances instead of bouncing back to `/app` or showing the root error boundary.
+- Check console/network for repeating `getSession`, `_serverFn`, or module import failures after the fix.

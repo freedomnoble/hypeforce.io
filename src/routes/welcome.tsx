@@ -17,6 +17,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/welcome")({
+  ssr: false,
   head: () => ({ meta: [{ title: "Welcome to Hypeforce" }] }),
   validateSearch: searchSchema,
   beforeLoad: async () => {
