@@ -5,15 +5,11 @@ import appIcon from "@/assets/app-icon.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ClientOnly } from "@tanstack/react-router";
-import { lazy, useEffect, useState } from "react";
+import { SafeBg } from "@/components/hypeforce/safe-bg";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { sendVerificationEmail } from "@/lib/email-verification.functions";
-
-const InfiniteGridBg = lazy(() =>
-  import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
-);
 
 const searchSchema = z.object({
   intent: z.enum(["founder"]).optional(),
@@ -28,7 +24,30 @@ export const Route = createFileRoute("/welcome")({
     if (data.session) throw redirect({ to: "/app", replace: true });
   },
   component: WelcomePage,
+  errorComponent: AuthRouteError,
 });
+
+function AuthRouteError({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <div className="min-h-[100dvh] grid place-items-center p-6">
+      <div className="glass rounded-2xl px-6 py-5 max-w-md w-full text-center space-y-3">
+        <div className="font-display text-base">This page didn't load.</div>
+        <div className="text-xs text-muted-foreground break-words">
+          {error?.message ?? "Unknown error"}
+        </div>
+        <button
+          onClick={() => {
+            reset();
+            window.location.reload();
+          }}
+          className="text-electric hover:underline text-sm"
+        >
+          Retry
+        </button>
+      </div>
+    </div>
+  );
+}
 
 type Stage = "intro" | "form";
 
@@ -61,31 +80,34 @@ function WelcomePage() {
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/app`,
+          emailRedirectTo: `${window.location.origin}/onboarding`,
           data: { display_name: name.trim() || email.split("@")[0] },
         },
       });
       if (error) throw error;
-      // Auto-confirm is on, so a session is returned immediately. Fire the
-      // verification email in the background — user proceeds to onboarding.
+      // Fire verification email in the background — user proceeds to onboarding.
       sendVerification().catch((err) =>
         console.error("[welcome] verification email failed", err),
       );
-      if (data.session) {
-        navigate({ to: "/app", replace: true });
-      } else {
-        // Fallback if auto-confirm is somehow off — sign in to create session.
-        const { error: siErr } = await supabase.auth.signInWithPassword({
+
+      // Make sure the session is actually persisted before we navigate, so
+      // the destination route's auth gate doesn't see an empty session and
+      // bounce us to /login.
+      let session = data.session;
+      if (!session) {
+        const { data: signIn } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
-        if (siErr) {
-          toast.success("Account created. Sign in to continue.");
-          navigate({ to: "/login", replace: true });
-        } else {
-          navigate({ to: "/app", replace: true });
-        }
+        session = signIn.session ?? null;
       }
+      if (!session) {
+        toast.success("Account created. Sign in to continue.");
+        navigate({ to: "/login", replace: true });
+        return;
+      }
+      // Brand-new user → go straight to onboarding (skip the /app gateway race).
+      navigate({ to: "/onboarding", replace: true });
     } catch (err: any) {
       toast.error(err?.message ?? "Couldn't create your profile");
     } finally {
@@ -95,9 +117,8 @@ function WelcomePage() {
 
   return (
     <div className="min-h-[100dvh] w-full flex items-center justify-center px-4 py-8 relative">
-      <ClientOnly fallback={null}>
-        <InfiniteGridBg />
-      </ClientOnly>
+      <SafeBg />
+
 
       <div className="w-full max-w-[440px] relative z-10 text-center">
         <img

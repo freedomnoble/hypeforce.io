@@ -7,6 +7,25 @@ import { redeemInviteToken } from "@/lib/invites.functions";
 
 export const Route = createFileRoute("/app")({
   component: Gateway,
+  errorComponent: ({ error, reset }) => (
+    <div className="min-h-screen grid place-items-center p-6">
+      <div className="glass rounded-2xl px-6 py-5 max-w-md w-full text-center space-y-3">
+        <div className="font-display text-base">This page didn't load.</div>
+        <div className="text-xs text-muted-foreground break-words">
+          {error?.message ?? "Unknown error"}
+        </div>
+        <button
+          onClick={() => {
+            reset();
+            window.location.reload();
+          }}
+          className="text-electric hover:underline text-sm"
+        >
+          Retry
+        </button>
+      </div>
+    </div>
+  ),
 });
 
 type Status =
@@ -25,22 +44,28 @@ function Gateway() {
   const redeem = useServerFn(redeemInviteToken);
   const [status, setStatus] = useState<Status>({ kind: "loading", step: "session" });
   const [attempt, setAttempt] = useState(0);
-  const inflight = useRef(false);
   const resolvedRef = useRef(false);
 
   useEffect(() => {
-    if (inflight.current || resolvedRef.current) return;
-    inflight.current = true;
+    if (resolvedRef.current) return;
     let active = true;
 
     (async () => {
       try {
         setStatus({ kind: "loading", step: "session" });
-        const { data: sess, error: sessErr } = await supabase.auth.getSession();
+        let { data: sess, error: sessErr } = await supabase.auth.getSession();
         if (!active) return;
         if (sessErr) {
           setStatus({ kind: "error", message: "Couldn't read your session.", detail: sessErr.message });
           return;
+        }
+        if (!sess.session?.user) {
+          // Could be a post-signup race where localStorage hasn't been
+          // written yet. Wait briefly and retry once before bouncing to /login.
+          await new Promise((r) => setTimeout(r, 250));
+          if (!active) return;
+          const retry = await supabase.auth.getSession();
+          sess = retry.data;
         }
         if (!sess.session?.user) {
           setStatus({ kind: "no-session" });
@@ -134,7 +159,7 @@ function Gateway() {
           detail: err?.message ?? String(err),
         });
       } finally {
-        inflight.current = false;
+        // no-op
       }
     })();
 
@@ -145,7 +170,6 @@ function Gateway() {
 
   const retry = () => {
     resolvedRef.current = false;
-    inflight.current = false;
     setAttempt((a) => a + 1);
     setStatus({ kind: "loading", step: "session" });
   };

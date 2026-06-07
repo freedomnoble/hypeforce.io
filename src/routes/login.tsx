@@ -1,14 +1,11 @@
-import { createFileRoute, redirect, useNavigate, Link, ClientOnly } from "@tanstack/react-router";
-import { useState, lazy } from "react";
+import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-
-const InfiniteGridBg = lazy(() =>
-  import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
-);
+import { SafeBg } from "@/components/hypeforce/safe-bg";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign in — Hypeforce" }] }),
@@ -18,6 +15,25 @@ export const Route = createFileRoute("/login")({
     if (data.session) throw redirect({ to: "/app", replace: true });
   },
   component: LoginPage,
+  errorComponent: ({ error, reset }) => (
+    <div className="min-h-screen grid place-items-center p-6">
+      <div className="glass rounded-2xl px-6 py-5 max-w-md w-full text-center space-y-3">
+        <div className="font-display text-base">This page didn't load.</div>
+        <div className="text-xs text-muted-foreground break-words">
+          {error?.message ?? "Unknown error"}
+        </div>
+        <button
+          onClick={() => {
+            reset();
+            window.location.reload();
+          }}
+          className="text-electric hover:underline text-sm"
+        >
+          Retry
+        </button>
+      </div>
+    </div>
+  ),
 });
 
 type Mode = "signin" | "signup" | "forgot";
@@ -78,7 +94,7 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative">
-      <ClientOnly fallback={null}><InfiniteGridBg interactive /></ClientOnly>
+      <SafeBg interactive />
       <div className="glass-strong rounded-3xl p-8 w-full max-w-md ring-glow relative z-10">
         <div className="flex items-center gap-3 mb-6">
           <img src="/app-icon.png" alt="Hypeforce" className="w-10 h-10 rounded-xl" />

@@ -1,10 +1,6 @@
-import { ClientOnly } from "@tanstack/react-router";
-import { lazy, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import appIcon from "@/assets/app-icon.png";
-
-const InfiniteGridBg = lazy(() =>
-  import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
-);
+import { SafeBg } from "@/components/hypeforce/safe-bg";
 
 export function OnboardingLayout({
   step,
@@ -17,9 +13,8 @@ export function OnboardingLayout({
 }) {
   return (
     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-start sm:justify-center px-4 py-6 sm:py-10 relative">
-      <ClientOnly fallback={null}>
-        <InfiniteGridBg />
-      </ClientOnly>
+      <SafeBg />
+
 
       <div className="w-full max-w-[440px] relative z-10">
         <header className="flex items-center justify-between mb-5">
