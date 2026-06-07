@@ -109,6 +109,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
   const [preview, setPreview] = useState<ThemeTokens | null>(null);
   const [landingOverride, setLandingOverride] = useState<ThemeId | null>(null);
+  const [themesEnabled, setThemesEnabled] = useState(true);
+  const [customThemesEnabled, setCustomThemesEnabled] = useState(true);
 
   const refreshCustomThemes = useCallback(async () => {
     // Use getSession() (reads from memory/localStorage) instead of getUser()
