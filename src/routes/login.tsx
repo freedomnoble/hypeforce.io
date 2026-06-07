@@ -1,14 +1,11 @@
-import { createFileRoute, redirect, useNavigate, Link, ClientOnly } from "@tanstack/react-router";
-import { useState, lazy } from "react";
+import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-
-const InfiniteGridBg = lazy(() =>
-  import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
-);
+import { SafeBg } from "@/components/hypeforce/safe-bg";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Sign in — Hypeforce" }] }),
