@@ -31,7 +31,7 @@ function FeaturesStep() {
   const advance = useServerFn(advanceStep);
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
 
-  const [, setLoading] = useState(false); // kept for parity; gate removed
+  
   const [confirming, setConfirming] = useState(false);
   const [checking, setChecking] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
