@@ -13,9 +13,8 @@ export function OnboardingLayout({
 }) {
   return (
     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-start sm:justify-center px-4 py-6 sm:py-10 relative">
-      <ClientOnly fallback={null}>
-        <InfiniteGridBg />
-      </ClientOnly>
+      <SafeBg />
+
 
       <div className="w-full max-w-[440px] relative z-10">
         <header className="flex items-center justify-between mb-5">
