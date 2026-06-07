@@ -49,10 +49,11 @@ export function CoffeeUpsellButton() {
         .from("support_tickets")
         .insert({
           user_id: userId,
-          subject: "Free coffee sample request",
-          category: "coffee_sample",
+          name,
+          email: u.user?.email ?? "",
+          message: `[COFFEE SAMPLE REQUEST]\nName: ${name}\nAddress: ${address}\nRoast preference: ${notes || "(none)"}`,
           status: "open",
-          source: "in_app",
+          priority: "normal",
         })
         .select("id")
         .single();
@@ -60,9 +61,9 @@ export function CoffeeUpsellButton() {
 
       await supabase.from("support_ticket_messages").insert({
         ticket_id: ticket.id,
-        user_id: userId,
-        author_type: "user",
-        body: `Name: ${name}\nAddress: ${address}\nNotes: ${notes || "(none)"}`,
+        author: "user",
+        author_user_id: userId,
+        body: `Coffee sample request\n\nName: ${name}\nAddress: ${address}\nNotes: ${notes || "(none)"}`,
       });
 
       toast.success("Coffee's on the way ☕");
