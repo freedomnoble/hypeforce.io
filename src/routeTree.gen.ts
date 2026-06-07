@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PretentiousRouteImport } from './routes/pretentious'
 import { Route as LoginRouteImport } from './routes/login'
@@ -44,6 +45,11 @@ import { Route as AuthWWorkspaceIdCChannelIdRouteImport } from './routes/_auth.w
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -204,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/pretentious': typeof PretentiousRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/welcome': typeof WelcomeRoute
   '/onboarding': typeof AuthOnboardingRouteWithChildren
   '/profile': typeof AuthProfileRouteWithChildren
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/welcome': typeof WelcomeRoute
   '/profile': typeof AuthProfileRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
@@ -268,6 +276,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/pretentious': typeof PretentiousRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/welcome': typeof WelcomeRoute
   '/_auth/onboarding': typeof AuthOnboardingRouteWithChildren
   '/_auth/profile': typeof AuthProfileRouteWithChildren
@@ -302,6 +311,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pretentious'
     | '/reset-password'
+    | '/verify-email'
     | '/welcome'
     | '/onboarding'
     | '/profile'
@@ -333,6 +343,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/reset-password'
+    | '/verify-email'
     | '/welcome'
     | '/profile'
     | '/join/$token'
@@ -365,6 +376,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pretentious'
     | '/reset-password'
+    | '/verify-email'
     | '/welcome'
     | '/_auth/onboarding'
     | '/_auth/profile'
@@ -399,6 +411,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PretentiousRoute: typeof PretentiousRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   WelcomeRoute: typeof WelcomeRoute
   JoinTokenRoute: typeof JoinTokenRoute
   ThemeImportRoute: typeof ThemeImportRoute
@@ -412,6 +425,13 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -714,6 +734,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PretentiousRoute: PretentiousRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   WelcomeRoute: WelcomeRoute,
   JoinTokenRoute: JoinTokenRoute,
   ThemeImportRoute: ThemeImportRoute,
