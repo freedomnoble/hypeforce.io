@@ -1,4 +1,5 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import appIcon from "@/assets/app-icon.png";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { ClientOnly } from "@tanstack/react-router";
 import { lazy, useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
+import { sendVerificationEmail } from "@/lib/email-verification.functions";
 
 const InfiniteGridBg = lazy(() =>
   import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
