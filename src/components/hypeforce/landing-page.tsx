@@ -71,6 +71,7 @@ export function LandingPage({
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
   const { setLandingThemeOverride } = useTheme();
+  const navigate = useNavigate();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
