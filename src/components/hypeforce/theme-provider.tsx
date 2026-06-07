@@ -70,6 +70,8 @@ type Ctx = {
   deleteCustomTheme: (id: string) => Promise<void>;
   /** Apply a built-in theme override on the public landing route only. Pass null to clear. Not persisted. */
   setLandingThemeOverride: (t: ThemeId | null) => void;
+  themesEnabled: boolean;
+  customThemesEnabled: boolean;
 };
 
 const ThemeCtx = createContext<Ctx>({
@@ -81,6 +83,8 @@ const ThemeCtx = createContext<Ctx>({
   saveCustomTheme: async () => null,
   deleteCustomTheme: async () => {},
   setLandingThemeOverride: () => {},
+  themesEnabled: true,
+  customThemesEnabled: true,
 });
 
 const STYLE_TAG_ID = "hf-custom-theme-style";
@@ -105,6 +109,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
   const [preview, setPreview] = useState<ThemeTokens | null>(null);
   const [landingOverride, setLandingOverride] = useState<ThemeId | null>(null);
+  const [themesEnabled, setThemesEnabled] = useState(true);
+  const [customThemesEnabled, setCustomThemesEnabled] = useState(true);
 
   const refreshCustomThemes = useCallback(async () => {
     // Use getSession() (reads from memory/localStorage) instead of getUser()
@@ -129,12 +135,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const stored = (typeof window !== "undefined" && localStorage.getItem("hf-theme")) || "default";
     setThemeState(stored);
     refreshCustomThemes();
-    // Only refetch on real identity transitions. INITIAL_SESSION /
-    // TOKEN_REFRESHED / USER_UPDATED would otherwise re-trigger the handler
-    // on every tab focus and hourly token refresh.
+    // Fetch feature flags (public read).
+    const loadFlags = async () => {
+      const { data } = await supabase
+        .from("feature_flags")
+        .select("key, enabled")
+        .in("key", ["themes_enabled", "custom_themes_enabled"]);
+      if (data) {
+        const map = new Map(data.map((r: any) => [r.key, r.enabled]));
+        setThemesEnabled(map.get("themes_enabled") ?? true);
+        setCustomThemesEnabled(map.get("custom_themes_enabled") ?? true);
+      }
+    };
+    loadFlags();
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
         refreshCustomThemes();
+        loadFlags();
       }
     });
     return () => sub.subscription.unsubscribe();
@@ -147,7 +164,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const isAppRoute = pathname === "/app" || pathname.startsWith("/app/") || pathname.startsWith("/w/");
   const isLandingRoute = pathname === "/";
   const activeLandingOverride =
-    isLandingRoute && landingOverride && THEMES.some((t) => t.id === landingOverride)
+    themesEnabled && isLandingRoute && landingOverride && THEMES.some((t) => t.id === landingOverride)
       ? landingOverride
       : null;
   const forceDefault = !isAppRoute && !activeLandingOverride;
@@ -164,6 +181,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // When the themes feature flag is off, force the default theme everywhere.
+    if (!themesEnabled) {
+      applyCustomTokens(null);
+      root.dataset.theme = "default";
+      root.classList.remove("dark");
+      return;
+    }
+
     if (preview) {
       root.dataset.theme = "custom";
       root.classList.remove("dark");
@@ -172,6 +197,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (theme.startsWith("custom:")) {
+      if (!customThemesEnabled) {
+        applyCustomTokens(null);
+        root.dataset.theme = "default";
+        root.classList.remove("dark");
+        return;
+      }
       const id = theme.slice("custom:".length);
       const found = customThemes.find((c) => c.id === id);
       if (found) {
@@ -192,7 +223,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } else {
       root.classList.remove("dark");
     }
-  }, [theme, preview, customThemes, forceDefault, activeLandingOverride]);
+  }, [theme, preview, customThemes, forceDefault, activeLandingOverride, themesEnabled, customThemesEnabled]);
 
   const setTheme = (t: ThemeId) => {
     setPreview(null);
@@ -237,6 +268,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         saveCustomTheme,
         deleteCustomTheme,
         setLandingThemeOverride: setLandingOverride,
+        themesEnabled,
+        customThemesEnabled,
       }}
     >
       {children}
