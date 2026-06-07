@@ -170,7 +170,6 @@ function Gateway() {
 
   const retry = () => {
     resolvedRef.current = false;
-    inflight.current = false;
     setAttempt((a) => a + 1);
     setStatus({ kind: "loading", step: "session" });
   };
