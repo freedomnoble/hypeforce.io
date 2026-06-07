@@ -1,18 +1,15 @@
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { OnboardingLayout, StepTitle } from "@/components/onboarding/OnboardingLayout";
-import { advanceStep, getOnboardingState } from "@/lib/onboarding.functions";
+import { advanceStep } from "@/lib/onboarding.functions";
+import { useOnboardingState } from "@/lib/onboarding-query";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, AtSign, Pin, FileText, MessageCircle, Sparkles, Check, RefreshCw } from "lucide-react";
-import { z } from "zod";
-
-const searchSchema = z.object({ checkout: z.enum(["success"]).optional() });
+import { Users, AtSign, Pin, FileText, MessageCircle, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/onboarding/features")({
-  validateSearch: searchSchema,
   component: FeaturesStep,
 });
 
@@ -24,110 +21,31 @@ const FEATURES = [
   { icon: MessageCircle, title: "DMs with any agent", text: "Quick one-on-ones when you need a fast answer." },
 ];
 
+const INTENT_KEY = "hf_subscribe_intent";
+
 function FeaturesStep() {
   const navigate = useNavigate();
-  const search = useSearch({ from: "/_auth/onboarding/features" });
-  const fetchState = useServerFn(getOnboardingState);
   const advance = useServerFn(advanceStep);
+  const { data, patch } = useOnboardingState();
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
 
-  
-  const [confirming, setConfirming] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<string | null>(null);
-  const [email, setEmail] = useState<string | null>(null);
-  const advancedRef = useRef(false);
-
-  const advanceAndGo = useCallback(async () => {
-    if (advancedRef.current) return;
-    advancedRef.current = true;
-    try {
-      await advance({ data: { to: 4 } });
-    } catch (e) {
-      console.error("[onboarding] advance failed", e);
-    }
-    setTimeout(() => navigate({ to: "/onboarding/invites", replace: true }), 800);
-  }, [advance, navigate]);
-
-  // Poll once for active subscription. Returns true if found.
-  const pollForSubscription = useCallback(
-    async (maxAttempts = 8, intervalMs = 1500) => {
-      for (let i = 0; i < maxAttempts; i++) {
-        try {
-          const s = await fetchState();
-          if (s.has_active_subscription || s.is_comped) return true;
-        } catch {}
-        await new Promise((r) => setTimeout(r, intervalMs));
-      }
-      return false;
-    },
-    [fetchState],
-  );
-
-  const handleCheckAgain = useCallback(async () => {
-    if (checking || confirming) return;
-    setChecking(true);
-    setSyncMessage(null);
-    try {
-      // Quick check first
-      const s = await fetchState();
-      if (s.is_comped || s.has_active_subscription) {
-        setConfirming(true);
-        await advanceAndGo();
-        return;
-      }
-      // Then poll briefly in case the webhook is still in-flight
-      const found = await pollForSubscription(6, 1500);
-      if (found) {
-        setConfirming(true);
-        await advanceAndGo();
-      } else {
-        setSyncMessage("Payment is still syncing. Try again in a moment.");
-      }
-    } catch (e: any) {
-      setSyncMessage(e?.message ?? "Couldn't check payment status. Try again.");
-    } finally {
-      setChecking(false);
-    }
-  }, [checking, confirming, fetchState, pollForSubscription, advanceAndGo]);
+  const alreadySubscribed = !!(data?.has_active_subscription || data?.is_comped);
+  const [intentGiven, setIntentGiven] = useState<boolean>(false);
+  const [continuing, setContinuing] = useState(false);
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const s = await fetchState();
-        if (!active) return;
-        setEmail(s.email);
-        if (s.is_comped || s.has_active_subscription) {
-          setConfirming(true);
-          await advanceAndGo();
-          return;
-        }
-        if (search.checkout === "success") {
-          setConfirming(true);
-          const found = await pollForSubscription();
-          if (found) {
-            await advanceAndGo();
-          } else {
-            // Webhook delayed — drop back to subscribe screen with a sync notice
-            if (!active) return;
-            setConfirming(false);
-            setSyncMessage("Payment is still syncing. Tap “I’ve paid — check again”.");
-          }
+    try {
+      if (sessionStorage.getItem(INTENT_KEY) === "1") setIntentGiven(true);
+    } catch {}
+  }, []);
 
-          return;
-        }
-      } catch (e) {
-        console.error("[onboarding] features init failed", e);
-      }
-
-    })();
-    return () => {
-      active = false;
-    };
-  }, [fetchState, advanceAndGo, pollForSubscription, search.checkout]);
+  const canContinue = intentGiven || alreadySubscribed;
 
   const onSubscribe = async () => {
+    setIntentGiven(true);
+    try {
+      sessionStorage.setItem(INTENT_KEY, "1");
+    } catch {}
     const { data: u } = await supabase.auth.getUser();
     let billing: "monthly" | "annual" = "monthly";
     try {
@@ -139,45 +57,22 @@ function FeaturesStep() {
     } catch {}
     await openCheckout({
       priceId: billing === "annual" ? "founder_annual" : "founder_monthly",
-      customerEmail: email ?? u.user?.email,
+      customerEmail: data?.email ?? u.user?.email,
       customData: { userId: u.user?.id ?? "", onboarding: "1" },
       successUrl: `${window.location.origin}/onboarding/features?checkout=success`,
-      onEvent: (event: any) => {
-        if (event?.name === "checkout.completed" && !confirming) {
-          setConfirming(true);
-          (async () => {
-            await pollForSubscription();
-            await advanceAndGo();
-          })();
-        }
-      },
     });
   };
 
-  if (confirming) {
-    return (
-      <OnboardingLayout step={4}>
-        <div className="py-10 text-center">
-          <div className="w-16 h-16 mx-auto rounded-full bg-electric/15 grid place-items-center mb-4">
-            <Check className="w-8 h-8 text-electric" />
-          </div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight mb-1">You're in!</h1>
-          <p className="text-sm text-muted-foreground">Setting up the next step…</p>
-          <Button
-            variant="ghost"
-            className="mt-6"
-            onClick={() => navigate({ to: "/onboarding/invites", replace: true })}
-          >
-            Continue
-          </Button>
-        </div>
-      </OnboardingLayout>
-    );
-  }
-
-  // No loading gate: the subscribe screen is static content, so render it
-  // immediately. Background state fetch will auto-advance if subscribed.
-
+  const onContinue = async () => {
+    if (!canContinue || continuing) return;
+    setContinuing(true);
+    patch({ step: 4 });
+    navigate({ to: "/onboarding/invites", replace: true });
+    // Fire-and-forget; webhook is source of truth for actual subscription state.
+    advance({ data: { to: 4 } }).catch((e) => {
+      console.error("[onboarding] advance failed", e);
+    });
+  };
 
   return (
     <OnboardingLayout step={4}>
@@ -211,23 +106,22 @@ function FeaturesStep() {
         <div className="text-xs text-muted-foreground">Founding price · locked in</div>
       </div>
 
-      <Button onClick={onSubscribe} disabled={checkoutLoading || checking} className="w-full h-12 text-base">
-        {checkoutLoading ? "Opening checkout…" : "Subscribe"}
+      <Button
+        onClick={onSubscribe}
+        disabled={checkoutLoading}
+        className="w-full h-12 text-base"
+      >
+        {checkoutLoading ? "Opening checkout…" : alreadySubscribed ? "Subscribed" : "Subscribe"}
       </Button>
 
-      <button
-        type="button"
-        onClick={handleCheckAgain}
-        disabled={checking}
-        className="mt-3 w-full inline-flex items-center justify-center gap-2 text-sm text-electric hover:underline disabled:opacity-60"
+      <Button
+        onClick={onContinue}
+        disabled={!canContinue || continuing}
+        variant="ghost"
+        className="w-full h-11 mt-2"
       >
-        <RefreshCw className={`w-3.5 h-3.5 ${checking ? "animate-spin" : ""}`} />
-        {checking ? "Checking…" : "I’ve paid — check again"}
-      </button>
-
-      {syncMessage && (
-        <p className="text-center text-xs text-muted-foreground mt-3">{syncMessage}</p>
-      )}
+        Continue
+      </Button>
 
       <p className="text-center text-xs text-muted-foreground mt-3">
         Cancel anytime. Your data is yours, always.
