@@ -159,7 +159,7 @@ function Gateway() {
           detail: err?.message ?? String(err),
         });
       } finally {
-        inflight.current = false;
+        // no-op
       }
     })();
 
