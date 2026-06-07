@@ -679,7 +679,7 @@ function ThemesPanel() {
           );
         })}
 
-        {customThemes.map((c) => {
+        {customThemesEnabled && customThemes.map((c) => {
           const id = `custom:${c.id}`;
           const active = id === theme;
           const swatchKeys = ["background", "panel", "primary", "accent"] as const;
@@ -736,14 +736,16 @@ function ThemesPanel() {
           );
         })}
 
-        <button
-          onClick={() => setDialogOpen(true)}
-          className="text-left rounded-2xl border border-dashed border-border hover:border-primary/60 hover:bg-primary/5 p-4 transition-all min-h-[140px] flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
-        >
-          <Wand2 className="w-6 h-6" />
-          <div className="font-display font-semibold">Custom Generated</div>
-          <p className="text-xs text-center">Describe a vibe — AI builds the palette.</p>
-        </button>
+        {customThemesEnabled && (
+          <button
+            onClick={() => setDialogOpen(true)}
+            className="text-left rounded-2xl border border-dashed border-border hover:border-primary/60 hover:bg-primary/5 p-4 transition-all min-h-[140px] flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <Wand2 className="w-6 h-6" />
+            <div className="font-display font-semibold">Custom Generated</div>
+            <p className="text-xs text-center">Describe a vibe — AI builds the palette.</p>
+          </button>
+        )}
       </div>
 
       <CustomThemeDialog open={dialogOpen} onOpenChange={setDialogOpen} />
