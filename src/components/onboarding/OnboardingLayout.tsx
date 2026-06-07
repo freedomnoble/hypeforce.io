@@ -1,10 +1,6 @@
-import { ClientOnly } from "@tanstack/react-router";
-import { lazy, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import appIcon from "@/assets/app-icon.png";
-
-const InfiniteGridBg = lazy(() =>
-  import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
-);
+import { SafeBg } from "@/components/hypeforce/safe-bg";
 
 export function OnboardingLayout({
   step,
