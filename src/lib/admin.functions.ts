@@ -74,13 +74,14 @@ export const listUsers = createServerFn({ method: "POST" })
     const ids = users.map((u) => u.id);
     if (ids.length === 0) return { users: [], page: data.page };
 
-    const [wsRes, chRes, agRes, connRes, subRes, limRes] = await Promise.all([
+    const [wsRes, chRes, agRes, connRes, subRes, limRes, profRes] = await Promise.all([
       supabaseAdmin.from("workspace_members").select("user_id,workspace_id").in("user_id", ids),
       supabaseAdmin.from("workspaces").select("id,owner_id").in("owner_id", ids),
       supabaseAdmin.from("agents").select("id,workspace_id,preferred_route"),
       supabaseAdmin.from("user_ai_connections").select("user_id,provider,status").in("user_id", ids),
       supabaseAdmin.from("subscriptions").select("*").in("user_id", ids),
       supabaseAdmin.from("user_usage_limits").select("*").in("user_id", ids),
+      supabaseAdmin.from("profiles").select("id,is_comped,show_upsell").in("id", ids),
     ]);
     const [channelsRes] = await Promise.all([
       supabaseAdmin.from("channels").select("id,workspace_id,created_by").in("created_by", ids),
@@ -114,6 +115,7 @@ export const listUsers = createServerFn({ method: "POST" })
     });
     const subByUser = new Map((subRes.data ?? []).map((s: any) => [s.user_id, s]));
     const limByUser = new Map((limRes.data ?? []).map((l: any) => [l.user_id, l]));
+    const profByUser = new Map((profRes.data ?? []).map((p: any) => [p.id, p]));
 
     const out = users.map((u) => {
       const ws = ownedWs.get(u.id) ?? new Set<string>();
@@ -138,6 +140,7 @@ export const listUsers = createServerFn({ method: "POST" })
         byok_count: byokByUser.get(u.id) ?? 0,
         subscription: subByUser.get(u.id) ?? null,
         usage_limit: limByUser.get(u.id) ?? null,
+        profile_flags: profByUser.get(u.id) ?? { is_comped: false, show_upsell: false },
       };
     }).filter(Boolean);
 
