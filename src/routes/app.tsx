@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureUserBootstrap } from "@/lib/bootstrap.functions";
+import { redeemInviteToken } from "@/lib/invites.functions";
 
 export const Route = createFileRoute("/app")({
   component: Gateway,
@@ -21,6 +22,7 @@ function log(...args: unknown[]) {
 function Gateway() {
   const navigate = useNavigate();
   const ensureBootstrap = useServerFn(ensureUserBootstrap);
+  const redeem = useServerFn(redeemInviteToken);
   const [status, setStatus] = useState<Status>({ kind: "loading", step: "session" });
   const [attempt, setAttempt] = useState(0);
   const inflight = useRef(false);
@@ -44,6 +46,17 @@ function Gateway() {
           setStatus({ kind: "no-session" });
           navigate({ to: "/login", replace: true });
           return;
+        }
+
+        // Redeem a pending invite token captured pre-login.
+        try {
+          const pending = sessionStorage.getItem("hypeforce.pending_invite_token");
+          if (pending) {
+            sessionStorage.removeItem("hypeforce.pending_invite_token");
+            await redeem({ data: { token: pending } });
+          }
+        } catch {
+          // Non-fatal — proceed to workspace.
         }
 
         setStatus({ kind: "loading", step: "workspace" });
