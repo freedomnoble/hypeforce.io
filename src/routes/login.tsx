@@ -15,6 +15,25 @@ export const Route = createFileRoute("/login")({
     if (data.session) throw redirect({ to: "/app", replace: true });
   },
   component: LoginPage,
+  errorComponent: ({ error, reset }) => (
+    <div className="min-h-screen grid place-items-center p-6">
+      <div className="glass rounded-2xl px-6 py-5 max-w-md w-full text-center space-y-3">
+        <div className="font-display text-base">This page didn't load.</div>
+        <div className="text-xs text-muted-foreground break-words">
+          {error?.message ?? "Unknown error"}
+        </div>
+        <button
+          onClick={() => {
+            reset();
+            window.location.reload();
+          }}
+          className="text-electric hover:underline text-sm"
+        >
+          Retry
+        </button>
+      </div>
+    </div>
+  ),
 });
 
 type Mode = "signin" | "signup" | "forgot";
