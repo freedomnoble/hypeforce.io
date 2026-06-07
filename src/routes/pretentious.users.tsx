@@ -84,7 +84,7 @@ function UsersPage() {
                     <span className="text-blue-300">{u.byok_count} BYOK</span>
                   </td>
                   <td className="px-4 py-3">
-                    <PlanBadge sub={u.subscription} />
+                    <PlanBadge sub={u.subscription} comped={u.profile_flags?.is_comped} />
                   </td>
                   <td className="px-4 py-3 text-right text-white/40 text-xs">›</td>
                 </tr>
