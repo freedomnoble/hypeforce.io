@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { SafeBg } from "@/components/hypeforce/safe-bg";
 
 export const Route = createFileRoute("/login")({
+  ssr: false,
   head: () => ({ meta: [{ title: "Sign in — Hypeforce" }] }),
   beforeLoad: async () => {
     // Existing session? Go straight to the gateway resolver at /app.

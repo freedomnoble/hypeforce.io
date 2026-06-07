@@ -6,6 +6,7 @@ import { ensureUserBootstrap } from "@/lib/bootstrap.functions";
 import { redeemInviteToken } from "@/lib/invites.functions";
 
 export const Route = createFileRoute("/app")({
+  ssr: false,
   component: Gateway,
   errorComponent: ({ error, reset }) => (
     <div className="min-h-screen grid place-items-center p-6">
