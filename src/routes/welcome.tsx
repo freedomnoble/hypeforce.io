@@ -5,15 +5,11 @@ import appIcon from "@/assets/app-icon.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ClientOnly } from "@tanstack/react-router";
-import { lazy, useEffect, useState } from "react";
+import { SafeBg } from "@/components/hypeforce/safe-bg";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { sendVerificationEmail } from "@/lib/email-verification.functions";
-
-const InfiniteGridBg = lazy(() =>
-  import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
-);
 
 const searchSchema = z.object({
   intent: z.enum(["founder"]).optional(),
