@@ -113,8 +113,8 @@ function FeaturesStep() {
             if (!active) return;
             setConfirming(false);
             setSyncMessage("Payment is still syncing. Tap “I’ve paid — check again”.");
-            setLoading(false);
           }
+
           return;
         }
         setLoading(false);
