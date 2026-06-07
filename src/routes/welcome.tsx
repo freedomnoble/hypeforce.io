@@ -85,6 +85,7 @@ function WelcomePage() {
       }
       // Brand-new user → go straight to onboarding (skip the /app gateway race).
       navigate({ to: "/onboarding", replace: true });
+    } catch (err: any) {
       toast.error(err?.message ?? "Couldn't create your profile");
     } finally {
       setSubmitting(false);
