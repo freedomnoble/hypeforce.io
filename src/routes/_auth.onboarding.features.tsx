@@ -117,11 +117,10 @@ function FeaturesStep() {
 
           return;
         }
-        setLoading(false);
       } catch (e) {
         console.error("[onboarding] features init failed", e);
-        if (active) setLoading(false);
       }
+
     })();
     return () => {
       active = false;
