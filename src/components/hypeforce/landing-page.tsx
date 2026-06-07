@@ -506,7 +506,7 @@ export function LandingPage({
             {t("footer_cta_subhead", `Claim one of the 1,000 founder seats and lock in $${monthly}/mo for life.`)}
           </p>
           <Button asChild size="lg" variant="liquid" className="mt-6 h-12 px-7 text-base">
-            <Link to="/login">
+            <Link to="/welcome">
               Get founder access <ArrowRight className="w-4 h-4" />
             </Link>
           </Button>
