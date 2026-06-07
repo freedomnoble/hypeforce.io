@@ -176,13 +176,9 @@ function FeaturesStep() {
     );
   }
 
-  if (loading) {
-    return (
-      <OnboardingLayout step={4}>
-        <div className="h-60 grid place-items-center text-sm text-muted-foreground">loading…</div>
-      </OnboardingLayout>
-    );
-  }
+  // No loading gate: the subscribe screen is static content, so render it
+  // immediately. Background state fetch will auto-advance if subscribed.
+
 
   return (
     <OnboardingLayout step={4}>
