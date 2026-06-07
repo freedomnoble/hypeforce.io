@@ -3,14 +3,21 @@ import { supabase } from "@/integrations/supabase/client";
 import appIcon from "@/assets/app-icon.png";
 import { Button } from "@/components/ui/button";
 import { ClientOnly } from "@tanstack/react-router";
-import { lazy } from "react";
+import { lazy, useEffect } from "react";
+import { z } from "zod";
 
 const InfiniteGridBg = lazy(() =>
   import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
 );
 
+const searchSchema = z.object({
+  intent: z.enum(["founder"]).optional(),
+  billing: z.enum(["monthly", "annual"]).optional(),
+});
+
 export const Route = createFileRoute("/welcome")({
   head: () => ({ meta: [{ title: "Welcome to Hypeforce" }] }),
+  validateSearch: searchSchema,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (data.session) throw redirect({ to: "/app", replace: true });
@@ -19,6 +26,17 @@ export const Route = createFileRoute("/welcome")({
 });
 
 function WelcomePage() {
+  const { intent, billing } = Route.useSearch();
+  useEffect(() => {
+    if (intent) {
+      try {
+        sessionStorage.setItem(
+          "hf_onboarding_intent",
+          JSON.stringify({ intent, billing: billing ?? "monthly" }),
+        );
+      } catch {}
+    }
+  }, [intent, billing]);
   return (
     <div className="min-h-[100dvh] w-full flex items-center justify-center px-4 py-8 relative">
       <ClientOnly fallback={null}>

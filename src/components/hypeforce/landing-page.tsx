@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -71,6 +71,7 @@ export function LandingPage({
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
   const { setLandingThemeOverride } = useTheme();
+  const navigate = useNavigate();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -115,7 +116,13 @@ export function LandingPage({
 
   const handleCheckout = async () => {
     if (!signedIn) {
-      window.location.href = `/login?redirect=${encodeURIComponent("/#pricing")}`;
+      try {
+        sessionStorage.setItem(
+          "hf_onboarding_intent",
+          JSON.stringify({ intent: "founder", billing }),
+        );
+      } catch {}
+      navigate({ to: "/welcome", search: { intent: "founder", billing } as any });
       return;
     }
     try {

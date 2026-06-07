@@ -58,8 +58,16 @@ function FeaturesStep() {
 
   const onSubscribe = async () => {
     const { data: u } = await supabase.auth.getUser();
+    let billing: "monthly" | "annual" = "monthly";
+    try {
+      const raw = sessionStorage.getItem("hf_onboarding_intent");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.billing === "annual") billing = "annual";
+      }
+    } catch {}
     await openCheckout({
-      priceId: "founder_monthly",
+      priceId: billing === "annual" ? "founder_annual" : "founder_monthly",
       customerEmail: email ?? u.user?.email,
       customData: { userId: u.user?.id ?? "", onboarding: "1" },
       successUrl: `${window.location.origin}/onboarding/features?checkout=success`,
