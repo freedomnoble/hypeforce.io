@@ -20,6 +20,7 @@ import { Route as ThemeImportRouteImport } from './routes/theme.import'
 import { Route as PretentiousUsersRouteImport } from './routes/pretentious.users'
 import { Route as PretentiousSupportRouteImport } from './routes/pretentious.support'
 import { Route as PretentiousLandingRouteImport } from './routes/pretentious.landing'
+import { Route as PretentiousFlagsRouteImport } from './routes/pretentious.flags'
 import { Route as PretentiousBillingRouteImport } from './routes/pretentious.billing'
 import { Route as AuthProfileRouteImport } from './routes/_auth.profile'
 import { Route as AuthProfileConnectionsRouteImport } from './routes/_auth.profile.connections'
@@ -83,6 +84,11 @@ const PretentiousLandingRoute = PretentiousLandingRouteImport.update({
   path: '/landing',
   getParentRoute: () => PretentiousRoute,
 } as any)
+const PretentiousFlagsRoute = PretentiousFlagsRouteImport.update({
+  id: '/flags',
+  path: '/flags',
+  getParentRoute: () => PretentiousRoute,
+} as any)
 const PretentiousBillingRoute = PretentiousBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/profile': typeof AuthProfileRouteWithChildren
   '/pretentious/billing': typeof PretentiousBillingRoute
+  '/pretentious/flags': typeof PretentiousFlagsRoute
   '/pretentious/landing': typeof PretentiousLandingRoute
   '/pretentious/support': typeof PretentiousSupportRoute
   '/pretentious/users': typeof PretentiousUsersRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/profile': typeof AuthProfileRouteWithChildren
   '/pretentious/billing': typeof PretentiousBillingRoute
+  '/pretentious/flags': typeof PretentiousFlagsRoute
   '/pretentious/landing': typeof PretentiousLandingRoute
   '/pretentious/support': typeof PretentiousSupportRoute
   '/pretentious/users': typeof PretentiousUsersRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_auth/profile': typeof AuthProfileRouteWithChildren
   '/pretentious/billing': typeof PretentiousBillingRoute
+  '/pretentious/flags': typeof PretentiousFlagsRoute
   '/pretentious/landing': typeof PretentiousLandingRoute
   '/pretentious/support': typeof PretentiousSupportRoute
   '/pretentious/users': typeof PretentiousUsersRoute
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/profile'
     | '/pretentious/billing'
+    | '/pretentious/flags'
     | '/pretentious/landing'
     | '/pretentious/support'
     | '/pretentious/users'
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/profile'
     | '/pretentious/billing'
+    | '/pretentious/flags'
     | '/pretentious/landing'
     | '/pretentious/support'
     | '/pretentious/users'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_auth/profile'
     | '/pretentious/billing'
+    | '/pretentious/flags'
     | '/pretentious/landing'
     | '/pretentious/support'
     | '/pretentious/users'
@@ -340,6 +352,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PretentiousLandingRouteImport
       parentRoute: typeof PretentiousRoute
     }
+    '/pretentious/flags': {
+      id: '/pretentious/flags'
+      path: '/flags'
+      fullPath: '/pretentious/flags'
+      preLoaderRoute: typeof PretentiousFlagsRouteImport
+      parentRoute: typeof PretentiousRoute
+    }
     '/pretentious/billing': {
       id: '/pretentious/billing'
       path: '/billing'
@@ -431,6 +450,7 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface PretentiousRouteChildren {
   PretentiousBillingRoute: typeof PretentiousBillingRoute
+  PretentiousFlagsRoute: typeof PretentiousFlagsRoute
   PretentiousLandingRoute: typeof PretentiousLandingRoute
   PretentiousSupportRoute: typeof PretentiousSupportRoute
   PretentiousUsersRoute: typeof PretentiousUsersRoute
@@ -439,6 +459,7 @@ interface PretentiousRouteChildren {
 
 const PretentiousRouteChildren: PretentiousRouteChildren = {
   PretentiousBillingRoute: PretentiousBillingRoute,
+  PretentiousFlagsRoute: PretentiousFlagsRoute,
   PretentiousLandingRoute: PretentiousLandingRoute,
   PretentiousSupportRoute: PretentiousSupportRoute,
   PretentiousUsersRoute: PretentiousUsersRoute,
@@ -462,3 +483,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
