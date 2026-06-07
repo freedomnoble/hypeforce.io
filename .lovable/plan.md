@@ -1,29 +1,26 @@
-I reviewed the recording and current runtime signals. The loop is no longer just a background chunk issue: the app is repeatedly bouncing through the `/app` gateway (`loading workspace… step: session`) and sometimes landing in the root error boundary (`This page didn't load`). The fix should make `/app` a stable one-shot resolver instead of a route that can re-run repeatedly during auth/session invalidation.
+Yes — this step should have a Continue/check status path. Right now it only auto-advances when Paddle redirects back with `?checkout=success` or fires the checkout event in the same tab. If you manually return to `/onboarding/features`, the page falls back to the normal Subscribe state even if payment is still syncing.
 
 Plan:
 
-1. Harden the auth gate
-- Update `src/routes/_auth.tsx` so protected routes tolerate the post-signup/session write race the same way `/app` partially does: retry `getSession()` briefly before redirecting to `/login`.
-- Avoid console-noisy redirects and make the redirect destination deterministic.
+1. Update `/onboarding/features` to support manual Paddle returns
+- On page load, check the current onboarding/subscription state as it already does.
+- If the account is already subscribed or comped, immediately advance to the invites step.
+- If the URL has `?checkout=success`, keep the current auto-confirm behavior.
+- If the user is on this page after checkout but the webhook is still delayed, keep polling for a short period instead of showing a dead end.
 
-2. Make `/app` loop-proof
-- Replace the current `useEffect` gateway resolver with a guarded resolver that:
-  - only runs once per mount/attempt,
-  - ignores stale async completions,
-  - waits for auth state to settle before deciding there is no session,
-  - navigates directly to `/onboarding/*` when onboarding is incomplete,
-  - does not get restarted by harmless auth/query invalidations.
-- Add better error detail in the `/app` route error UI so if it fails again the actual message is visible.
+2. Add explicit recovery controls
+- Add an “I’ve paid — check again” button when the user is still shown the Subscribe screen.
+- When a paid/comped state is detected, show a clear “Continue” button that advances onboarding to `/onboarding/invites`.
+- If payment sync takes too long, show a calm message like “Payment is still syncing. Try again in a moment.” instead of trapping the user.
 
-3. Stop global auth invalidation from interrupting onboarding
-- Adjust the root auth-state invalidation behavior so sign-in still refreshes app state, but it does not repeatedly invalidate while the user is already inside `/app` or `/onboarding` resolution.
-- Keep query invalidation for real sign-in/sign-out transitions only.
+3. Make the advance action safe and repeatable
+- Centralize the “advance to next step” logic so it can be triggered by:
+  - Paddle checkout completion event
+  - Paddle success URL
+  - manual “check again” button
+  - already-active subscription on page load
+- Prevent duplicate timers/navigation from firing multiple times.
 
-4. Stabilize onboarding index and step screens
-- Add error handling around `getOnboardingState()` in `/onboarding` index and the first steps so a transient server-function/auth failure shows a retryable error instead of throwing into the root boundary.
-- If onboarding state says the user is complete, navigate once to `/app`; otherwise navigate once to the correct next step.
-
-5. Verify the exact flow from the recording
-- Test mobile-sized `/welcome` → create profile → `/onboarding/team`.
-- Test tapping Continue on the team step to ensure it advances instead of bouncing back to `/app` or showing the root error boundary.
-- Check console/network for repeating `getSession`, `_serverFn`, or module import failures after the fix.
+4. Verify the recovery case
+- Test the exact scenario: paid in Paddle, manually return to `/onboarding/features`, then trigger the new check/continue path.
+- Confirm it lands on `/onboarding/invites` and does not bounce back to `/app` or the root error page.
