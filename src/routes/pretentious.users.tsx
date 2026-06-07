@@ -115,7 +115,14 @@ function UsersPage() {
   );
 }
 
-function PlanBadge({ sub }: { sub: any }) {
+function PlanBadge({ sub, comped }: { sub: any; comped?: boolean }) {
+  if (comped) {
+    return (
+      <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full border text-emerald-300 border-emerald-300/30">
+        comp
+      </span>
+    );
+  }
   if (!sub) return <span className="text-white/40 text-xs">none</span>;
   const colors: Record<string, string> = {
     active: "text-emerald-300 border-emerald-300/30",
