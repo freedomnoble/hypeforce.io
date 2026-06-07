@@ -44,12 +44,10 @@ function Gateway() {
   const redeem = useServerFn(redeemInviteToken);
   const [status, setStatus] = useState<Status>({ kind: "loading", step: "session" });
   const [attempt, setAttempt] = useState(0);
-  const inflight = useRef(false);
   const resolvedRef = useRef(false);
 
   useEffect(() => {
-    if (inflight.current || resolvedRef.current) return;
-    inflight.current = true;
+    if (resolvedRef.current) return;
     let active = true;
 
     (async () => {
