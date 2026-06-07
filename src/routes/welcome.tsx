@@ -57,32 +57,34 @@ function WelcomePage() {
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/app`,
+          emailRedirectTo: `${window.location.origin}/onboarding`,
           data: { display_name: name.trim() || email.split("@")[0] },
         },
       });
       if (error) throw error;
-      // Auto-confirm is on, so a session is returned immediately. Fire the
-      // verification email in the background — user proceeds to onboarding.
+      // Fire verification email in the background — user proceeds to onboarding.
       sendVerification().catch((err) =>
         console.error("[welcome] verification email failed", err),
       );
-      if (data.session) {
-        navigate({ to: "/app", replace: true });
-      } else {
-        // Fallback if auto-confirm is somehow off — sign in to create session.
-        const { error: siErr } = await supabase.auth.signInWithPassword({
+
+      // Make sure the session is actually persisted before we navigate, so
+      // the destination route's auth gate doesn't see an empty session and
+      // bounce us to /login.
+      let session = data.session;
+      if (!session) {
+        const { data: signIn } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
-        if (siErr) {
-          toast.success("Account created. Sign in to continue.");
-          navigate({ to: "/login", replace: true });
-        } else {
-          navigate({ to: "/app", replace: true });
-        }
+        session = signIn.session ?? null;
       }
-    } catch (err: any) {
+      if (!session) {
+        toast.success("Account created. Sign in to continue.");
+        navigate({ to: "/login", replace: true });
+        return;
+      }
+      // Brand-new user → go straight to onboarding (skip the /app gateway race).
+      navigate({ to: "/onboarding", replace: true });
       toast.error(err?.message ?? "Couldn't create your profile");
     } finally {
       setSubmitting(false);
