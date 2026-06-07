@@ -37,6 +37,7 @@ import { Route as AuthOnboardingInvitesRouteImport } from './routes/_auth.onboar
 import { Route as AuthOnboardingFeaturesRouteImport } from './routes/_auth.onboarding.features'
 import { Route as AuthOnboardingChannelRouteImport } from './routes/_auth.onboarding.channel'
 import { Route as AuthWWorkspaceIdIndexRouteImport } from './routes/_auth.w.$workspaceId.index'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AuthWWorkspaceIdAdminRouteImport } from './routes/_auth.w.$workspaceId.admin'
 import { Route as AuthWWorkspaceIdDDmIdRouteImport } from './routes/_auth.w.$workspaceId.d.$dmId'
@@ -181,6 +182,12 @@ const AuthWWorkspaceIdIndexRoute = AuthWWorkspaceIdIndexRouteImport.update({
   path: '/w/$workspaceId/',
   getParentRoute: () => AuthRoute,
 } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -233,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/onboarding/': typeof AuthOnboardingIndexRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
   '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
   '/w/$workspaceId/d/$dmId': typeof AuthWWorkspaceIdDDmIdRoute
@@ -264,6 +272,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthOnboardingIndexRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/w/$workspaceId': typeof AuthWWorkspaceIdIndexRoute
   '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
   '/w/$workspaceId/d/$dmId': typeof AuthWWorkspaceIdDDmIdRoute
@@ -299,6 +308,7 @@ export interface FileRoutesById {
   '/_auth/onboarding/': typeof AuthOnboardingIndexRoute
   '/_auth/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/_auth/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
   '/_auth/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
   '/_auth/w/$workspaceId/d/$dmId': typeof AuthWWorkspaceIdDDmIdRoute
@@ -334,6 +344,7 @@ export interface FileRouteTypes {
     | '/onboarding/'
     | '/w/$workspaceId/admin'
     | '/api/public/payments/webhook'
+    | '/lovable/email/queue/process'
     | '/w/$workspaceId/'
     | '/w/$workspaceId/c/$channelId'
     | '/w/$workspaceId/d/$dmId'
@@ -365,6 +376,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/w/$workspaceId/admin'
     | '/api/public/payments/webhook'
+    | '/lovable/email/queue/process'
     | '/w/$workspaceId'
     | '/w/$workspaceId/c/$channelId'
     | '/w/$workspaceId/d/$dmId'
@@ -399,6 +411,7 @@ export interface FileRouteTypes {
     | '/_auth/onboarding/'
     | '/_auth/w/$workspaceId/admin'
     | '/api/public/payments/webhook'
+    | '/lovable/email/queue/process'
     | '/_auth/w/$workspaceId/'
     | '/_auth/w/$workspaceId/c/$channelId'
     | '/_auth/w/$workspaceId/d/$dmId'
@@ -416,6 +429,7 @@ export interface RootRouteChildren {
   JoinTokenRoute: typeof JoinTokenRoute
   ThemeImportRoute: typeof ThemeImportRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -616,6 +630,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthWWorkspaceIdIndexRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -739,6 +760,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinTokenRoute: JoinTokenRoute,
   ThemeImportRoute: ThemeImportRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
