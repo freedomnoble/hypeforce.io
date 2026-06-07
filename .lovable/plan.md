@@ -1,32 +1,65 @@
 ## Goal
-Stop using `/login` for account/profile creation. `/login` should only be for returning users. New users should enter the custom Hypeforce onboarding flow from `/welcome`, create their profile there, then continue into the wireframed steps.
 
-## Plan
+Let new users finish signup, run through onboarding, and subscribe **without** verifying their email. The verification email is still auto-sent on signup, but it never blocks them. Verification is required only to:
 
-1. **Turn `/welcome` into the true onboarding entry**
-   - Replace the current **Create profile** link that points to `/login?mode=signup`.
-   - Add an inline create-profile form or first-step action on `/welcome` matching the dictionary-definition title screen.
-   - Keep the existing **Log in** action pointing to `/login` only.
+- Create a **second channel** (the first one made during onboarding is fine)
+- Create a **second workspace** (the auto-seeded "Atelier" is fine)
+- **Invite teammates**
 
-2. **Create users from the custom flow**
-   - On `/welcome`, call the auth signup flow directly instead of routing to `/login`.
-   - Use copy/labels like **Create profile**, not **Create account**.
-   - Send email confirmation redirects to `/app`, so confirmed users are routed through the onboarding gate and resume at `/onboarding`.
-   - Store founder intent/billing in session storage as already started, so the features step can use the right plan.
+Existing users in the DB are grandfathered as verified so nothing breaks for them.
 
-3. **Make `/login` signup fall into onboarding too**
-   - If someone still uses the signup mode on `/login`, update the post-signup messaging/redirect behavior so it does not become a separate onboarding path.
-   - After confirmation/sign-in, `/app` already gates incomplete users to `/onboarding`; preserve that.
+## Changes
 
-4. **Fix the first onboarding step mapping**
-   - Ensure a newly created profile starts at the custom step after `/welcome` rather than bouncing through `/login`.
-   - The current `/onboarding` index maps step `0/1` to `/onboarding/team`; keep that as the next step after the title/create-profile screen unless the existing database default needs a small adjustment.
+### 1. Auth config
+- Turn on `auto_confirm_email` in Supabase auth so `supabase.auth.signUp()` on `/welcome` returns a session immediately — no "check your inbox" dead end.
+- Because Supabase will now mark `email_confirmed_at` at signup, we track our own "user actually clicked the link" state separately (see #2).
 
-5. **Guard against accidental `/login` redirects**
-   - Search create-profile/founder/signup links and replace any remaining account-creation navigation to `/login` with `/welcome`.
-   - Leave only explicit returning-user login links pointing to `/login`.
+### 2. Database
+Add to `profiles`:
+- `email_verified_at timestamptz null` — set when the user clicks our verification link.
+- `verification_token uuid null` + `verification_token_sent_at timestamptz null`.
+
+Backfill: `update profiles set email_verified_at = now()` for every existing row (grandfathered).
+
+A helper SQL function `public.is_email_verified(uuid)` returns `true` when `email_verified_at is not null`.
+
+### 3. Send verification on signup
+After `supabase.auth.signUp()` succeeds in `/welcome`, call a new server fn `sendVerificationEmail` that:
+- Generates a token, stores it on the profile.
+- Sends an email via Lovable Emails with a link to `/verify-email?token=…`.
+
+The user is navigated straight into onboarding — the email is informational.
+
+### 4. `/verify-email` route
+Public route. Reads `token`, calls server fn `confirmEmailVerification({ token })`, which validates the token against the profile and sets `email_verified_at = now()`. Shows success / "link expired, resend" UI. A "Resend verification email" button is available here and in the in-app banner.
+
+### 5. In-app banner
+A small dismissible banner in `workspace-shell` shown when `email_verified_at` is null: "Verify your email to unlock invites and more workspaces / channels. [Resend]".
+
+### 6. Server-side gates
+Add a shared `assertEmailVerified(userId)` helper used in:
+- `createFirstChannel` — rename intent stays, but reject if the user already owns ≥1 user-created channel in this workspace and is unverified. (Onboarding's first channel still works because it's the first.)
+- A new `createWorkspace` path (or wherever workspace creation lives) — reject if the user already owns ≥1 workspace and is unverified.
+- `sendOnboardingInvites` and any invite-send fn — reject if unverified.
+
+Each gate throws a typed error like `EMAIL_VERIFICATION_REQUIRED` so the UI can show a clean "Verify your email to continue" modal with a resend button instead of a generic toast.
+
+### 7. UI affordances
+- Channel-create and workspace-create buttons stay enabled, but on the verification error show a modal: "Confirm your email to unlock this." with **Resend email** and **I've verified, retry**.
+- Invite form shows the same modal on submit.
+
+### 8. Onboarding flow
+No structural change. `/welcome` → onboarding → features/subscribe all proceed without verification. The features/subscribe step does **not** check verification.
 
 ## Technical notes
-- Expected files: `src/routes/welcome.tsx`, `src/routes/login.tsx`, and possibly `src/components/hypeforce/landing-page.tsx` if another signup CTA still points at login.
-- No new database tables are needed.
-- The existing profile trigger and onboarding columns can continue to create the backend records; the custom flow controls the user-facing path and redirect behavior.
+
+- Files touched:
+  - `src/routes/welcome.tsx` — call `sendVerificationEmail` after `signUp`, navigate to `/onboarding` immediately whether or not `data.session` exists (auto-confirm makes session reliable).
+  - `src/lib/onboarding.functions.ts` — add gate to `createFirstChannel` and `sendOnboardingInvites`.
+  - New `src/lib/email-verification.functions.ts` — `sendVerificationEmail`, `confirmEmailVerification`, `resendVerificationEmail`.
+  - New `src/routes/verify-email.tsx`.
+  - `src/components/hypeforce/workspace-shell.tsx` — verify banner.
+  - Wherever 2nd workspace / 2nd channel UI lives — wrap submit with verification error handling modal.
+- Migration: new columns + grandfather backfill + `is_email_verified` SQL helper.
+- Auth config call: `auto_confirm_email: true`, `disable_signup: false`, `external_anonymous_users_enabled: false`, `password_hibp_enabled: true`.
+- Email sending uses Lovable's email infrastructure (auto-send template on signup); if no email domain is configured yet, the setup dialog will be shown before scaffolding the verification template.

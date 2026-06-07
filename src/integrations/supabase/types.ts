@@ -594,6 +594,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           email: string | null
+          email_verified_at: string | null
           id: string
           is_comped: boolean
           onboarding_brand_doc_url: string | null
@@ -603,6 +604,8 @@ export type Database = {
           show_upsell: boolean
           updated_at: string
           upsell_updated_at: string | null
+          verification_token: string | null
+          verification_token_sent_at: string | null
           voice_sample_url: string | null
         }
         Insert: {
@@ -614,6 +617,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           email?: string | null
+          email_verified_at?: string | null
           id: string
           is_comped?: boolean
           onboarding_brand_doc_url?: string | null
@@ -623,6 +627,8 @@ export type Database = {
           show_upsell?: boolean
           updated_at?: string
           upsell_updated_at?: string | null
+          verification_token?: string | null
+          verification_token_sent_at?: string | null
           voice_sample_url?: string | null
         }
         Update: {
@@ -634,6 +640,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           email?: string | null
+          email_verified_at?: string | null
           id?: string
           is_comped?: boolean
           onboarding_brand_doc_url?: string | null
@@ -643,6 +650,8 @@ export type Database = {
           show_upsell?: boolean
           updated_at?: string
           upsell_updated_at?: string | null
+          verification_token?: string | null
+          verification_token_sent_at?: string | null
           voice_sample_url?: string | null
         }
         Relationships: []
@@ -1033,6 +1042,7 @@ export type Database = {
         Args: { _dm_id: string; _user_id: string }
         Returns: boolean
       }
+      is_email_verified: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_workspace_admin: {
         Args: { _user_id: string; _workspace_id: string }
