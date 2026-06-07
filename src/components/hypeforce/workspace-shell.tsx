@@ -53,6 +53,7 @@ import { AdminInboxFlyout } from "./admin-inbox-flyout";
 import { useQuery } from "@tanstack/react-query";
 import { getUnreadCount } from "@/lib/inbox.functions";
 import { useTheme, themeHasModes } from "./theme-provider";
+import { UpsellBanner } from "./upsell-banner";
 const InfiniteGridBg = lazy(() =>
   import("./infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
 );
@@ -367,7 +368,9 @@ export function WorkspaceShell({
         profile,
       }}
     >
-    <div className="flex h-[100dvh] w-full overflow-hidden p-0 sm:p-2 gap-0 sm:gap-2 relative pb-14 sm:pb-2">
+    <div className="flex flex-col h-[100dvh] w-full overflow-hidden">
+    <UpsellBanner />
+    <div className="flex flex-1 w-full overflow-hidden p-0 sm:p-2 gap-0 sm:gap-2 relative pb-14 sm:pb-2">
       <ClientOnly fallback={null}><InfiniteGridBg /></ClientOnly>
       {/* Far-left rail */}
       <aside className="hidden sm:flex w-16 flex-col items-center gap-3 py-4 glass rounded-2xl">
@@ -886,6 +889,7 @@ export function WorkspaceShell({
           onClick={() => setProfileSheetOpen(true)}
         />
       </nav>
+    </div>
     </div>
     </MobileShellCtx.Provider>
   );

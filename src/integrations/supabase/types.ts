@@ -369,6 +369,30 @@ export type Database = {
           },
         ]
       }
+      invite_links: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          rotated_at: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          rotated_at?: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          rotated_at?: string
+          token?: string
+        }
+        Relationships: []
+      }
       knowledge_base: {
         Row: {
           body: string | null
@@ -571,7 +595,10 @@ export type Database = {
           display_name: string | null
           email: string | null
           id: string
+          is_comped: boolean
+          show_upsell: boolean
           updated_at: string
+          upsell_updated_at: string | null
           voice_sample_url: string | null
         }
         Insert: {
@@ -584,7 +611,10 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id: string
+          is_comped?: boolean
+          show_upsell?: boolean
           updated_at?: string
+          upsell_updated_at?: string | null
           voice_sample_url?: string | null
         }
         Update: {
@@ -597,7 +627,10 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          is_comped?: boolean
+          show_upsell?: boolean
           updated_at?: string
+          upsell_updated_at?: string | null
           voice_sample_url?: string | null
         }
         Relationships: []

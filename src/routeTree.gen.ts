@@ -20,8 +20,10 @@ import { Route as ThemeImportRouteImport } from './routes/theme.import'
 import { Route as PretentiousUsersRouteImport } from './routes/pretentious.users'
 import { Route as PretentiousSupportRouteImport } from './routes/pretentious.support'
 import { Route as PretentiousLandingRouteImport } from './routes/pretentious.landing'
+import { Route as PretentiousInvitesRouteImport } from './routes/pretentious.invites'
 import { Route as PretentiousFlagsRouteImport } from './routes/pretentious.flags'
 import { Route as PretentiousBillingRouteImport } from './routes/pretentious.billing'
+import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as AuthProfileRouteImport } from './routes/_auth.profile'
 import { Route as AuthProfileConnectionsRouteImport } from './routes/_auth.profile.connections'
 import { Route as AuthWWorkspaceIdIndexRouteImport } from './routes/_auth.w.$workspaceId.index'
@@ -84,6 +86,11 @@ const PretentiousLandingRoute = PretentiousLandingRouteImport.update({
   path: '/landing',
   getParentRoute: () => PretentiousRoute,
 } as any)
+const PretentiousInvitesRoute = PretentiousInvitesRouteImport.update({
+  id: '/invites',
+  path: '/invites',
+  getParentRoute: () => PretentiousRoute,
+} as any)
 const PretentiousFlagsRoute = PretentiousFlagsRouteImport.update({
   id: '/flags',
   path: '/flags',
@@ -93,6 +100,11 @@ const PretentiousBillingRoute = PretentiousBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
   getParentRoute: () => PretentiousRoute,
+} as any)
+const JoinTokenRoute = JoinTokenRouteImport.update({
+  id: '/join/$token',
+  path: '/join/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthProfileRoute = AuthProfileRouteImport.update({
   id: '/profile',
@@ -139,8 +151,10 @@ export interface FileRoutesByFullPath {
   '/pretentious': typeof PretentiousRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/profile': typeof AuthProfileRouteWithChildren
+  '/join/$token': typeof JoinTokenRoute
   '/pretentious/billing': typeof PretentiousBillingRoute
   '/pretentious/flags': typeof PretentiousFlagsRoute
+  '/pretentious/invites': typeof PretentiousInvitesRoute
   '/pretentious/landing': typeof PretentiousLandingRoute
   '/pretentious/support': typeof PretentiousSupportRoute
   '/pretentious/users': typeof PretentiousUsersRoute
@@ -159,8 +173,10 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/profile': typeof AuthProfileRouteWithChildren
+  '/join/$token': typeof JoinTokenRoute
   '/pretentious/billing': typeof PretentiousBillingRoute
   '/pretentious/flags': typeof PretentiousFlagsRoute
+  '/pretentious/invites': typeof PretentiousInvitesRoute
   '/pretentious/landing': typeof PretentiousLandingRoute
   '/pretentious/support': typeof PretentiousSupportRoute
   '/pretentious/users': typeof PretentiousUsersRoute
@@ -182,8 +198,10 @@ export interface FileRoutesById {
   '/pretentious': typeof PretentiousRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/_auth/profile': typeof AuthProfileRouteWithChildren
+  '/join/$token': typeof JoinTokenRoute
   '/pretentious/billing': typeof PretentiousBillingRoute
   '/pretentious/flags': typeof PretentiousFlagsRoute
+  '/pretentious/invites': typeof PretentiousInvitesRoute
   '/pretentious/landing': typeof PretentiousLandingRoute
   '/pretentious/support': typeof PretentiousSupportRoute
   '/pretentious/users': typeof PretentiousUsersRoute
@@ -205,8 +223,10 @@ export interface FileRouteTypes {
     | '/pretentious'
     | '/reset-password'
     | '/profile'
+    | '/join/$token'
     | '/pretentious/billing'
     | '/pretentious/flags'
+    | '/pretentious/invites'
     | '/pretentious/landing'
     | '/pretentious/support'
     | '/pretentious/users'
@@ -225,8 +245,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/profile'
+    | '/join/$token'
     | '/pretentious/billing'
     | '/pretentious/flags'
+    | '/pretentious/invites'
     | '/pretentious/landing'
     | '/pretentious/support'
     | '/pretentious/users'
@@ -247,8 +269,10 @@ export interface FileRouteTypes {
     | '/pretentious'
     | '/reset-password'
     | '/_auth/profile'
+    | '/join/$token'
     | '/pretentious/billing'
     | '/pretentious/flags'
+    | '/pretentious/invites'
     | '/pretentious/landing'
     | '/pretentious/support'
     | '/pretentious/users'
@@ -269,6 +293,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PretentiousRoute: typeof PretentiousRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  JoinTokenRoute: typeof JoinTokenRoute
   ThemeImportRoute: typeof ThemeImportRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
@@ -352,6 +377,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PretentiousLandingRouteImport
       parentRoute: typeof PretentiousRoute
     }
+    '/pretentious/invites': {
+      id: '/pretentious/invites'
+      path: '/invites'
+      fullPath: '/pretentious/invites'
+      preLoaderRoute: typeof PretentiousInvitesRouteImport
+      parentRoute: typeof PretentiousRoute
+    }
     '/pretentious/flags': {
       id: '/pretentious/flags'
       path: '/flags'
@@ -365,6 +397,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/pretentious/billing'
       preLoaderRoute: typeof PretentiousBillingRouteImport
       parentRoute: typeof PretentiousRoute
+    }
+    '/join/$token': {
+      id: '/join/$token'
+      path: '/join/$token'
+      fullPath: '/join/$token'
+      preLoaderRoute: typeof JoinTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_auth/profile': {
       id: '/_auth/profile'
@@ -451,6 +490,7 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 interface PretentiousRouteChildren {
   PretentiousBillingRoute: typeof PretentiousBillingRoute
   PretentiousFlagsRoute: typeof PretentiousFlagsRoute
+  PretentiousInvitesRoute: typeof PretentiousInvitesRoute
   PretentiousLandingRoute: typeof PretentiousLandingRoute
   PretentiousSupportRoute: typeof PretentiousSupportRoute
   PretentiousUsersRoute: typeof PretentiousUsersRoute
@@ -460,6 +500,7 @@ interface PretentiousRouteChildren {
 const PretentiousRouteChildren: PretentiousRouteChildren = {
   PretentiousBillingRoute: PretentiousBillingRoute,
   PretentiousFlagsRoute: PretentiousFlagsRoute,
+  PretentiousInvitesRoute: PretentiousInvitesRoute,
   PretentiousLandingRoute: PretentiousLandingRoute,
   PretentiousSupportRoute: PretentiousSupportRoute,
   PretentiousUsersRoute: PretentiousUsersRoute,
@@ -477,6 +518,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PretentiousRoute: PretentiousRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  JoinTokenRoute: JoinTokenRoute,
   ThemeImportRoute: ThemeImportRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }

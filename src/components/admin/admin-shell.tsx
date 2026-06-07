@@ -1,6 +1,6 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { WebBackground } from "./web-background";
-import { LayoutDashboard, Users, LifeBuoy, FileText, CreditCard, Flag, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, LifeBuoy, FileText, CreditCard, Flag, Gift, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -10,6 +10,7 @@ const NAV: { to: string; label: string; icon: any; exact?: boolean }[] = [
   { to: "/pretentious/support", label: "Support", icon: LifeBuoy },
   { to: "/pretentious/landing", label: "Landing CMS", icon: FileText },
   { to: "/pretentious/billing", label: "Billing", icon: CreditCard },
+  { to: "/pretentious/invites", label: "Invites", icon: Gift },
   { to: "/pretentious/flags", label: "Feature Flags", icon: Flag },
 ];
 

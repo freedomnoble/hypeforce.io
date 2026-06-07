@@ -10,6 +10,8 @@ import {
   messageUser,
   deleteUser,
 } from "@/lib/admin.functions";
+import { setUserCompFlags } from "@/lib/invites.functions";
+import { Switch } from "@/components/ui/switch";
 import { GlassPanel } from "@/components/admin/admin-shell";
 import { toast } from "sonner";
 
@@ -82,7 +84,7 @@ function UsersPage() {
                     <span className="text-blue-300">{u.byok_count} BYOK</span>
                   </td>
                   <td className="px-4 py-3">
-                    <PlanBadge sub={u.subscription} />
+                    <PlanBadge sub={u.subscription} comped={u.profile_flags?.is_comped} />
                   </td>
                   <td className="px-4 py-3 text-right text-white/40 text-xs">›</td>
                 </tr>
@@ -113,7 +115,14 @@ function UsersPage() {
   );
 }
 
-function PlanBadge({ sub }: { sub: any }) {
+function PlanBadge({ sub, comped }: { sub: any; comped?: boolean }) {
+  if (comped) {
+    return (
+      <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full border text-emerald-300 border-emerald-300/30">
+        comp
+      </span>
+    );
+  }
   if (!sub) return <span className="text-white/40 text-xs">none</span>;
   const colors: Record<string, string> = {
     active: "text-emerald-300 border-emerald-300/30",
@@ -135,6 +144,10 @@ function UserDrawer({ user, onClose, onChanged }: { user: any; onClose: () => vo
   const approve = useServerFn(approveCancellation);
   const msg = useServerFn(messageUser);
   const del = useServerFn(deleteUser);
+  const setFlags = useServerFn(setUserCompFlags);
+
+  const [comped, setComped] = useState(!!user.profile_flags?.is_comped);
+  const [upsell, setUpsell] = useState(!!user.profile_flags?.show_upsell);
 
   const [paused, setPaused] = useState(user.usage_limit?.lovable_gateway_paused ?? false);
   const [cap, setCap] = useState<string>(user.usage_limit?.monthly_message_cap?.toString() ?? "");
@@ -230,6 +243,35 @@ function UserDrawer({ user, onClose, onChanged }: { user: any; onClose: () => vo
               </button>
             )}
           </div>
+        </Section>
+
+        <Section title="Access">
+          <label className="flex items-center justify-between text-sm">
+            <div>
+              <div>Free access (comp)</div>
+              <div className="text-[10px] text-white/40">Skips paid subscription gating.</div>
+            </div>
+            <Switch
+              checked={comped}
+              onCheckedChange={(v) => {
+                setComped(v);
+                wrap("Access updated", () => setFlags({ data: { user_id: user.id, is_comped: v } }));
+              }}
+            />
+          </label>
+          <label className="flex items-center justify-between text-sm">
+            <div>
+              <div>Show subscribe banner</div>
+              <div className="text-[10px] text-white/40">Dismissible upsell at the top of the app.</div>
+            </div>
+            <Switch
+              checked={upsell}
+              onCheckedChange={(v) => {
+                setUpsell(v);
+                wrap("Upsell updated", () => setFlags({ data: { user_id: user.id, show_upsell: v } }));
+              }}
+            />
+          </label>
         </Section>
 
         <Section title="Message user (in-app)">
