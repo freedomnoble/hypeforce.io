@@ -1,43 +1,49 @@
-Finish the half-built Slack-style mobile navigation. The build currently breaks because `MobileChatTopBar` is referenced on the channel page but never defined. Three small files to touch — no design or desktop changes.
+# Feature Flags admin page — toggle theming
 
-## 1. `src/components/hypeforce/workspace-shell.tsx`
+Add a global feature flag system (starting with two flags for theming) controlled from the `/pretentious` admin portal. When disabled, all users are forced to the default Blueprint theme and the theme picker UI hides the relevant options.
 
-Export a new `MobileChatTopBar` component (placed near `MobileTabButton`) that the chat pages can drop in. It uses `useMobileShell()` to reach the shell's drawers and `useNavigate()` for the back arrow.
+## Flags (v1)
+- `themes_enabled` — when off, only the default Blueprint theme is available. All built-in alternate themes (Tool Time, Hail Mary, Coffee, Arachna-Verse) and any custom theme are blocked.
+- `custom_themes_enabled` — when off, the AI custom theme generator is hidden and existing `custom:*` themes are blocked. Independent toggle so admins can keep built-in alternates but disable user-generated ones.
 
-Shape:
-- `sm:hidden` 14h glass header, flex row.
-- Left: workspace avatar button (2-letter initials, primary tint) → `openWorkspaces()`.
-- Center (button): `<ChevronLeft />` + prefix (`#` or `@`) + title, tap → `navigate({ to: "/w/$workspaceId", params })` so the sidebar (channel list) comes back, then `onOpenDetails?.()` is NOT called here (back nav is separate from details).
-- Right: avatar of `profile` → `openProfile()`.
-- Optional `onOpenDetails` button (e.g. `PanelRight` icon) sits between title and profile avatar so the user can summon the right context sheet from chat.
+If `themes_enabled = false`, the custom-themes section is implicitly disabled too.
 
-Props: `{ title: string; prefix?: "#" | "@"; onOpenDetails?: () => void }`.
+## Database
+New migration creates `public.feature_flags`:
+- `key text primary key`
+- `enabled boolean not null default true`
+- `description text`
+- `updated_at timestamptz`
 
-## 2. `src/routes/_auth.w.$workspaceId.c.$channelId.tsx`
+Grants: `SELECT` to `authenticated` and `anon` (flags need to be readable everywhere the app renders); `ALL` to `service_role`. RLS enabled. Policies:
+- SELECT: allow all (`using (true)`).
+- INSERT/UPDATE/DELETE: only `public.is_super_admin(auth.uid())`.
 
-- Import `MobileChatTopBar` from `workspace-shell`.
-- Existing `mobileDetailsOpen` state already added — wrap the right `aside` (Details panel) so on mobile it renders inside a `<Sheet side="right">` controlled by `mobileDetailsOpen`. Keep the existing `hidden lg:flex` aside for desktop unchanged; add a parallel mobile Sheet that reuses the same In-this-room / Pinned files / Channel context blocks (extract into a small `ChannelDetails` subcomponent in the same file to avoid duplication).
-- The desktop header already has `hidden sm:flex` so it's hidden on mobile — good.
+Seed both flags with `enabled = true`.
 
-## 3. `src/routes/_auth.w.$workspaceId.d.$dmId.tsx`
+## Server functions (`src/lib/feature-flags.functions.ts`)
+- `listFeatureFlags` — public, returns all flags as `{ key, enabled }[]`.
+- `setFeatureFlag({ key, enabled })` — uses `requireSupabaseAuth`, asserts super-admin via `is_super_admin` RPC, upserts the row.
 
-- Import `MobileChatTopBar`.
-- Add `mobileDetailsOpen` state.
-- Add `MobileChatTopBar title={headerTitle} prefix={otherAgent ? "@" : undefined} onOpenDetails={() => setMobileDetailsOpen(true)}` before the existing desktop header; gate desktop header with `hidden sm:flex`.
-- Wrap the right `aside` Details content in a mobile Sheet (same pattern as channel page) reusing the Participants block.
+## Admin UI
+- New route `src/routes/pretentious.flags.tsx` — list flags with toggle switches, description text, and a saving indicator. Uses `useQuery` + `useMutation` against the two server fns.
+- Add a "Feature Flags" nav item with a `Flag` icon to `NAV` in `src/components/admin/admin-shell.tsx`.
 
-## 4. Mobile fit (no vertical page scroll)
+## Enforcement in the app
+- `theme-provider.tsx`:
+    - Fetch flags on mount via `listFeatureFlags` (cached in state; also subscribe to refetch on `SIGNED_IN`).
+    - Expose `themesEnabled` and `customThemesEnabled` in context.
+    - In the apply-tokens effect, if `themesEnabled` is false, force `effectiveTheme = "default"` (override saved theme and landing override). If `customThemesEnabled` is false and the active theme is `custom:*`, fall back to default. Saved `localStorage` value is preserved so re-enabling restores it.
+- `workspace-settings-sheet.tsx` theme section:
+    - If `themesEnabled` is false: render a disabled state explaining "Theming is currently disabled by the workspace admin" and hide built-in/custom lists.
+    - If only `customThemesEnabled` is false: hide the custom themes block and the "Create custom theme" button; keep built-in list.
+- `landing-page.tsx` (CMS theme override): respect `themesEnabled` — if off, ignore `theme_key` override.
 
-The shell root is already `h-[100dvh] overflow-hidden pb-14 sm:pb-2`. Verify by viewing the preview at 402×716:
-- Sidebar (channel list) should fill height minus the 56px bottom bar — set `pb-14 sm:pb-2` on the root and the sidebar's internal `overflow-y-auto` handles scroll inside the panel.
-- Chat `main` should be `flex flex-col` with `flex-1` messages area scrolling, composer pinned. Already true; just confirm composer's `flex-shrink-0` stays.
+## Technical notes
+- Flag reads are public (no auth) so SSR / landing page work without a session.
+- Reuse existing `is_super_admin` definer function; no new RPC needed.
+- No edits to `client.ts`, `types.ts`, or other auto-generated files.
 
-## 5. DMs tab routing
-
-The bottom-bar "DMs" button currently navigates to `/w/$workspaceId`. Keep that for now (the sidebar already shows DMs); a `?view=dms` filter can be a follow-up.
-
-## Verification
-
-- `bun run typecheck` / build runs clean.
-- Preview at 402×716: land on channel list → tap a channel → chat opens with top bar (avatar / title / details / avatar) → tap left avatar opens Workspaces drawer; tap right avatar opens Profile drawer; tap details icon opens right Context sheet; tap title returns to channel list. Repeat on a DM.
-- Desktop (≥sm) unchanged: no top bar visible, original headers intact, right aside still inline.
+## Out of scope
+- Per-workspace flag overrides (global only for now).
+- Realtime push of flag changes (users see new flag state on next mount / sign-in).
