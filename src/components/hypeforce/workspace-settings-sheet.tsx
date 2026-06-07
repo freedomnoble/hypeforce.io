@@ -610,7 +610,7 @@ function BrandPanel({ workspaceId, initial }: { workspaceId: string; initial: st
 
 /* ============== THEMES ============== */
 function ThemesPanel() {
-  const { theme, setTheme, customThemes, deleteCustomTheme } = useTheme();
+  const { theme, setTheme, customThemes, deleteCustomTheme, themesEnabled, customThemesEnabled } = useTheme();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const share = async (id: string, name: string, tokens: any) => {
@@ -623,6 +623,22 @@ function ThemesPanel() {
       toast.error("Couldn't copy link");
     }
   };
+
+  if (!themesEnabled) {
+    return (
+      <div className="space-y-5">
+        <header>
+          <h2 className="font-display text-xl font-semibold">Themes</h2>
+          <p className="text-sm text-muted-foreground">
+            Only colors change — every feature and layout stays the same.
+          </p>
+        </header>
+        <div className="rounded-2xl border border-border bg-secondary/30 p-6 text-sm text-muted-foreground">
+          Theming is currently disabled. The default Blueprint theme is the only option available.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
