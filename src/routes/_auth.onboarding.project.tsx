@@ -9,6 +9,7 @@ import { useOnboardingState } from "@/lib/onboarding-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, Check } from "lucide-react";
 import { toast } from "sonner";
+import { friendlyError } from "@/lib/friendly-error";
 
 export const Route = createFileRoute("/_auth/onboarding/project")({
   component: ProjectStep,
