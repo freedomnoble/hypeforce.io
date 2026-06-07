@@ -13,6 +13,11 @@ export function getPaddleEnvironment(): "sandbox" | "live" {
 }
 
 let paddleInitialized = false;
+let currentEventCallback: ((event: any) => void) | null = null;
+
+export function setPaddleEventCallback(cb: ((event: any) => void) | null) {
+  currentEventCallback = cb;
+}
 
 export async function initializePaddle() {
   if (paddleInitialized) return;
@@ -25,7 +30,16 @@ export async function initializePaddle() {
       const paddleJsEnvironment =
         getPaddleEnvironment() === "sandbox" ? "sandbox" : "production";
       window.Paddle.Environment.set(paddleJsEnvironment);
-      window.Paddle.Initialize({ token: clientToken });
+      window.Paddle.Initialize({
+        token: clientToken,
+        eventCallback: (event: any) => {
+          try {
+            currentEventCallback?.(event);
+          } catch (e) {
+            console.error("[paddle] eventCallback error", e);
+          }
+        },
+      });
       paddleInitialized = true;
       resolve();
     };
