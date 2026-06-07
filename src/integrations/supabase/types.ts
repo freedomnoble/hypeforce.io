@@ -596,6 +596,10 @@ export type Database = {
           email: string | null
           id: string
           is_comped: boolean
+          onboarding_brand_doc_url: string | null
+          onboarding_pending_invites: Json
+          onboarding_project_name: string | null
+          onboarding_step: number
           show_upsell: boolean
           updated_at: string
           upsell_updated_at: string | null
@@ -612,6 +616,10 @@ export type Database = {
           email?: string | null
           id: string
           is_comped?: boolean
+          onboarding_brand_doc_url?: string | null
+          onboarding_pending_invites?: Json
+          onboarding_project_name?: string | null
+          onboarding_step?: number
           show_upsell?: boolean
           updated_at?: string
           upsell_updated_at?: string | null
@@ -628,6 +636,10 @@ export type Database = {
           email?: string | null
           id?: string
           is_comped?: boolean
+          onboarding_brand_doc_url?: string | null
+          onboarding_pending_invites?: Json
+          onboarding_project_name?: string | null
+          onboarding_step?: number
           show_upsell?: boolean
           updated_at?: string
           upsell_updated_at?: string | null
