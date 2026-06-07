@@ -131,13 +131,12 @@ function LoginPage() {
               Back to sign in
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-              className="hover:text-foreground transition-colors w-full"
+            <Link
+              to="/welcome"
+              className="hover:text-foreground transition-colors w-full block"
             >
-              {mode === "signin" ? "Need an account? Sign up" : "Have an account? Sign in"}
-            </button>
+              Need an account? Create profile
+            </Link>
           )}
         </div>
       </div>
