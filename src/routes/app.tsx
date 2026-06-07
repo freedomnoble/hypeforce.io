@@ -59,6 +59,23 @@ function Gateway() {
           // Non-fatal — proceed to workspace.
         }
 
+        // Onboarding gate: incomplete users go to the flow.
+        try {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("onboarding_step")
+            .eq("id", sess.session.user.id)
+            .maybeSingle();
+          if (prof && (prof.onboarding_step ?? 0) < 8) {
+            resolvedRef.current = true;
+            navigate({ to: "/onboarding", replace: true });
+            return;
+          }
+        } catch {
+          // If the check fails, fall through to workspace resolution.
+        }
+
+
         setStatus({ kind: "loading", step: "workspace" });
         const { data: ws, error: wsErr } = await supabase
           .from("workspaces")

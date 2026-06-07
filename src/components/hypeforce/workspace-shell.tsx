@@ -54,6 +54,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getUnreadCount } from "@/lib/inbox.functions";
 import { useTheme, themeHasModes } from "./theme-provider";
 import { UpsellBanner } from "./upsell-banner";
+import { CoffeeUpsellButton } from "./coffee-upsell-button";
 const InfiniteGridBg = lazy(() =>
   import("./infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
 );
@@ -370,6 +371,7 @@ export function WorkspaceShell({
     >
     <div className="flex flex-col h-[100dvh] w-full overflow-hidden">
     <UpsellBanner />
+    <CoffeeUpsellButton />
     <div className="flex flex-1 w-full overflow-hidden p-0 sm:p-2 gap-0 sm:gap-2 relative pb-14 sm:pb-2">
       <ClientOnly fallback={null}><InfiniteGridBg /></ClientOnly>
       {/* Far-left rail */}
