@@ -10,6 +10,8 @@ import {
   messageUser,
   deleteUser,
 } from "@/lib/admin.functions";
+import { setUserCompFlags } from "@/lib/invites.functions";
+import { Switch } from "@/components/ui/switch";
 import { GlassPanel } from "@/components/admin/admin-shell";
 import { toast } from "sonner";
 
