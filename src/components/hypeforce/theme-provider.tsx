@@ -164,7 +164,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const isAppRoute = pathname === "/app" || pathname.startsWith("/app/") || pathname.startsWith("/w/");
   const isLandingRoute = pathname === "/";
   const activeLandingOverride =
-    isLandingRoute && landingOverride && THEMES.some((t) => t.id === landingOverride)
+    themesEnabled && isLandingRoute && landingOverride && THEMES.some((t) => t.id === landingOverride)
       ? landingOverride
       : null;
   const forceDefault = !isAppRoute && !activeLandingOverride;
