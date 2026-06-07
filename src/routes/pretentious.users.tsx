@@ -144,6 +144,10 @@ function UserDrawer({ user, onClose, onChanged }: { user: any; onClose: () => vo
   const approve = useServerFn(approveCancellation);
   const msg = useServerFn(messageUser);
   const del = useServerFn(deleteUser);
+  const setFlags = useServerFn(setUserCompFlags);
+
+  const [comped, setComped] = useState(!!user.profile_flags?.is_comped);
+  const [upsell, setUpsell] = useState(!!user.profile_flags?.show_upsell);
 
   const [paused, setPaused] = useState(user.usage_limit?.lovable_gateway_paused ?? false);
   const [cap, setCap] = useState<string>(user.usage_limit?.monthly_message_cap?.toString() ?? "");
