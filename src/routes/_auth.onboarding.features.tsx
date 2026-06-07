@@ -35,6 +35,30 @@ function FeaturesStep() {
   const [confirming, setConfirming] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
 
+  const advanceAndGo = async () => {
+    try {
+      await advance({ data: { to: 4 } });
+    } catch (e) {
+      console.error("[onboarding] advance failed", e);
+    }
+    // Brief pause so the success UI is visible, then move on.
+    setTimeout(() => navigate({ to: "/onboarding/invites", replace: true }), 1200);
+  };
+
+  // Poll onboarding state for an active subscription (used as a fallback
+  // when Paddle's success redirect doesn't fire and the user closes the
+  // overlay manually).
+  const pollForSubscription = async (maxAttempts = 8, intervalMs = 1500) => {
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const s = await fetchState();
+        if (s.has_active_subscription || s.is_comped) return true;
+      } catch {}
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+    return false;
+  };
+
   useEffect(() => {
     (async () => {
       const s = await fetchState();
@@ -45,11 +69,11 @@ function FeaturesStep() {
         navigate({ to: "/onboarding/invites", replace: true });
         return;
       }
-      // Returning from successful Paddle checkout
+      // Returning from successful Paddle checkout via successUrl.
       if (search.checkout === "success") {
         setConfirming(true);
-        await advance({ data: { to: 4 } });
-        setTimeout(() => navigate({ to: "/onboarding/invites", replace: true }), 2200);
+        await pollForSubscription();
+        await advanceAndGo();
         return;
       }
       setLoading(false);
@@ -71,6 +95,17 @@ function FeaturesStep() {
       customerEmail: email ?? u.user?.email,
       customData: { userId: u.user?.id ?? "", onboarding: "1" },
       successUrl: `${window.location.origin}/onboarding/features?checkout=success`,
+      onEvent: (event: any) => {
+        // Advance as soon as Paddle confirms the checkout, regardless of
+        // whether the success redirect ever fires.
+        if (event?.name === "checkout.completed" && !confirming) {
+          setConfirming(true);
+          (async () => {
+            await pollForSubscription();
+            await advanceAndGo();
+          })();
+        }
+      },
     });
   };
 
