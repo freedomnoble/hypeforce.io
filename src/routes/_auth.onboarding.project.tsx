@@ -65,13 +65,25 @@ function ProjectStep() {
   const onContinue = async () => {
     if (!project.trim()) return;
     setSubmitting(true);
-    try {
-      await saveProject({ data: { name: project.trim() } });
+    const name = project.trim();
+    const run = async () => {
+      await saveProject({ data: { name } });
       await advance({ data: { to: 3 } });
-      patch({ project_name: project.trim(), step: 3 });
+    };
+    try {
+      try {
+        await run();
+      } catch (firstErr) {
+        // Transient SSR / network blip — retry once before surfacing.
+        console.warn("[onboarding/project] continue failed, retrying", firstErr);
+        await new Promise((r) => setTimeout(r, 600));
+        await run();
+      }
+      patch({ project_name: name, step: 3 });
       navigate({ to: "/onboarding/features" });
-    } catch (e: any) {
-      toast.error(e?.message ?? "Couldn't save");
+    } catch (e) {
+      console.error("[onboarding/project] continue failed", e);
+      toast.error(friendlyError(e, "Couldn't save. Please try again."));
     } finally {
       setSubmitting(false);
     }
