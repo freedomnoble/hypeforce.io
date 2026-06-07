@@ -3,8 +3,8 @@ import { ClientOnly } from "@tanstack/react-router";
 
 const InfiniteGridBg = lazy(() =>
   import("./infinite-grid-bg")
-    .then((m) => ({ default: m.InfiniteGridBg }))
-    .catch(() => ({ default: () => null })),
+    .then((m) => ({ default: m.InfiniteGridBg as React.ComponentType<{ interactive?: boolean }> }))
+    .catch(() => ({ default: (() => null) as React.ComponentType<{ interactive?: boolean }> })),
 );
 
 class BgBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
