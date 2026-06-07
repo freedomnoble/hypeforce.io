@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { OnboardingLayout, StepTitle } from "@/components/onboarding/OnboardingLayout";
 import {
   advanceStep,
-  getOnboardingState,
   sendOnboardingInvites,
   savePendingInvites,
 } from "@/lib/onboarding.functions";
+import { useOnboardingState } from "@/lib/onboarding-query";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_auth/onboarding/invites")({
@@ -21,38 +21,38 @@ type Row = { name: string; email: string };
 
 function InvitesStep() {
   const navigate = useNavigate();
-  const fetchState = useServerFn(getOnboardingState);
   const sendInvites = useServerFn(sendOnboardingInvites);
   const savePending = useServerFn(savePendingInvites);
   const advance = useServerFn(advanceStep);
+  const { data, patch } = useOnboardingState();
 
-  const [me, setMe] = useState<string>("");
+  const me = data?.display_name ?? "You";
   const [rows, setRows] = useState<Row[]>([
     { name: "", email: "" },
     { name: "", email: "" },
   ]);
+  const [prefilled, setPrefilled] = useState(false);
   const [busy, setBusy] = useState<"invite" | "skip" | null>(null);
 
   useEffect(() => {
-    (async () => {
-      const s = await fetchState();
-      setMe(s.display_name ?? "You");
-      if (s.pending_invites?.length) {
-        setRows([
-          ...s.pending_invites.slice(0, 2),
-          ...Array(Math.max(0, 2 - s.pending_invites.length)).fill({ name: "", email: "" }),
-        ].slice(0, 2));
-      }
-    })();
-  }, [fetchState]);
+    if (prefilled || !data?.pending_invites?.length) return;
+    setRows(
+      [
+        ...data.pending_invites.slice(0, 2),
+        ...Array(Math.max(0, 2 - data.pending_invites.length)).fill({ name: "", email: "" }),
+      ].slice(0, 2) as Row[],
+    );
+    setPrefilled(true);
+  }, [data?.pending_invites, prefilled]);
 
-  const updateRow = (i: number, patch: Partial<Row>) =>
-    setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const updateRow = (i: number, p: Partial<Row>) =>
+    setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...p } : r)));
 
   const filled = rows.filter((r) => r.name.trim() && r.email.trim());
 
   const goNext = async () => {
     await advance({ data: { to: 5 } });
+    patch({ step: 5 });
     navigate({ to: "/onboarding/tour" });
   };
 

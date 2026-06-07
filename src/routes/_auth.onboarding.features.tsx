@@ -31,7 +31,7 @@ function FeaturesStep() {
   const advance = useServerFn(advanceStep);
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
 
-  const [loading, setLoading] = useState(true);
+  
   const [confirming, setConfirming] = useState(false);
   const [checking, setChecking] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
@@ -113,15 +113,14 @@ function FeaturesStep() {
             if (!active) return;
             setConfirming(false);
             setSyncMessage("Payment is still syncing. Tap “I’ve paid — check again”.");
-            setLoading(false);
           }
+
           return;
         }
-        setLoading(false);
       } catch (e) {
         console.error("[onboarding] features init failed", e);
-        if (active) setLoading(false);
       }
+
     })();
     return () => {
       active = false;
@@ -176,13 +175,9 @@ function FeaturesStep() {
     );
   }
 
-  if (loading) {
-    return (
-      <OnboardingLayout step={4}>
-        <div className="h-60 grid place-items-center text-sm text-muted-foreground">loading…</div>
-      </OnboardingLayout>
-    );
-  }
+  // No loading gate: the subscribe screen is static content, so render it
+  // immediately. Background state fetch will auto-advance if subscribed.
+
 
   return (
     <OnboardingLayout step={4}>

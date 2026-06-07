@@ -1,14 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OnboardingLayout, StepTitle } from "@/components/onboarding/OnboardingLayout";
-import {
-  completeOnboarding,
-  createFirstChannel,
-  getOnboardingState,
-} from "@/lib/onboarding.functions";
+import { completeOnboarding, createFirstChannel } from "@/lib/onboarding.functions";
+import { useOnboardingState } from "@/lib/onboarding-query";
 import { Hash, Check } from "lucide-react";
 import { toast } from "sonner";
 
@@ -18,20 +15,13 @@ export const Route = createFileRoute("/_auth/onboarding/channel")({
 
 function ChannelStep() {
   const navigate = useNavigate();
-  const fetchState = useServerFn(getOnboardingState);
   const createChannel = useServerFn(createFirstChannel);
   const complete = useServerFn(completeOnboarding);
+  const { data } = useOnboardingState();
 
-  const [existing, setExisting] = useState<any[]>([]);
+  const existing = (data?.channels ?? []).slice(0, 3);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const s = await fetchState();
-      setExisting(s.channels.slice(0, 3));
-    })();
-  }, [fetchState]);
 
   const finish = async () => {
     setBusy(true);
@@ -62,7 +52,7 @@ function ChannelStep() {
       </StepTitle>
 
       <ul className="space-y-2 mb-4">
-        {existing.map((c) => (
+        {existing.map((c: any) => (
           <li
             key={c.id}
             className="flex items-center gap-3 p-3 rounded-xl bg-foreground/[0.04] border border-border"

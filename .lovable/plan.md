@@ -1,26 +1,22 @@
-Yes — this step should have a Continue/check status path. Right now it only auto-advances when Paddle redirects back with `?checkout=success` or fires the checkout event in the same tab. If you manually return to `/onboarding/features`, the page falls back to the normal Subscribe state even if payment is still syncing.
+The flashes come from two places:
+
+1. Every onboarding step (team, project, features, invites, channel) calls `getOnboardingState` on mount and gates its UI behind a local `loading` state, so each step shows `loading…` for a few hundred ms while it refetches the same data it already had on the previous step.
+2. The `/onboarding` index route shows `preparing your workspace…` while it figures out which step to send you to. You hit it any time something navigates to `/onboarding` instead of directly to a step.
 
 Plan:
 
-1. Update `/onboarding/features` to support manual Paddle returns
-- On page load, check the current onboarding/subscription state as it already does.
-- If the account is already subscribed or comped, immediately advance to the invites step.
-- If the URL has `?checkout=success`, keep the current auto-confirm behavior.
-- If the user is on this page after checkout but the webhook is still delayed, keep polling for a short period instead of showing a dead end.
+1. Cache onboarding state once, share across all steps
+- Wrap `getOnboardingState` in a shared React Query (`['onboarding-state']`) with a sensible `staleTime` (e.g. 60s).
+- Use it from every step (`team`, `project`, `features`, `invites`, `channel`) instead of each one calling `useServerFn(getOnboardingState)` + local `useEffect` + `setLoading`.
+- After a mutation that changes onboarding state (set name, set project, advance step, subscribe, save invites), invalidate or `setQueryData` so the next screen has fresh data without a visible refetch.
 
-2. Add explicit recovery controls
-- Add an “I’ve paid — check again” button when the user is still shown the Subscribe screen.
-- When a paid/comped state is detected, show a clear “Continue” button that advances onboarding to `/onboarding/invites`.
-- If payment sync takes too long, show a calm message like “Payment is still syncing. Try again in a moment.” instead of trapping the user.
+2. Stop blocking each step on the fetch
+- Render the step's form immediately. Prefill values from the cached query when present; if cache is empty on first load, show the form with empty fields rather than a spinner panel.
+- Remove the per-step `loading…` placeholder. Keep small inline spinners only on submit buttons.
 
-3. Make the advance action safe and repeatable
-- Centralize the “advance to next step” logic so it can be triggered by:
-  - Paddle checkout completion event
-  - Paddle success URL
-  - manual “check again” button
-  - already-active subscription on page load
-- Prevent duplicate timers/navigation from firing multiple times.
+3. Make `/onboarding` quieter
+- Render nothing (or just the layout chrome) while the index resolves, instead of the `preparing your workspace…` text. The redirect is fast; the message is what makes the gap feel like a load.
+- Keep the existing retry/error UI for the rare actual failure case.
 
-4. Verify the recovery case
-- Test the exact scenario: paid in Paddle, manually return to `/onboarding/features`, then trigger the new check/continue path.
-- Confirm it lands on `/onboarding/invites` and does not bounce back to `/app` or the root error page.
+4. Verify the flow
+- Walk team → project → features → invites → channel and confirm there is no `loading…` / `preparing…` flash between steps, and that prefilled values still appear correctly.

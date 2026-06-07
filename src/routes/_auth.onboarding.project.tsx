@@ -4,12 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OnboardingLayout, StepTitle } from "@/components/onboarding/OnboardingLayout";
-import {
-  advanceStep,
-  getOnboardingState,
-  setBrandDoc,
-  setProject,
-} from "@/lib/onboarding.functions";
+import { advanceStep, setBrandDoc, setProject } from "@/lib/onboarding.functions";
+import { useOnboardingState } from "@/lib/onboarding-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -20,24 +16,24 @@ export const Route = createFileRoute("/_auth/onboarding/project")({
 
 function ProjectStep() {
   const navigate = useNavigate();
-  const fetchState = useServerFn(getOnboardingState);
   const saveProject = useServerFn(setProject);
   const saveBrand = useServerFn(setBrandDoc);
   const advance = useServerFn(advanceStep);
+  const { data, patch } = useOnboardingState();
 
   const [project, setProjectName] = useState("");
   const [docUrl, setDocUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const prefilled = useRef(false);
 
   useEffect(() => {
-    (async () => {
-      const s = await fetchState();
-      if (s.project_name) setProjectName(s.project_name);
-      if (s.brand_doc_url) setDocUrl(s.brand_doc_url);
-    })();
-  }, [fetchState]);
+    if (prefilled.current || !data) return;
+    if (data.project_name) setProjectName(data.project_name);
+    if (data.brand_doc_url) setDocUrl(data.brand_doc_url);
+    prefilled.current = true;
+  }, [data]);
 
   const onUpload = async (file: File) => {
     setUploading(true);
@@ -55,6 +51,7 @@ function ProjectStep() {
       if (url) {
         await saveBrand({ data: { url } });
         setDocUrl(url);
+        patch({ brand_doc_url: url });
         toast.success("Brand doc uploaded");
       }
     } catch (e: any) {
@@ -70,6 +67,7 @@ function ProjectStep() {
     try {
       await saveProject({ data: { name: project.trim() } });
       await advance({ data: { to: 3 } });
+      patch({ project_name: project.trim(), step: 3 });
       navigate({ to: "/onboarding/features" });
     } catch (e: any) {
       toast.error(e?.message ?? "Couldn't save");

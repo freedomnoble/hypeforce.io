@@ -6,11 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OnboardingLayout, StepTitle } from "@/components/onboarding/OnboardingLayout";
-import {
-  advanceStep,
-  getOnboardingState,
-  setDisplayName,
-} from "@/lib/onboarding.functions";
+import { advanceStep, setDisplayName } from "@/lib/onboarding.functions";
+import { useOnboardingState } from "@/lib/onboarding-query";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_auth/onboarding/team")({
@@ -19,27 +16,22 @@ export const Route = createFileRoute("/_auth/onboarding/team")({
 
 function TeamStep() {
   const navigate = useNavigate();
-  const fetchState = useServerFn(getOnboardingState);
   const saveName = useServerFn(setDisplayName);
   const advance = useServerFn(advanceStep);
+  const { data, patch } = useOnboardingState();
 
-  const [agents, setAgents] = useState<any[]>([]);
   const [name, setName] = useState("");
   const [savedName, setSavedName] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  const agents = (data?.agents ?? []).slice(0, 3);
+
   useEffect(() => {
-    (async () => {
-      const state = await fetchState();
-      setAgents(state.agents.slice(0, 3));
-      if (state.display_name) {
-        setName(state.display_name);
-        setSavedName(state.display_name);
-      }
-      setLoading(false);
-    })();
-  }, [fetchState]);
+    if (data?.display_name) {
+      setName((prev) => prev || (data.display_name as string));
+      setSavedName(data.display_name as string);
+    }
+  }, [data?.display_name]);
 
   const onContinue = async () => {
     if (!name.trim()) return;
@@ -48,6 +40,7 @@ function TeamStep() {
       await saveName({ data: { name: name.trim() } });
       await advance({ data: { to: 2 } });
       setSavedName(name.trim());
+      patch({ display_name: name.trim(), step: 2 });
       navigate({ to: "/onboarding/project" });
     } catch (e: any) {
       toast.error(e?.message ?? "Couldn't save your name");
@@ -62,14 +55,21 @@ function TeamStep() {
         Join your team
       </StepTitle>
 
-      {loading ? (
-        <div className="h-40 grid place-items-center text-sm text-muted-foreground">
-          loading…
-        </div>
-      ) : (
-        <>
-          <ul className="space-y-3 mb-5">
-            {agents.map((a) => (
+      <ul className="space-y-3 mb-5">
+        {agents.length === 0
+          ? Array.from({ length: 3 }).map((_, i) => (
+              <li
+                key={i}
+                className="flex items-center gap-3 p-3 rounded-xl bg-foreground/[0.04] border border-border"
+              >
+                <div className="w-10 h-10 rounded-full bg-foreground/[0.06]" />
+                <div className="space-y-1.5">
+                  <div className="h-3 w-24 rounded bg-foreground/[0.06]" />
+                  <div className="h-2.5 w-16 rounded bg-foreground/[0.04]" />
+                </div>
+              </li>
+            ))
+          : agents.map((a: any) => (
               <li
                 key={a.id}
                 className="flex items-center gap-3 p-3 rounded-xl bg-foreground/[0.04] border border-border"
@@ -88,46 +88,44 @@ function TeamStep() {
               </li>
             ))}
 
-            <li className="flex items-center gap-3 p-3 rounded-xl bg-electric/5 border border-electric/30">
-              <Avatar className="w-10 h-10">
-                <AvatarFallback>
-                  {savedName ? savedName.slice(0, 2).toUpperCase() : "?"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                {savedName ? (
-                  <>
-                    <div className="text-sm font-medium">{savedName}</div>
-                    <div className="text-xs text-muted-foreground font-mono">you</div>
-                  </>
-                ) : (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="name" className="sr-only">
-                      Your name
-                    </Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Your name"
-                      autoFocus
-                      className="h-9"
-                    />
-                  </div>
-                )}
+        <li className="flex items-center gap-3 p-3 rounded-xl bg-electric/5 border border-electric/30">
+          <Avatar className="w-10 h-10">
+            <AvatarFallback>
+              {savedName ? savedName.slice(0, 2).toUpperCase() : "?"}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            {savedName ? (
+              <>
+                <div className="text-sm font-medium">{savedName}</div>
+                <div className="text-xs text-muted-foreground font-mono">you</div>
+              </>
+            ) : (
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="sr-only">
+                  Your name
+                </Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  autoFocus
+                  className="h-9"
+                />
               </div>
-            </li>
-          </ul>
+            )}
+          </div>
+        </li>
+      </ul>
 
-          <Button
-            onClick={onContinue}
-            disabled={!name.trim() || submitting}
-            className="w-full h-12"
-          >
-            {submitting ? "…" : "Continue"}
-          </Button>
-        </>
-      )}
+      <Button
+        onClick={onContinue}
+        disabled={!name.trim() || submitting}
+        className="w-full h-12"
+      >
+        {submitting ? "…" : "Continue"}
+      </Button>
     </OnboardingLayout>
   );
 }
