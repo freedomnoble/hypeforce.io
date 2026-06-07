@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertEmailVerified } from "./email-verification.functions";
 
 /**
  * Atomic collaboration-creation server functions.
@@ -36,6 +37,10 @@ export const createWorkspaceWithOwner = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { userId } = context;
     const admin = await getAdmin();
+
+    // Gate: creating a second workspace requires a verified email.
+    // The signup trigger seeds the first workspace, so any call here is 2nd+.
+    await assertEmailVerified(userId);
 
     const slug =
       data.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") +
@@ -92,6 +97,11 @@ export const createChannelWithMembership = createServerFn({ method: "POST" })
       .maybeSingle();
     if (memErr) throw new Error(memErr.message);
     if (!mem) throw new Error("You are not a member of this workspace.");
+
+    // Gate: creating a second channel requires a verified email.
+    // The onboarding first-channel flow uses a different fn, so any
+    // call here counts as an additional channel.
+    await assertEmailVerified(userId);
 
     const normalized = data.name.toLowerCase().replace(/\s+/g, "-");
 

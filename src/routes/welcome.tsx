@@ -1,4 +1,5 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import appIcon from "@/assets/app-icon.png";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { ClientOnly } from "@tanstack/react-router";
 import { lazy, useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
+import { sendVerificationEmail } from "@/lib/email-verification.functions";
 
 const InfiniteGridBg = lazy(() =>
   import("@/components/hypeforce/infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
@@ -33,6 +35,7 @@ type Stage = "intro" | "form";
 function WelcomePage() {
   const navigate = useNavigate();
   const { intent, billing } = Route.useSearch();
+  const sendVerification = useServerFn(sendVerificationEmail);
   const [stage, setStage] = useState<Stage>("intro");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -63,11 +66,25 @@ function WelcomePage() {
         },
       });
       if (error) throw error;
-      // If email confirmation is required, no session is returned yet.
+      // Auto-confirm is on, so a session is returned immediately. Fire the
+      // verification email in the background — user proceeds to onboarding.
+      sendVerification().catch((err) =>
+        console.error("[welcome] verification email failed", err),
+      );
       if (data.session) {
         navigate({ to: "/app", replace: true });
       } else {
-        toast.success("Check your email to confirm, then continue your setup.");
+        // Fallback if auto-confirm is somehow off — sign in to create session.
+        const { error: siErr } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (siErr) {
+          toast.success("Account created. Sign in to continue.");
+          navigate({ to: "/login", replace: true });
+        } else {
+          navigate({ to: "/app", replace: true });
+        }
       }
     } catch (err: any) {
       toast.error(err?.message ?? "Couldn't create your profile");

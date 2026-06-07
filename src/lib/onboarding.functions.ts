@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertEmailVerified } from "./email-verification.functions";
 
 const STEP_DONE = 8;
 
@@ -191,6 +192,8 @@ export const sendOnboardingInvites = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => inviteSchema.parse(i))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Gate: sending invites requires a verified email.
+    await assertEmailVerified(context.userId);
     let sent = 0;
     for (const inv of data.invites) {
       try {
