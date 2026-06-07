@@ -245,6 +245,35 @@ function UserDrawer({ user, onClose, onChanged }: { user: any; onClose: () => vo
           </div>
         </Section>
 
+        <Section title="Access">
+          <label className="flex items-center justify-between text-sm">
+            <div>
+              <div>Free access (comp)</div>
+              <div className="text-[10px] text-white/40">Skips paid subscription gating.</div>
+            </div>
+            <Switch
+              checked={comped}
+              onCheckedChange={(v) => {
+                setComped(v);
+                wrap("Access updated", () => setFlags({ data: { user_id: user.id, is_comped: v } }));
+              }}
+            />
+          </label>
+          <label className="flex items-center justify-between text-sm">
+            <div>
+              <div>Show subscribe banner</div>
+              <div className="text-[10px] text-white/40">Dismissible upsell at the top of the app.</div>
+            </div>
+            <Switch
+              checked={upsell}
+              onCheckedChange={(v) => {
+                setUpsell(v);
+                wrap("Upsell updated", () => setFlags({ data: { user_id: user.id, show_upsell: v } }));
+              }}
+            />
+          </label>
+        </Section>
+
         <Section title="Message user (in-app)">
           <textarea
             value={body}
