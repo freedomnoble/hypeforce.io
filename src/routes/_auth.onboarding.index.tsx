@@ -70,9 +70,6 @@ function OnboardingIndex() {
     );
   }
 
-  return (
-    <div className="min-h-[100dvh] grid place-items-center text-sm text-muted-foreground font-mono">
-      preparing your workspace…
-    </div>
-  );
+  return <div className="min-h-[100dvh]" aria-hidden />;
+
 }
