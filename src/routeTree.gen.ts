@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PretentiousRouteImport } from './routes/pretentious'
 import { Route as LoginRouteImport } from './routes/login'
@@ -25,13 +26,26 @@ import { Route as PretentiousFlagsRouteImport } from './routes/pretentious.flags
 import { Route as PretentiousBillingRouteImport } from './routes/pretentious.billing'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as AuthProfileRouteImport } from './routes/_auth.profile'
+import { Route as AuthOnboardingRouteImport } from './routes/_auth.onboarding'
+import { Route as AuthOnboardingIndexRouteImport } from './routes/_auth.onboarding.index'
 import { Route as AuthProfileConnectionsRouteImport } from './routes/_auth.profile.connections'
+import { Route as AuthOnboardingTourRouteImport } from './routes/_auth.onboarding.tour'
+import { Route as AuthOnboardingTeamRouteImport } from './routes/_auth.onboarding.team'
+import { Route as AuthOnboardingProjectRouteImport } from './routes/_auth.onboarding.project'
+import { Route as AuthOnboardingInvitesRouteImport } from './routes/_auth.onboarding.invites'
+import { Route as AuthOnboardingFeaturesRouteImport } from './routes/_auth.onboarding.features'
+import { Route as AuthOnboardingChannelRouteImport } from './routes/_auth.onboarding.channel'
 import { Route as AuthWWorkspaceIdIndexRouteImport } from './routes/_auth.w.$workspaceId.index'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AuthWWorkspaceIdAdminRouteImport } from './routes/_auth.w.$workspaceId.admin'
 import { Route as AuthWWorkspaceIdDDmIdRouteImport } from './routes/_auth.w.$workspaceId.d.$dmId'
 import { Route as AuthWWorkspaceIdCChannelIdRouteImport } from './routes/_auth.w.$workspaceId.c.$channelId'
 
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -111,10 +125,50 @@ const AuthProfileRoute = AuthProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthOnboardingRoute = AuthOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthOnboardingIndexRoute = AuthOnboardingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthOnboardingRoute,
+} as any)
 const AuthProfileConnectionsRoute = AuthProfileConnectionsRouteImport.update({
   id: '/connections',
   path: '/connections',
   getParentRoute: () => AuthProfileRoute,
+} as any)
+const AuthOnboardingTourRoute = AuthOnboardingTourRouteImport.update({
+  id: '/tour',
+  path: '/tour',
+  getParentRoute: () => AuthOnboardingRoute,
+} as any)
+const AuthOnboardingTeamRoute = AuthOnboardingTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AuthOnboardingRoute,
+} as any)
+const AuthOnboardingProjectRoute = AuthOnboardingProjectRouteImport.update({
+  id: '/project',
+  path: '/project',
+  getParentRoute: () => AuthOnboardingRoute,
+} as any)
+const AuthOnboardingInvitesRoute = AuthOnboardingInvitesRouteImport.update({
+  id: '/invites',
+  path: '/invites',
+  getParentRoute: () => AuthOnboardingRoute,
+} as any)
+const AuthOnboardingFeaturesRoute = AuthOnboardingFeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => AuthOnboardingRoute,
+} as any)
+const AuthOnboardingChannelRoute = AuthOnboardingChannelRouteImport.update({
+  id: '/channel',
+  path: '/channel',
+  getParentRoute: () => AuthOnboardingRoute,
 } as any)
 const AuthWWorkspaceIdIndexRoute = AuthWWorkspaceIdIndexRouteImport.update({
   id: '/w/$workspaceId/',
@@ -150,6 +204,8 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/pretentious': typeof PretentiousRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/welcome': typeof WelcomeRoute
+  '/onboarding': typeof AuthOnboardingRouteWithChildren
   '/profile': typeof AuthProfileRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
   '/pretentious/billing': typeof PretentiousBillingRoute
@@ -160,7 +216,14 @@ export interface FileRoutesByFullPath {
   '/pretentious/users': typeof PretentiousUsersRoute
   '/theme/import': typeof ThemeImportRoute
   '/pretentious/': typeof PretentiousIndexRoute
+  '/onboarding/channel': typeof AuthOnboardingChannelRoute
+  '/onboarding/features': typeof AuthOnboardingFeaturesRoute
+  '/onboarding/invites': typeof AuthOnboardingInvitesRoute
+  '/onboarding/project': typeof AuthOnboardingProjectRoute
+  '/onboarding/team': typeof AuthOnboardingTeamRoute
+  '/onboarding/tour': typeof AuthOnboardingTourRoute
   '/profile/connections': typeof AuthProfileConnectionsRoute
+  '/onboarding/': typeof AuthOnboardingIndexRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
@@ -172,6 +235,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/welcome': typeof WelcomeRoute
   '/profile': typeof AuthProfileRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
   '/pretentious/billing': typeof PretentiousBillingRoute
@@ -182,7 +246,14 @@ export interface FileRoutesByTo {
   '/pretentious/users': typeof PretentiousUsersRoute
   '/theme/import': typeof ThemeImportRoute
   '/pretentious': typeof PretentiousIndexRoute
+  '/onboarding/channel': typeof AuthOnboardingChannelRoute
+  '/onboarding/features': typeof AuthOnboardingFeaturesRoute
+  '/onboarding/invites': typeof AuthOnboardingInvitesRoute
+  '/onboarding/project': typeof AuthOnboardingProjectRoute
+  '/onboarding/team': typeof AuthOnboardingTeamRoute
+  '/onboarding/tour': typeof AuthOnboardingTourRoute
   '/profile/connections': typeof AuthProfileConnectionsRoute
+  '/onboarding': typeof AuthOnboardingIndexRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/w/$workspaceId': typeof AuthWWorkspaceIdIndexRoute
@@ -197,6 +268,8 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/pretentious': typeof PretentiousRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/welcome': typeof WelcomeRoute
+  '/_auth/onboarding': typeof AuthOnboardingRouteWithChildren
   '/_auth/profile': typeof AuthProfileRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
   '/pretentious/billing': typeof PretentiousBillingRoute
@@ -207,7 +280,14 @@ export interface FileRoutesById {
   '/pretentious/users': typeof PretentiousUsersRoute
   '/theme/import': typeof ThemeImportRoute
   '/pretentious/': typeof PretentiousIndexRoute
+  '/_auth/onboarding/channel': typeof AuthOnboardingChannelRoute
+  '/_auth/onboarding/features': typeof AuthOnboardingFeaturesRoute
+  '/_auth/onboarding/invites': typeof AuthOnboardingInvitesRoute
+  '/_auth/onboarding/project': typeof AuthOnboardingProjectRoute
+  '/_auth/onboarding/team': typeof AuthOnboardingTeamRoute
+  '/_auth/onboarding/tour': typeof AuthOnboardingTourRoute
   '/_auth/profile/connections': typeof AuthProfileConnectionsRoute
+  '/_auth/onboarding/': typeof AuthOnboardingIndexRoute
   '/_auth/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/_auth/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
@@ -222,6 +302,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/pretentious'
     | '/reset-password'
+    | '/welcome'
+    | '/onboarding'
     | '/profile'
     | '/join/$token'
     | '/pretentious/billing'
@@ -232,7 +314,14 @@ export interface FileRouteTypes {
     | '/pretentious/users'
     | '/theme/import'
     | '/pretentious/'
+    | '/onboarding/channel'
+    | '/onboarding/features'
+    | '/onboarding/invites'
+    | '/onboarding/project'
+    | '/onboarding/team'
+    | '/onboarding/tour'
     | '/profile/connections'
+    | '/onboarding/'
     | '/w/$workspaceId/admin'
     | '/api/public/payments/webhook'
     | '/w/$workspaceId/'
@@ -244,6 +333,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/reset-password'
+    | '/welcome'
     | '/profile'
     | '/join/$token'
     | '/pretentious/billing'
@@ -254,7 +344,14 @@ export interface FileRouteTypes {
     | '/pretentious/users'
     | '/theme/import'
     | '/pretentious'
+    | '/onboarding/channel'
+    | '/onboarding/features'
+    | '/onboarding/invites'
+    | '/onboarding/project'
+    | '/onboarding/team'
+    | '/onboarding/tour'
     | '/profile/connections'
+    | '/onboarding'
     | '/w/$workspaceId/admin'
     | '/api/public/payments/webhook'
     | '/w/$workspaceId'
@@ -268,6 +365,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/pretentious'
     | '/reset-password'
+    | '/welcome'
+    | '/_auth/onboarding'
     | '/_auth/profile'
     | '/join/$token'
     | '/pretentious/billing'
@@ -278,7 +377,14 @@ export interface FileRouteTypes {
     | '/pretentious/users'
     | '/theme/import'
     | '/pretentious/'
+    | '/_auth/onboarding/channel'
+    | '/_auth/onboarding/features'
+    | '/_auth/onboarding/invites'
+    | '/_auth/onboarding/project'
+    | '/_auth/onboarding/team'
+    | '/_auth/onboarding/tour'
     | '/_auth/profile/connections'
+    | '/_auth/onboarding/'
     | '/_auth/w/$workspaceId/admin'
     | '/api/public/payments/webhook'
     | '/_auth/w/$workspaceId/'
@@ -293,6 +399,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PretentiousRoute: typeof PretentiousRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  WelcomeRoute: typeof WelcomeRoute
   JoinTokenRoute: typeof JoinTokenRoute
   ThemeImportRoute: typeof ThemeImportRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
@@ -300,6 +407,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -412,12 +526,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthProfileRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/onboarding': {
+      id: '/_auth/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthOnboardingRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/onboarding/': {
+      id: '/_auth/onboarding/'
+      path: '/'
+      fullPath: '/onboarding/'
+      preLoaderRoute: typeof AuthOnboardingIndexRouteImport
+      parentRoute: typeof AuthOnboardingRoute
+    }
     '/_auth/profile/connections': {
       id: '/_auth/profile/connections'
       path: '/connections'
       fullPath: '/profile/connections'
       preLoaderRoute: typeof AuthProfileConnectionsRouteImport
       parentRoute: typeof AuthProfileRoute
+    }
+    '/_auth/onboarding/tour': {
+      id: '/_auth/onboarding/tour'
+      path: '/tour'
+      fullPath: '/onboarding/tour'
+      preLoaderRoute: typeof AuthOnboardingTourRouteImport
+      parentRoute: typeof AuthOnboardingRoute
+    }
+    '/_auth/onboarding/team': {
+      id: '/_auth/onboarding/team'
+      path: '/team'
+      fullPath: '/onboarding/team'
+      preLoaderRoute: typeof AuthOnboardingTeamRouteImport
+      parentRoute: typeof AuthOnboardingRoute
+    }
+    '/_auth/onboarding/project': {
+      id: '/_auth/onboarding/project'
+      path: '/project'
+      fullPath: '/onboarding/project'
+      preLoaderRoute: typeof AuthOnboardingProjectRouteImport
+      parentRoute: typeof AuthOnboardingRoute
+    }
+    '/_auth/onboarding/invites': {
+      id: '/_auth/onboarding/invites'
+      path: '/invites'
+      fullPath: '/onboarding/invites'
+      preLoaderRoute: typeof AuthOnboardingInvitesRouteImport
+      parentRoute: typeof AuthOnboardingRoute
+    }
+    '/_auth/onboarding/features': {
+      id: '/_auth/onboarding/features'
+      path: '/features'
+      fullPath: '/onboarding/features'
+      preLoaderRoute: typeof AuthOnboardingFeaturesRouteImport
+      parentRoute: typeof AuthOnboardingRoute
+    }
+    '/_auth/onboarding/channel': {
+      id: '/_auth/onboarding/channel'
+      path: '/channel'
+      fullPath: '/onboarding/channel'
+      preLoaderRoute: typeof AuthOnboardingChannelRouteImport
+      parentRoute: typeof AuthOnboardingRoute
     }
     '/_auth/w/$workspaceId/': {
       id: '/_auth/w/$workspaceId/'
@@ -457,6 +627,30 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthOnboardingRouteChildren {
+  AuthOnboardingChannelRoute: typeof AuthOnboardingChannelRoute
+  AuthOnboardingFeaturesRoute: typeof AuthOnboardingFeaturesRoute
+  AuthOnboardingInvitesRoute: typeof AuthOnboardingInvitesRoute
+  AuthOnboardingProjectRoute: typeof AuthOnboardingProjectRoute
+  AuthOnboardingTeamRoute: typeof AuthOnboardingTeamRoute
+  AuthOnboardingTourRoute: typeof AuthOnboardingTourRoute
+  AuthOnboardingIndexRoute: typeof AuthOnboardingIndexRoute
+}
+
+const AuthOnboardingRouteChildren: AuthOnboardingRouteChildren = {
+  AuthOnboardingChannelRoute: AuthOnboardingChannelRoute,
+  AuthOnboardingFeaturesRoute: AuthOnboardingFeaturesRoute,
+  AuthOnboardingInvitesRoute: AuthOnboardingInvitesRoute,
+  AuthOnboardingProjectRoute: AuthOnboardingProjectRoute,
+  AuthOnboardingTeamRoute: AuthOnboardingTeamRoute,
+  AuthOnboardingTourRoute: AuthOnboardingTourRoute,
+  AuthOnboardingIndexRoute: AuthOnboardingIndexRoute,
+}
+
+const AuthOnboardingRouteWithChildren = AuthOnboardingRoute._addFileChildren(
+  AuthOnboardingRouteChildren,
+)
+
 interface AuthProfileRouteChildren {
   AuthProfileConnectionsRoute: typeof AuthProfileConnectionsRoute
 }
@@ -470,6 +664,7 @@ const AuthProfileRouteWithChildren = AuthProfileRoute._addFileChildren(
 )
 
 interface AuthRouteChildren {
+  AuthOnboardingRoute: typeof AuthOnboardingRouteWithChildren
   AuthProfileRoute: typeof AuthProfileRouteWithChildren
   AuthWWorkspaceIdAdminRoute: typeof AuthWWorkspaceIdAdminRoute
   AuthWWorkspaceIdIndexRoute: typeof AuthWWorkspaceIdIndexRoute
@@ -478,6 +673,7 @@ interface AuthRouteChildren {
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthOnboardingRoute: AuthOnboardingRouteWithChildren,
   AuthProfileRoute: AuthProfileRouteWithChildren,
   AuthWWorkspaceIdAdminRoute: AuthWWorkspaceIdAdminRoute,
   AuthWWorkspaceIdIndexRoute: AuthWWorkspaceIdIndexRoute,
@@ -518,6 +714,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PretentiousRoute: PretentiousRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  WelcomeRoute: WelcomeRoute,
   JoinTokenRoute: JoinTokenRoute,
   ThemeImportRoute: ThemeImportRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
