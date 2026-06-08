@@ -231,14 +231,21 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
     // For each agent, generate and insert a reply.
     let dispatched = 0;
     for (const agent of agents ?? []) {
+      const agentModel: string = (agent as any).model ?? "";
       const isImageAgent =
-        agent.model === "google/gemini-2.5-flash-image" || agent.handle === "nano";
+        agent.handle === "nano" ||
+        agentModel.endsWith("-image") ||
+        agentModel.includes("image-preview");
 
+      const providerDefault =
+        agent.provider === "google" ? "google/gemini-2.5-flash" : "openai/gpt-5-mini";
       const model = isImageAgent
-        ? "google/gemini-2.5-flash-image"
-        : agent.provider === "google"
-        ? "google/gemini-2.5-flash"
-        : "openai/gpt-5-mini";
+        ? agentModel && agentModel.includes("/")
+          ? agentModel
+          : "google/gemini-2.5-flash-image"
+        : agentModel && agentModel.includes("/")
+        ? agentModel
+        : providerDefault;
 
       // Brand voice + pinned files come BEFORE the agent's own prompt so they
       // anchor tone, and KB comes after as supporting reference material.

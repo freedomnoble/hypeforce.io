@@ -1,48 +1,61 @@
-# Trim default agents to ChatGPT + Gemini + Nano Banana
+# Custom teammates with role + model + route
 
-Anthropic and Manus stay available as BYOK providers — only the auto-seeded starter agents and existing seeded rows change. Marketing copy is left alone.
+Replace the 3-prompt() "New agent" flow with a proper dialog so users can stand up multiple custom teammates — each with its own name, handle, role/system prompt, model, and route (Lovable gateway or a connected BYOK key). Any agent whose model is an image model becomes image-only automatically.
 
-## 1. Update starter seed (`src/lib/bootstrap.functions.ts`)
+## 1. New "Create teammate" dialog (`src/components/hypeforce/workspace-settings-sheet.tsx`)
 
-Replace the 4-agent `starters` array with 3:
-- **ChatGPT** — `provider: "openai"`, `model: "openai/gpt-5-mini"` (unchanged).
-- **Gemini** — `provider: "google"`, `model: "google/gemini-3-flash-preview"` (unchanged).
-- **Nano Banana** — `handle: "nano"`, `provider: "google"`, `model: "google/gemini-2.5-flash-image"`, description "Image generator — @nano to make pictures".
+Replace `addAgent`'s `prompt()` chain with a real dialog (`Dialog` + `Form`) containing:
 
-Drop Manus and Claude entries. Tighten the local provider union type to `"openai" | "google"` since those are the only seeded providers (the broader `SUPPORTED_PROVIDERS` list in `ai-connections.functions.ts` is unchanged so BYOK still works for Anthropic/Manus).
+- **Name** — display name.
+- **Handle** — auto-derived from name (slugified, lowercased), editable. Validated `^[a-z0-9_-]+$`, unique per workspace (uniqueness already enforced client-side via `select` check + DB-side already throws on conflict).
+- **Role** — short text (≤120 chars) → stored as `description`.
+- **System prompt** — multiline textarea (placeholder: "You are X, a Y who focuses on…").
+- **Route** — radio:
+  - "Lovable AI Gateway (recommended)"
+  - One entry per connected BYOK provider (`My openai key`, `My google key`, etc.), pulled from `listMyConnections`. Disabled rows for providers they haven't connected, with a "Connect in Profile → AI Connections" hint.
+- **Model** — curated dropdown, filtered by the chosen route:
+  - **Lovable gateway models** (chat): `openai/gpt-5-mini`, `openai/gpt-5`, `openai/gpt-5-nano`, `google/gemini-3-flash-preview`, `google/gemini-2.5-flash`, `google/gemini-2.5-pro`. **Image:** `google/gemini-2.5-flash-image` (Nano Banana).
+  - **BYOK openai:** `gpt-5-mini`, `gpt-5`, `gpt-4o-mini`.
+  - **BYOK anthropic:** `claude-3-5-sonnet-latest`, `claude-3-5-haiku-latest`.
+  - **BYOK google:** `gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-2.5-flash-image`.
+  - **BYOK manus:** disabled with note "Direct API not wired up yet — use Lovable gateway."
+  - Each option carries a one-line capability hint (e.g. "Fast & cheap", "Best reasoning", "Image generator — replies with pictures").
+- Helper hint above the model picker: "Pick the same model twice with different prompts to spin up two specialists (e.g. a Strategist and a Copywriter both on GPT-5-mini)."
 
-## 2. Replace the DB-side seed trigger (`handle_new_user`)
+On submit:
+- If route is BYOK and that provider isn't connected → toast error + link.
+- Insert into `agents` with `{ workspace_id, name, handle, provider, model, description, system_prompt, preferred_route }` where `provider` is derived from the model namespace (`openai/…` → `openai`, `google/…` → `google`, or the BYOK provider).
+- Call `setAgentRoute` after insert to persist route (uses the existing admin-gated server fn).
+- Reload list.
 
-The `public.handle_new_user()` function (run on signup) also seeds Manus + Claude and adds them to the `launch-plan` channel. Migration to:
-- Rewrite the function to insert only ChatGPT, Gemini, Nano Banana.
-- Add all three to the default `launch-plan` channel (replacing the manus/chatgpt/claude trio).
-- Change the welcome message author from `agent_manus_id` to `agent_chatgpt_id` and update the copy to reference the 3-agent roster.
+## 2. Edit teammate (same dialog, prefilled)
 
-## 3. Image-only agent behavior (`src/lib/agent-router.functions.ts`)
+Add an Edit button next to Delete on each agent row. Opens the same dialog prefilled. Save uses `supabase.from("agents").update(...)` for name/description/system_prompt/model and `setAgentRoute` for the route. Handle is read-only on edit (existing channel memberships and mentions key off it).
 
-Nano Banana must reply with a generated image, not text. Add a branch in the per-agent loop:
-- If `agent.model === "google/gemini-2.5-flash-image"` (or `handle === "nano"`), call the Lovable AI Gateway `/v1/chat/completions` endpoint with that model and `modalities: ["image","text"]` (gateway-supported), grab the returned image URL/data, and insert a message whose `content` is a markdown image: `![generated](<url>)` (optionally with a short caption above).
-- On any error, insert a friendly fallback text reply instead.
-- Skip brand voice / KB blocks for the image path (they bloat the prompt and the model ignores them); keep just the last user message as the prompt.
+## 3. Router uses the agent's chosen model (`src/lib/agent-router.functions.ts`)
 
-No schema change to `messages` needed — image is embedded in markdown and the chat UI already renders markdown.
+Currently the router hardcodes `google/gemini-2.5-flash` or `openai/gpt-5-mini` per provider, ignoring `agent.model`. Change the Lovable-gateway path to:
 
-## 4. Backfill existing workspaces (data migration via insert tool)
+```
+const model = isImageAgent
+  ? "google/gemini-2.5-flash-image"
+  : (agent.model && agent.model.includes("/") ? agent.model : providerDefault);
+```
 
-Run a one-off cleanup:
-- `DELETE FROM public.messages WHERE author_agent_id IN (SELECT id FROM public.agents WHERE handle IN ('manus','claude'));` — required because `messages.author_agent_id` FKs to agents.
-- `DELETE FROM public.channel_members WHERE agent_id IN (SELECT id FROM public.agents WHERE handle IN ('manus','claude'));`
-- `DELETE FROM public.dm_participants WHERE agent_id IN (SELECT id FROM public.agents WHERE handle IN ('manus','claude'));`
-- `DELETE FROM public.agents WHERE handle IN ('manus','claude');`
-- For every workspace missing a `nano` agent, insert the Nano Banana row and add it as a member of the workspace's first/`launch-plan` channel.
+`isImageAgent` already triggers on `agent.model === "google/gemini-2.5-flash-image"`; broaden to "any model whose ID ends in `-image` or contains `image-preview`" so future image models (Nano Banana 2, gpt-image-2) automatically image-mode. BYOK path already uses `agent.model`, no change there.
 
-## Files / migrations
-- Edit: `src/lib/bootstrap.functions.ts`
-- Edit: `src/lib/agent-router.functions.ts`
-- New migration: rewrite `public.handle_new_user()`
-- Data cleanup: bulk delete + nano backfill via insert tool
+## 4. Defensive cleanup
+
+- Remove the inline `prompt()`/provider-string flow from `workspace-settings-sheet.tsx` once replaced.
+- Keep `SUPPORTED_PROVIDERS` and BYOK list as-is (anthropic + manus still selectable as BYOK).
+- No DB schema change — `agents` already has `name, handle, provider, model, description, system_prompt, preferred_route, avatar_url`.
+
+## Files
+- Edit: `src/components/hypeforce/workspace-settings-sheet.tsx` — new Dialog component for create/edit; gate model list by route.
+- Edit: `src/lib/agent-router.functions.ts` — honor `agent.model`; broaden image detection.
 
 ## Out of scope
-- Landing page, tour, FAQ, and index `<head>` copy still mention Claude/Manus (per your call — they remain valid BYOK options).
-- `SUPPORTED_PROVIDERS` / BYOK connect screen unchanged — Anthropic + Manus stay connectable.
-- No streaming/tool-call rework for Nano Banana; it's a single-shot image response.
+- Avatar upload / AI-generated avatars (per your call).
+- Per-agent temperature / tool toggles.
+- Manus direct adapter (still gateway-aliased).
+- Migrating existing rows; they keep current model/provider.

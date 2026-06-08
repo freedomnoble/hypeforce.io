@@ -7,6 +7,16 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -283,16 +293,292 @@ function MembersPanel({ workspaceId }: { workspaceId: string }) {
 }
 
 /* ============== AGENTS ============== */
+
+type ProviderId = "openai" | "anthropic" | "google" | "manus";
+type RouteId = "lovable" | `byok:${ProviderId}`;
+
+type ModelOption = {
+  id: string;
+  label: string;
+  hint: string;
+  image?: boolean;
+};
+
+const LOVABLE_MODELS: ModelOption[] = [
+  { id: "openai/gpt-5-mini", label: "GPT-5 mini", hint: "Fast & cheap generalist. Good default." },
+  { id: "openai/gpt-5", label: "GPT-5", hint: "Best OpenAI reasoning. Slower / more credits." },
+  { id: "openai/gpt-5-nano", label: "GPT-5 nano", hint: "Cheapest OpenAI. High-volume / simple tasks." },
+  { id: "google/gemini-3-flash-preview", label: "Gemini 3 Flash (preview)", hint: "Newest Gemini. Fast multimodal." },
+  { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Balanced speed + quality." },
+  { id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", hint: "Best Gemini for complex reasoning." },
+  { id: "google/gemini-2.5-flash-image", label: "Nano Banana (image)", hint: "Replies with a generated image.", image: true },
+];
+
+const BYOK_MODELS: Record<ProviderId, ModelOption[]> = {
+  openai: [
+    { id: "gpt-5-mini", label: "GPT-5 mini", hint: "Fast & cheap." },
+    { id: "gpt-5", label: "GPT-5", hint: "Best reasoning." },
+    { id: "gpt-4o-mini", label: "GPT-4o mini", hint: "Older, very cheap." },
+  ],
+  anthropic: [
+    { id: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet", hint: "Long-form reasoning." },
+    { id: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku", hint: "Faster, cheaper Claude." },
+  ],
+  google: [
+    { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", hint: "Balanced." },
+    { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", hint: "Best Gemini reasoning." },
+    { id: "gemini-2.5-flash-image", label: "Nano Banana (image)", hint: "Image replies.", image: true },
+  ],
+  manus: [],
+};
+
+const PROVIDER_LABEL: Record<ProviderId, string> = {
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  google: "Google",
+  manus: "Manus",
+};
+
+function isImageModel(modelId: string): boolean {
+  return modelId.endsWith("-image") || modelId.includes("image-preview");
+}
+
+function providerFromModel(modelId: string, route: RouteId): ProviderId {
+  if (route !== "lovable") return route.slice("byok:".length) as ProviderId;
+  if (modelId.startsWith("openai/")) return "openai";
+  if (modelId.startsWith("google/")) return "google";
+  return "openai";
+}
+
+function slugifyHandle(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 24);
+}
+
+type AgentDraft = {
+  name: string;
+  handle: string;
+  description: string;
+  system_prompt: string;
+  route: RouteId;
+  model: string;
+};
+
+const EMPTY_DRAFT: AgentDraft = {
+  name: "",
+  handle: "",
+  description: "",
+  system_prompt: "",
+  route: "lovable",
+  model: "openai/gpt-5-mini",
+};
+
+function AgentDialog({
+  open,
+  onOpenChange,
+  initial,
+  connectedProviders,
+  onSave,
+  saving,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  initial: AgentDraft;
+  connectedProviders: ProviderId[];
+  onSave: (draft: AgentDraft) => Promise<void>;
+  saving: boolean;
+}) {
+  const isEdit = !!initial.handle && initial.handle === initial.handle;
+  const [draft, setDraft] = useState<AgentDraft>(initial);
+  const [handleEdited, setHandleEdited] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setDraft(initial);
+      setHandleEdited(!!initial.handle);
+    }
+  }, [open, initial]);
+
+  const editing = !!initial.name && open && initial === initial && initial.handle !== "";
+
+  const setRoute = (r: RouteId) => {
+    const models = r === "lovable" ? LOVABLE_MODELS : BYOK_MODELS[r.slice(5) as ProviderId];
+    const first = models[0]?.id ?? "";
+    setDraft((d) => ({ ...d, route: r, model: first }));
+  };
+
+  const models = draft.route === "lovable"
+    ? LOVABLE_MODELS
+    : BYOK_MODELS[draft.route.slice(5) as ProviderId] ?? [];
+
+  const submit = async () => {
+    if (!draft.name.trim()) return toast.error("Name required");
+    const handle = draft.handle || slugifyHandle(draft.name);
+    if (!/^[a-z0-9_-]+$/.test(handle)) {
+      return toast.error("Handle must be lowercase letters, numbers, _ or -");
+    }
+    if (!draft.model) return toast.error("Pick a model");
+    await onSave({ ...draft, handle });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{editing ? "Edit teammate" : "New teammate"}</DialogTitle>
+          <DialogDescription>
+            Give them a name, a role, and the model they think with. Spin up two agents on the same
+            model with different prompts to make specialists (e.g. Strategist + Copywriter).
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="agent-name">Name</Label>
+              <Input
+                id="agent-name"
+                value={draft.name}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setDraft((d) => ({
+                    ...d,
+                    name,
+                    handle: handleEdited ? d.handle : slugifyHandle(name),
+                  }));
+                }}
+                placeholder="Strategist"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="agent-handle">Handle</Label>
+              <Input
+                id="agent-handle"
+                value={draft.handle}
+                onChange={(e) => {
+                  setHandleEdited(true);
+                  setDraft((d) => ({ ...d, handle: e.target.value.toLowerCase() }));
+                }}
+                placeholder="strategist"
+                disabled={editing}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="agent-role">Role</Label>
+            <Input
+              id="agent-role"
+              value={draft.description}
+              onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value.slice(0, 120) }))}
+              placeholder="Brand strategist & positioning"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="agent-prompt">System prompt</Label>
+            <Textarea
+              id="agent-prompt"
+              rows={4}
+              value={draft.system_prompt}
+              onChange={(e) => setDraft((d) => ({ ...d, system_prompt: e.target.value }))}
+              placeholder="You are a sharp brand strategist. Cut through fluff. Ask the one question that reframes the problem."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Route</Label>
+            <RadioGroup
+              value={draft.route}
+              onValueChange={(v) => setRoute(v as RouteId)}
+              className="space-y-1.5"
+            >
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <RadioGroupItem value="lovable" id="route-lovable" />
+                <span>Lovable AI Gateway <span className="text-muted-foreground">— no key needed</span></span>
+              </label>
+              {(Object.keys(BYOK_MODELS) as ProviderId[]).map((p) => {
+                const connected = connectedProviders.includes(p);
+                const noModels = BYOK_MODELS[p].length === 0;
+                const disabled = !connected || noModels;
+                return (
+                  <label
+                    key={p}
+                    className={`flex items-center gap-2 text-sm ${disabled ? "opacity-50" : "cursor-pointer"}`}
+                  >
+                    <RadioGroupItem value={`byok:${p}`} id={`route-${p}`} disabled={disabled} />
+                    <span>
+                      My {PROVIDER_LABEL[p]} key
+                      {!connected && (
+                        <span className="text-muted-foreground"> — connect in Profile → AI Connections</span>
+                      )}
+                      {noModels && connected && (
+                        <span className="text-muted-foreground"> — direct API not wired yet</span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
+            </RadioGroup>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="agent-model">Model</Label>
+            <Select value={draft.model} onValueChange={(v) => setDraft((d) => ({ ...d, model: v }))}>
+              <SelectTrigger id="agent-model">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {models.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    <div className="flex flex-col">
+                      <span>{m.label}{m.image ? " · 🎨" : ""}</span>
+                      <span className="text-[11px] text-muted-foreground">{m.hint}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {isImageModel(draft.model) && (
+              <p className="text-[11px] text-muted-foreground">
+                Image model — this agent will reply with a generated picture instead of text.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={submit} disabled={saving}>
+            {saving && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
+            {editing ? "Save" : "Add teammate"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function AgentsPanel({ workspaceId }: { workspaceId: string }) {
   const [agents, setAgents] = useState<any[]>([]);
-  const [myConns, setMyConns] = useState<string[]>([]);
+  const [myConns, setMyConns] = useState<ProviderId[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
   const listConns = useServerFn(listMyConnections);
   const setRouteFn = useServerFn(setAgentRoute);
 
   const load = async () => {
     const { data } = await supabase
       .from("agents")
-      .select("id,name,handle,provider,preferred_route,avatar_url,description")
+      .select("id,name,handle,provider,model,preferred_route,avatar_url,description,system_prompt")
       .eq("workspace_id", workspaceId)
       .order("name");
     setAgents(data ?? []);
@@ -301,33 +587,83 @@ function AgentsPanel({ workspaceId }: { workspaceId: string }) {
     load();
     listConns()
       .then((d: any) =>
-        setMyConns((d ?? []).filter((c: any) => c.status === "active").map((c: any) => c.provider)),
+        setMyConns(
+          (d ?? [])
+            .filter((c: any) => c.status === "active")
+            .map((c: any) => c.provider as ProviderId),
+        ),
       )
       .catch(() => {});
   }, [workspaceId]);
 
-  const addAgent = async () => {
-    const name = prompt("Agent name (e.g. Manus)");
-    if (!name) return;
-    const handle = prompt("Handle (e.g. manus)")?.toLowerCase().replace(/[^a-z0-9_-]/g, "");
-    if (!handle) return;
-    const provider = prompt("Provider: openai | anthropic | google | manus", "openai");
-    if (!provider) return;
-    const allowed = ["openai", "anthropic", "google", "manus"] as const;
-    if (!(allowed as readonly string[]).includes(provider)) {
-      return toast.error("Invalid provider");
+  const openNew = () => {
+    setEditing(null);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (a: any) => {
+    setEditing(a);
+    setDialogOpen(true);
+  };
+
+  const initial: AgentDraft = editing
+    ? {
+        name: editing.name ?? "",
+        handle: editing.handle ?? "",
+        description: editing.description ?? "",
+        system_prompt: editing.system_prompt ?? "",
+        route: (editing.preferred_route ?? "lovable") as RouteId,
+        model: editing.model || "openai/gpt-5-mini",
+      }
+    : EMPTY_DRAFT;
+
+  const save = async (draft: AgentDraft) => {
+    setSaving(true);
+    try {
+      const provider = providerFromModel(draft.model, draft.route);
+      if (editing) {
+        const { error } = await supabase
+          .from("agents")
+          .update({
+            name: draft.name,
+            description: draft.description || null,
+            system_prompt: draft.system_prompt || `You are ${draft.name}.`,
+            model: draft.model,
+            provider,
+          })
+          .eq("id", editing.id);
+        if (error) throw new Error(error.message);
+        if ((editing.preferred_route ?? "lovable") !== draft.route) {
+          await setRouteFn({ data: { agent_id: editing.id, route: draft.route } });
+        }
+        toast.success("Teammate updated");
+      } else {
+        const { data: inserted, error } = await supabase
+          .from("agents")
+          .insert({
+            workspace_id: workspaceId,
+            name: draft.name,
+            handle: draft.handle,
+            provider,
+            model: draft.model,
+            description: draft.description || null,
+            system_prompt: draft.system_prompt || `You are ${draft.name}.`,
+          })
+          .select("id")
+          .single();
+        if (error) throw new Error(error.message);
+        if (draft.route !== "lovable" && inserted?.id) {
+          await setRouteFn({ data: { agent_id: inserted.id, route: draft.route } });
+        }
+        toast.success("Teammate added");
+      }
+      setDialogOpen(false);
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to save");
+    } finally {
+      setSaving(false);
     }
-    const { error } = await supabase.from("agents").insert({
-      workspace_id: workspaceId,
-      name,
-      handle,
-      provider: provider as (typeof allowed)[number],
-      model: "",
-      system_prompt: `You are ${name}.`,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Agent added");
-    load();
   };
 
   const removeAgent = async (id: string) => {
@@ -341,25 +677,30 @@ function AgentsPanel({ workspaceId }: { workspaceId: string }) {
     <div className="space-y-5">
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="font-display text-xl font-semibold">Workspace agents</h2>
+          <h2 className="font-display text-xl font-semibold">Workspace teammates</h2>
           <p className="text-sm text-muted-foreground">
-            Add personal or shared agents and choose how each one reaches its model.
+            Each teammate is an AI persona with its own role, model, and route. Use the Lovable
+            gateway out of the box, or bring your own key in Profile → AI Connections.
           </p>
         </div>
-        <Button onClick={addAgent} className="gap-1.5">
-          <Plus className="w-4 h-4" /> New agent
+        <Button onClick={openNew} className="gap-1.5">
+          <Plus className="w-4 h-4" /> New teammate
         </Button>
       </header>
 
       <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
         {agents.length === 0 && (
-          <li className="p-6 text-sm text-muted-foreground text-center">No agents yet.</li>
+          <li className="p-6 text-sm text-muted-foreground text-center">No teammates yet.</li>
         )}
         {agents.map((a) => {
-          const current = a.preferred_route ?? "lovable";
+          const route: RouteId = (a.preferred_route ?? "lovable") as RouteId;
+          const routeLabel =
+            route === "lovable"
+              ? "Lovable Gateway"
+              : `My ${PROVIDER_LABEL[route.slice(5) as ProviderId] ?? route.slice(5)} key`;
           return (
             <li key={a.id} className="flex items-center gap-3 p-3">
-              <Avatar className="w-8 h-8">
+              <Avatar className="w-9 h-9">
                 <AvatarImage src={a.avatar_url ?? undefined} />
                 <AvatarFallback>
                   <Bot className="w-4 h-4" />
@@ -370,39 +711,29 @@ function AgentsPanel({ workspaceId }: { workspaceId: string }) {
                   {a.name}{" "}
                   <span className="font-mono text-[11px] text-muted-foreground">@{a.handle}</span>
                 </div>
-                <div className="text-[11px] font-mono text-muted-foreground truncate">
-                  {a.provider}
+                <div className="text-[11px] text-muted-foreground truncate">
+                  {a.description || a.system_prompt?.slice(0, 80) || "—"}
+                </div>
+                <div className="text-[11px] font-mono text-muted-foreground truncate mt-0.5">
+                  {a.model || a.provider} · {routeLabel}
+                  {a.model && isImageModel(a.model) ? " · 🎨" : ""}
                 </div>
               </div>
-              <Select
-                value={current}
-                onValueChange={async (v) => {
-                  try {
-                    await setRouteFn({ data: { agent_id: a.id, route: v } });
-                    toast.success("Route updated");
-                    load();
-                  } catch (e: any) {
-                    toast.error(e?.message ?? "Failed");
-                  }
-                }}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={() => openEdit(a)}
+                aria-label="Edit teammate"
               >
-                <SelectTrigger className="w-[200px] h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="lovable">Lovable AI Gateway</SelectItem>
-                  {(["openai", "anthropic", "google", "manus"] as const).map((p) => (
-                    <SelectItem key={p} value={`byok:${p}`} disabled={!myConns.includes(p)}>
-                      My {p} key{!myConns.includes(p) ? " (not connected)" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Pencil className="w-4 h-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
                 onClick={() => removeAgent(a.id)}
+                aria-label="Remove teammate"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -410,6 +741,15 @@ function AgentsPanel({ workspaceId }: { workspaceId: string }) {
           );
         })}
       </ul>
+
+      <AgentDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        initial={initial}
+        connectedProviders={myConns}
+        onSave={save}
+        saving={saving}
+      />
     </div>
   );
 }
