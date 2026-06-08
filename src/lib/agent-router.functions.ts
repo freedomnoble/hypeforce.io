@@ -15,9 +15,36 @@ const InputSchema = z.object({
 
 const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-async function callLLM(model: string, system: string, history: { role: string; content: string }[]) {
+// Stream from the Lovable AI gateway (OpenAI-compatible SSE), writing partial
+// content into the given message row as tokens arrive. All chat viewers
+// subscribe to message UPDATE events, so they see the reply type out live.
+async function streamLLMIntoRow(
+  rowId: string,
+  model: string,
+  system: string,
+  history: { role: string; content: string }[],
+): Promise<void> {
   const apiKey = process.env.LOVABLE_API_KEY;
-  if (!apiKey) return "_(LOVABLE_API_KEY not configured — this is a stub reply.)_";
+  if (!apiKey) {
+    await supabaseAdmin
+      .from("messages")
+      .update({ content: "_(LOVABLE_API_KEY not configured — this is a stub reply.)_", status: "error" })
+      .eq("id", rowId);
+    return;
+  }
+
+  let buffer = "";
+  let lastFlushAt = 0;
+  const flush = async (final: boolean) => {
+    const now = Date.now();
+    if (!final && now - lastFlushAt < 120) return;
+    lastFlushAt = now;
+    await supabaseAdmin
+      .from("messages")
+      .update({ content: buffer, status: final ? "complete" : "streaming" })
+      .eq("id", rowId);
+  };
+
   try {
     const res = await fetch(LOVABLE_AI_URL, {
       method: "POST",
@@ -27,17 +54,49 @@ async function callLLM(model: string, system: string, history: { role: string; c
       },
       body: JSON.stringify({
         model,
+        stream: true,
         messages: [{ role: "system", content: system }, ...history],
       }),
     });
-    if (!res.ok) {
-      const t = await res.text();
-      return `_(AI gateway error ${res.status}: ${t.slice(0, 200)})_`;
+
+    if (!res.ok || !res.body) {
+      const t = await res.text().catch(() => "");
+      buffer = `_(AI gateway error ${res.status}: ${t.slice(0, 200)})_`;
+      await supabaseAdmin.from("messages").update({ content: buffer, status: "error" }).eq("id", rowId);
+      return;
     }
-    const json = await res.json();
-    return json.choices?.[0]?.message?.content ?? "_(no reply)_";
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let leftover = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      leftover += decoder.decode(value, { stream: true });
+      const lines = leftover.split("\n");
+      leftover = lines.pop() ?? "";
+      for (const raw of lines) {
+        const line = raw.trim();
+        if (!line.startsWith("data:")) continue;
+        const payload = line.slice(5).trim();
+        if (!payload || payload === "[DONE]") continue;
+        try {
+          const json = JSON.parse(payload);
+          const delta: string | undefined = json.choices?.[0]?.delta?.content;
+          if (delta) {
+            buffer += delta;
+            await flush(false);
+          }
+        } catch {
+          // skip malformed SSE frame
+        }
+      }
+    }
+    if (buffer === "") buffer = "_(no reply)_";
+    await flush(true);
   } catch (e: any) {
-    return `_(LLM error: ${e.message})_`;
+    buffer = buffer || `_(LLM error: ${e?.message ?? "unknown"})_`;
+    await supabaseAdmin.from("messages").update({ content: buffer, status: "error" }).eq("id", rowId);
   }
 }
 
