@@ -29,6 +29,7 @@ import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as AuthProfileRouteImport } from './routes/_auth.profile'
 import { Route as AuthOnboardingRouteImport } from './routes/_auth.onboarding'
 import { Route as AuthOnboardingIndexRouteImport } from './routes/_auth.onboarding.index'
+import { Route as AuthProfileCreditsRouteImport } from './routes/_auth.profile.credits'
 import { Route as AuthProfileConnectionsRouteImport } from './routes/_auth.profile.connections'
 import { Route as AuthOnboardingTourRouteImport } from './routes/_auth.onboarding.tour'
 import { Route as AuthOnboardingTeamRouteImport } from './routes/_auth.onboarding.team'
@@ -142,6 +143,11 @@ const AuthOnboardingIndexRoute = AuthOnboardingIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthOnboardingRoute,
 } as any)
+const AuthProfileCreditsRoute = AuthProfileCreditsRouteImport.update({
+  id: '/credits',
+  path: '/credits',
+  getParentRoute: () => AuthProfileRoute,
+} as any)
 const AuthProfileConnectionsRoute = AuthProfileConnectionsRouteImport.update({
   id: '/connections',
   path: '/connections',
@@ -237,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/onboarding/team': typeof AuthOnboardingTeamRoute
   '/onboarding/tour': typeof AuthOnboardingTourRoute
   '/profile/connections': typeof AuthProfileConnectionsRoute
+  '/profile/credits': typeof AuthProfileCreditsRoute
   '/onboarding/': typeof AuthOnboardingIndexRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -269,6 +276,7 @@ export interface FileRoutesByTo {
   '/onboarding/team': typeof AuthOnboardingTeamRoute
   '/onboarding/tour': typeof AuthOnboardingTourRoute
   '/profile/connections': typeof AuthProfileConnectionsRoute
+  '/profile/credits': typeof AuthProfileCreditsRoute
   '/onboarding': typeof AuthOnboardingIndexRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -305,6 +313,7 @@ export interface FileRoutesById {
   '/_auth/onboarding/team': typeof AuthOnboardingTeamRoute
   '/_auth/onboarding/tour': typeof AuthOnboardingTourRoute
   '/_auth/profile/connections': typeof AuthProfileConnectionsRoute
+  '/_auth/profile/credits': typeof AuthProfileCreditsRoute
   '/_auth/onboarding/': typeof AuthOnboardingIndexRoute
   '/_auth/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -341,6 +350,7 @@ export interface FileRouteTypes {
     | '/onboarding/team'
     | '/onboarding/tour'
     | '/profile/connections'
+    | '/profile/credits'
     | '/onboarding/'
     | '/w/$workspaceId/admin'
     | '/api/public/payments/webhook'
@@ -373,6 +383,7 @@ export interface FileRouteTypes {
     | '/onboarding/team'
     | '/onboarding/tour'
     | '/profile/connections'
+    | '/profile/credits'
     | '/onboarding'
     | '/w/$workspaceId/admin'
     | '/api/public/payments/webhook'
@@ -408,6 +419,7 @@ export interface FileRouteTypes {
     | '/_auth/onboarding/team'
     | '/_auth/onboarding/tour'
     | '/_auth/profile/connections'
+    | '/_auth/profile/credits'
     | '/_auth/onboarding/'
     | '/_auth/w/$workspaceId/admin'
     | '/api/public/payments/webhook'
@@ -574,6 +586,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthOnboardingIndexRouteImport
       parentRoute: typeof AuthOnboardingRoute
     }
+    '/_auth/profile/credits': {
+      id: '/_auth/profile/credits'
+      path: '/credits'
+      fullPath: '/profile/credits'
+      preLoaderRoute: typeof AuthProfileCreditsRouteImport
+      parentRoute: typeof AuthProfileRoute
+    }
     '/_auth/profile/connections': {
       id: '/_auth/profile/connections'
       path: '/connections'
@@ -694,10 +713,12 @@ const AuthOnboardingRouteWithChildren = AuthOnboardingRoute._addFileChildren(
 
 interface AuthProfileRouteChildren {
   AuthProfileConnectionsRoute: typeof AuthProfileConnectionsRoute
+  AuthProfileCreditsRoute: typeof AuthProfileCreditsRoute
 }
 
 const AuthProfileRouteChildren: AuthProfileRouteChildren = {
   AuthProfileConnectionsRoute: AuthProfileConnectionsRoute,
+  AuthProfileCreditsRoute: AuthProfileCreditsRoute,
 }
 
 const AuthProfileRouteWithChildren = AuthProfileRoute._addFileChildren(
@@ -765,13 +786,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

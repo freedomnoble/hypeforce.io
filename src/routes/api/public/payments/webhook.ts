@@ -96,6 +96,41 @@ async function handleSubscriptionCanceled(data: any, env: PaddleEnv) {
     .eq("environment", env);
 }
 
+const CREDIT_PACKS: Record<string, number> = {
+  credits_small_onetime: 500,
+  credits_medium_onetime: 2200,
+  credits_large_onetime: 6000,
+};
+
+async function handleTransactionCompleted(data: any) {
+  const { id, items, customData, status } = data;
+  if (status !== "completed" && status !== "paid") return;
+  const userId = customData?.userId;
+  if (!userId) return;
+
+  // Find a top-up price in the line items
+  for (const item of items ?? []) {
+    const externalPriceId = item.price?.importMeta?.externalId;
+    const credits = externalPriceId ? CREDIT_PACKS[externalPriceId] : undefined;
+    if (!credits) continue;
+
+    const { error } = await getSupabase()
+      .from("credit_grants")
+      .insert({
+        user_id: userId,
+        amount: credits,
+        source: "topup",
+        paddle_transaction_id: id,
+        note: externalPriceId,
+      });
+    if (error && error.code !== "23505") {
+      // 23505 = unique_violation → idempotent replay, ignore
+      console.error("[paddle webhook] credit grant insert error", error);
+    }
+    return;
+  }
+}
+
 async function handleWebhook(req: Request, env: PaddleEnv) {
   const event = await verifyWebhook(req, env);
   switch (event.eventType) {
@@ -107,6 +142,9 @@ async function handleWebhook(req: Request, env: PaddleEnv) {
       break;
     case EventName.SubscriptionCanceled:
       await handleSubscriptionCanceled(event.data, env);
+      break;
+    case EventName.TransactionCompleted:
+      await handleTransactionCompleted(event.data);
       break;
     default:
       console.log("[paddle webhook] unhandled event:", event.eventType);

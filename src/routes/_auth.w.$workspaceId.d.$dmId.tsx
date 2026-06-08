@@ -10,6 +10,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import { invokeAgentRouter } from "@/lib/agent-router.functions";
+import { CreditBadge } from "@/components/hypeforce/credit-badge";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/d/$dmId")({
   component: DmPage,
@@ -226,6 +227,7 @@ function DmPage() {
                 </Avatar>
               ))}
             </div>
+            <CreditBadge />
           </header>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-4 md:px-8 py-6 space-y-5">

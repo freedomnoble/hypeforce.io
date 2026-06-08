@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { invokeAgentRouter } from "@/lib/agent-router.functions";
 import { renameChannel } from "@/lib/collab.functions";
+import { CreditBadge } from "@/components/hypeforce/credit-badge";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/c/$channelId")({
   component: ChannelPage,
@@ -305,6 +306,7 @@ function ChannelPage() {
                   </Avatar>
                 ))}
               </div>
+              <CreditBadge />
               <Button variant="ghost" size="icon" className="h-8 w-8" title="Pinned items">
                 <Pin className="w-4 h-4" />
               </Button>
