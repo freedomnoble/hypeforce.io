@@ -196,14 +196,14 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
     // For each agent, generate and insert a reply.
     let dispatched = 0;
     for (const agent of agents ?? []) {
-      const model =
-        agent.provider === "google"
-          ? "google/gemini-2.5-flash"
-          : agent.provider === "anthropic"
-          ? "openai/gpt-5-mini"
-          : agent.provider === "manus"
-          ? "openai/gpt-5-mini"
-          : "openai/gpt-5-mini";
+      const isImageAgent =
+        agent.model === "google/gemini-2.5-flash-image" || agent.handle === "nano";
+
+      const model = isImageAgent
+        ? "google/gemini-2.5-flash-image"
+        : agent.provider === "google"
+        ? "google/gemini-2.5-flash"
+        : "openai/gpt-5-mini";
 
       // Brand voice + pinned files come BEFORE the agent's own prompt so they
       // anchor tone, and KB comes after as supporting reference material.
@@ -232,7 +232,13 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
       const byokMatch = pref?.match(/^byok:(openai|anthropic|google|manus)$/);
       const byokProvider = byokMatch ? (byokMatch[1] as ProviderId) : null;
 
-      if (byokProvider) {
+      if (isImageAgent) {
+        // Image-only agent (Nano Banana). Use the last user message as the
+        // prompt; skip brand voice / KB blocks (they bloat the image prompt).
+        const lastUser = [...history].reverse().find((m) => m.role === "user");
+        const imgPrompt = lastUser?.content ?? "An image";
+        content = await callImageGen(model, imgPrompt, agent.handle);
+      } else if (byokProvider) {
         // BYOK route requested. Use the calling user's PERSONAL key; never
         // someone else's. If no active key exists, return a friendly agent
         // message rather than silently switching providers — admins set
