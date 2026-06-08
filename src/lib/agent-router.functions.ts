@@ -328,56 +328,90 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
       // is one of the supported providers. setAgentRoute enforces this on
       // write; we re-validate on read because old rows may predate the
       // constraint. Anything else degrades to "lovable" rather than throwing.
-      let content = "";
       const pref = (agent as { preferred_route?: string | null }).preferred_route ?? null;
       const byokMatch = pref?.match(/^byok:(openai|anthropic|google|manus)$/);
       const byokProvider = byokMatch ? (byokMatch[1] as ProviderId) : null;
 
       if (isImageAgent) {
-        // Image-only agent (Nano Banana). Use the last user message as the
-        // prompt; skip brand voice / KB blocks (they bloat the image prompt).
+        // Image agents are one-shot — no incremental stream to render.
         const lastUser = [...history].reverse().find((m) => m.role === "user");
         const imgPrompt = lastUser?.content ?? "An image";
-        content = await callImageGen(model, imgPrompt, agent.handle);
-      } else if (byokProvider) {
-        // BYOK route requested. Use the calling user's PERSONAL key; never
-        // someone else's. If no active key exists, return a friendly agent
-        // message rather than silently switching providers — admins set
-        // routing intentionally and silent fallback hides misconfiguration.
+        const content = await callImageGen(model, imgPrompt, agent.handle);
+        const { error: insertError } = await supabaseAdmin.from("messages").insert({
+          workspace_id,
+          channel_id: channel_id ?? null,
+          dm_id: dm_id ?? null,
+          author_type: "agent",
+          author_agent_id: agent.id,
+          content,
+          status: "complete",
+        } as any);
+        if (insertError) console.error("agent insert failed", insertError);
+        else dispatched++;
+        continue;
+      }
+
+      // Text agent — insert an empty row up front so all viewers can see the
+      // reply stream in via Postgres realtime UPDATE events.
+      const { data: row, error: insertError } = await supabaseAdmin
+        .from("messages")
+        .insert({
+          workspace_id,
+          channel_id: channel_id ?? null,
+          dm_id: dm_id ?? null,
+          author_type: "agent",
+          author_agent_id: agent.id,
+          content: "",
+          status: "streaming",
+        } as any)
+        .select("id")
+        .single();
+      if (insertError || !row) {
+        console.error("agent insert failed", insertError);
+        continue;
+      }
+      const rowId = (row as { id: string }).id;
+
+      if (byokProvider) {
         const encrypted = byok.get(byokProvider);
         if (!encrypted) {
-          content = `_(@${agent.handle} is configured to use your own ${byokProvider} key, but you haven't connected one. Add it in Profile → AI Connections, or have a workspace admin switch this agent back to the Lovable gateway.)_`;
+          await supabaseAdmin
+            .from("messages")
+            .update({
+              content: `_(@${agent.handle} is configured to use your own ${byokProvider} key, but you haven't connected one. Add it in Profile → AI Connections, or have a workspace admin switch this agent back to the Lovable gateway.)_`,
+              status: "error",
+            })
+            .eq("id", rowId);
         } else {
           try {
             const { decryptApiKey } = await import("./ai-crypto.server");
             const { callProvider } = await import("./ai-providers.server");
             const apiKey = await decryptApiKey(encrypted);
-            content = await callProvider(byokProvider, apiKey, agent.model ?? "", systemPrompt, history);
+            const content = await callProvider(byokProvider, apiKey, agent.model ?? "", systemPrompt, history);
+            await supabaseAdmin
+              .from("messages")
+              .update({ content, status: "complete" })
+              .eq("id", rowId);
           } catch (e: any) {
-            // Log message only — never log the key itself.
             console.error("BYOK call failed", { provider: byokProvider, message: e?.message });
             await supabaseAdmin
               .from("user_ai_connections")
               .update({ status: "invalid" })
               .eq("user_id", context.userId)
               .eq("provider", byokProvider);
-            content = `_(@${agent.handle} couldn't reach ${byokProvider} with your key. It's been marked invalid — please re-connect it in Profile → AI Connections.)_`;
+            await supabaseAdmin
+              .from("messages")
+              .update({
+                content: `_(@${agent.handle} couldn't reach ${byokProvider} with your key. It's been marked invalid — please re-connect it in Profile → AI Connections.)_`,
+                status: "error",
+              })
+              .eq("id", rowId);
           }
         }
       } else {
-        content = await callLLM(model, systemPrompt, history);
+        await streamLLMIntoRow(rowId, model, systemPrompt, history);
       }
-
-      const { error: insertError } = await supabaseAdmin.from("messages").insert({
-        workspace_id,
-        channel_id: channel_id ?? null,
-        dm_id: dm_id ?? null,
-        author_type: "agent",
-        author_agent_id: agent.id,
-        content,
-      } as any);
-      if (insertError) console.error("agent insert failed", insertError);
-      else dispatched++;
+      dispatched++;
     }
 
     return { dispatched };
