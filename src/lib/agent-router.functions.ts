@@ -116,9 +116,17 @@ async function streamLLMIntoRow(
   }
 }
 
-async function callImageGen(model: string, prompt: string, handle: string) {
+async function callImageGen(
+  model: string,
+  prompt: string,
+  handle: string,
+): Promise<{ content: string; imageCount: number }> {
   const apiKey = process.env.LOVABLE_API_KEY;
-  if (!apiKey) return `_(@${handle} can't generate images — LOVABLE_API_KEY not configured.)_`;
+  if (!apiKey)
+    return {
+      content: `_(@${handle} can't generate images — LOVABLE_API_KEY not configured.)_`,
+      imageCount: 0,
+    };
   try {
     const res = await fetch(LOVABLE_AI_URL, {
       method: "POST",
@@ -134,7 +142,10 @@ async function callImageGen(model: string, prompt: string, handle: string) {
     });
     if (!res.ok) {
       const t = await res.text();
-      return `_(@${handle} couldn't generate an image: ${res.status} ${t.slice(0, 200)})_`;
+      return {
+        content: `_(@${handle} couldn't generate an image: ${res.status} ${t.slice(0, 200)})_`,
+        imageCount: 0,
+      };
     }
     const json = await res.json();
     const msg = json.choices?.[0]?.message;
@@ -142,12 +153,18 @@ async function callImageGen(model: string, prompt: string, handle: string) {
       msg?.images?.[0]?.image_url?.url ?? msg?.images?.[0]?.url;
     if (!url) {
       const text = msg?.content ?? "";
-      return `_(@${handle} didn't return an image.)_${text ? `\n\n${text}` : ""}`;
+      return {
+        content: `_(@${handle} didn't return an image.)_${text ? `\n\n${text}` : ""}`,
+        imageCount: 0,
+      };
     }
     const caption = typeof msg?.content === "string" && msg.content.trim() ? msg.content.trim() : "";
-    return `${caption ? caption + "\n\n" : ""}![${prompt.slice(0, 100)}](${url})`;
+    return {
+      content: `${caption ? caption + "\n\n" : ""}![${prompt.slice(0, 100)}](${url})`,
+      imageCount: 1,
+    };
   } catch (e: any) {
-    return `_(@${handle} image gen error: ${e.message})_`;
+    return { content: `_(@${handle} image gen error: ${e.message})_`, imageCount: 0 };
   }
 }
 
