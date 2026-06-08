@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { invokeAgentRouter } from "@/lib/agent-router.functions";
 import { renameChannel } from "@/lib/collab.functions";
+import { CreditBadge } from "@/components/hypeforce/credit-badge";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/c/$channelId")({
   component: ChannelPage,
