@@ -177,6 +177,109 @@ export type Database = {
           },
         ]
       }
+      credit_grants: {
+        Row: {
+          amount: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          note: string | null
+          paddle_transaction_id: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          note?: string | null
+          paddle_transaction_id?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          note?: string | null
+          paddle_transaction_id?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      credit_usage: {
+        Row: {
+          agent_id: string | null
+          completion_tokens: number
+          created_at: string
+          credits: number
+          estimated_cost_usd_micros: number
+          id: string
+          image_count: number
+          kind: string
+          message_id: string | null
+          model: string
+          prompt_tokens: number
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          completion_tokens?: number
+          created_at?: string
+          credits?: number
+          estimated_cost_usd_micros?: number
+          id?: string
+          image_count?: number
+          kind: string
+          message_id?: string | null
+          model: string
+          prompt_tokens?: number
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          completion_tokens?: number
+          created_at?: string
+          credits?: number
+          estimated_cost_usd_micros?: number
+          id?: string
+          image_count?: number
+          kind?: string
+          message_id?: string | null
+          model?: string
+          prompt_tokens?: number
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_usage_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_usage_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_usage_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_themes: {
         Row: {
           created_at: string
@@ -631,6 +734,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      model_pricing: {
+        Row: {
+          input_credits_per_1k: number
+          kind: string
+          model: string
+          output_credits_per_1k: number
+          per_image_credits: number
+          updated_at: string
+        }
+        Insert: {
+          input_credits_per_1k?: number
+          kind: string
+          model: string
+          output_credits_per_1k?: number
+          per_image_credits?: number
+          updated_at?: string
+        }
+        Update: {
+          input_credits_per_1k?: number
+          kind?: string
+          model?: string
+          output_credits_per_1k?: number
+          per_image_credits?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      plan_credit_allowances: {
+        Row: {
+          monthly_credits: number
+          plan: string
+          signup_bonus: number
+          updated_at: string
+        }
+        Insert: {
+          monthly_credits?: number
+          plan: string
+          signup_bonus?: number
+          updated_at?: string
+        }
+        Update: {
+          monthly_credits?: number
+          plan?: string
+          signup_bonus?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       pricing_config: {
         Row: {
@@ -1148,6 +1299,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_user_credit_balance: { Args: { uid: string }; Returns: number }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean

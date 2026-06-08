@@ -2,6 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  assertCanSpend,
+  chargeCredits,
+  CreditsExhaustedError,
+  type CreditsUsage,
+} from "./credits.server";
 
 type ProviderId = "openai" | "anthropic" | "google" | "manus";
 
@@ -23,18 +29,19 @@ async function streamLLMIntoRow(
   model: string,
   system: string,
   history: { role: string; content: string }[],
-): Promise<void> {
+): Promise<CreditsUsage> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) {
     await supabaseAdmin
       .from("messages")
       .update({ content: "_(LOVABLE_API_KEY not configured — this is a stub reply.)_", status: "error" })
       .eq("id", rowId);
-    return;
+    return {};
   }
 
   let buffer = "";
   let lastFlushAt = 0;
+  let usage: CreditsUsage = {};
   const flush = async (final: boolean) => {
     const now = Date.now();
     if (!final && now - lastFlushAt < 120) return;
@@ -55,6 +62,7 @@ async function streamLLMIntoRow(
       body: JSON.stringify({
         model,
         stream: true,
+        stream_options: { include_usage: true },
         messages: [{ role: "system", content: system }, ...history],
       }),
     });
@@ -63,7 +71,7 @@ async function streamLLMIntoRow(
       const t = await res.text().catch(() => "");
       buffer = `_(AI gateway error ${res.status}: ${t.slice(0, 200)})_`;
       await supabaseAdmin.from("messages").update({ content: buffer, status: "error" }).eq("id", rowId);
-      return;
+      return {};
     }
 
     const reader = res.body.getReader();
@@ -87,6 +95,12 @@ async function streamLLMIntoRow(
             buffer += delta;
             await flush(false);
           }
+          if (json.usage) {
+            usage = {
+              prompt_tokens: json.usage.prompt_tokens ?? 0,
+              completion_tokens: json.usage.completion_tokens ?? 0,
+            };
+          }
         } catch {
           // skip malformed SSE frame
         }
@@ -94,15 +108,25 @@ async function streamLLMIntoRow(
     }
     if (buffer === "") buffer = "_(no reply)_";
     await flush(true);
+    return usage;
   } catch (e: any) {
     buffer = buffer || `_(LLM error: ${e?.message ?? "unknown"})_`;
     await supabaseAdmin.from("messages").update({ content: buffer, status: "error" }).eq("id", rowId);
+    return usage;
   }
 }
 
-async function callImageGen(model: string, prompt: string, handle: string) {
+async function callImageGen(
+  model: string,
+  prompt: string,
+  handle: string,
+): Promise<{ content: string; imageCount: number }> {
   const apiKey = process.env.LOVABLE_API_KEY;
-  if (!apiKey) return `_(@${handle} can't generate images — LOVABLE_API_KEY not configured.)_`;
+  if (!apiKey)
+    return {
+      content: `_(@${handle} can't generate images — LOVABLE_API_KEY not configured.)_`,
+      imageCount: 0,
+    };
   try {
     const res = await fetch(LOVABLE_AI_URL, {
       method: "POST",
@@ -118,7 +142,10 @@ async function callImageGen(model: string, prompt: string, handle: string) {
     });
     if (!res.ok) {
       const t = await res.text();
-      return `_(@${handle} couldn't generate an image: ${res.status} ${t.slice(0, 200)})_`;
+      return {
+        content: `_(@${handle} couldn't generate an image: ${res.status} ${t.slice(0, 200)})_`,
+        imageCount: 0,
+      };
     }
     const json = await res.json();
     const msg = json.choices?.[0]?.message;
@@ -126,12 +153,18 @@ async function callImageGen(model: string, prompt: string, handle: string) {
       msg?.images?.[0]?.image_url?.url ?? msg?.images?.[0]?.url;
     if (!url) {
       const text = msg?.content ?? "";
-      return `_(@${handle} didn't return an image.)_${text ? `\n\n${text}` : ""}`;
+      return {
+        content: `_(@${handle} didn't return an image.)_${text ? `\n\n${text}` : ""}`,
+        imageCount: 0,
+      };
     }
     const caption = typeof msg?.content === "string" && msg.content.trim() ? msg.content.trim() : "";
-    return `${caption ? caption + "\n\n" : ""}![${prompt.slice(0, 100)}](${url})`;
+    return {
+      content: `${caption ? caption + "\n\n" : ""}![${prompt.slice(0, 100)}](${url})`,
+      imageCount: 1,
+    };
   } catch (e: any) {
-    return `_(@${handle} image gen error: ${e.message})_`;
+    return { content: `_(@${handle} image gen error: ${e.message})_`, imageCount: 0 };
   }
 }
 
@@ -289,6 +322,7 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
 
     // For each agent, generate and insert a reply.
     let dispatched = 0;
+    let blockedByCredits = false;
     for (const agent of agents ?? []) {
       const agentModel: string = (agent as any).model ?? "";
       const isImageAgent =
@@ -306,8 +340,6 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
         ? agentModel
         : providerDefault;
 
-      // Brand voice + pinned files come BEFORE the agent's own prompt so they
-      // anchor tone, and KB comes after as supporting reference material.
       const selfLine = `YOU ARE: @${agent.handle} — ${agent.name}${((agent as any).description) ? `, ${(agent as any).description}` : ""}.`;
       const teammateLines = agentRosterLines.filter(
         (l) => !l.startsWith(`- @${agent.handle} `),
@@ -323,36 +355,59 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
       }\nDefer to a teammate on their specialty when relevant. Don't impersonate them.\n---`;
       const systemPrompt = `${brandBlock}${pinnedBlock}${rosterBlock}\n\n${agent.system_prompt ?? `You are ${agent.name}.`}${kbBlock}\n\nReply concisely in markdown. Stay strictly on brand.`;
 
-      // Resolve route explicitly. The only legal values for preferred_route
-      // are null (== lovable gateway) or "byok:<provider>" where <provider>
-      // is one of the supported providers. setAgentRoute enforces this on
-      // write; we re-validate on read because old rows may predate the
-      // constraint. Anything else degrades to "lovable" rather than throwing.
       const pref = (agent as { preferred_route?: string | null }).preferred_route ?? null;
       const byokMatch = pref?.match(/^byok:(openai|anthropic|google|manus)$/);
       const byokProvider = byokMatch ? (byokMatch[1] as ProviderId) : null;
 
+      // Pre-flight credit check for gateway-routed agents (BYOK is unmetered).
+      if (!byokProvider) {
+        try {
+          await assertCanSpend(context.userId);
+        } catch (e) {
+          if (e instanceof CreditsExhaustedError) {
+            blockedByCredits = true;
+            continue;
+          }
+          throw e;
+        }
+      }
+
       if (isImageAgent) {
-        // Image agents are one-shot — no incremental stream to render.
         const lastUser = [...history].reverse().find((m) => m.role === "user");
         const imgPrompt = lastUser?.content ?? "An image";
-        const content = await callImageGen(model, imgPrompt, agent.handle);
-        const { error: insertError } = await supabaseAdmin.from("messages").insert({
-          workspace_id,
-          channel_id: channel_id ?? null,
-          dm_id: dm_id ?? null,
-          author_type: "agent",
-          author_agent_id: agent.id,
-          content,
-          status: "complete",
-        } as any);
-        if (insertError) console.error("agent insert failed", insertError);
-        else dispatched++;
+        const { content, imageCount } = await callImageGen(model, imgPrompt, agent.handle);
+        const { data: inserted, error: insertError } = await supabaseAdmin
+          .from("messages")
+          .insert({
+            workspace_id,
+            channel_id: channel_id ?? null,
+            dm_id: dm_id ?? null,
+            author_type: "agent",
+            author_agent_id: agent.id,
+            content,
+            status: "complete",
+          } as any)
+          .select("id")
+          .single();
+        if (insertError) {
+          console.error("agent insert failed", insertError);
+        } else {
+          dispatched++;
+          if (imageCount > 0 && !byokProvider) {
+            await chargeCredits({
+              user_id: context.userId,
+              workspace_id,
+              message_id: (inserted as { id: string } | null)?.id ?? null,
+              agent_id: agent.id,
+              model,
+              kind: "image",
+              usage: { image_count: imageCount },
+            });
+          }
+        }
         continue;
       }
 
-      // Text agent — insert an empty row up front so all viewers can see the
-      // reply stream in via Postgres realtime UPDATE events.
       const { data: row, error: insertError } = await supabaseAdmin
         .from("messages")
         .insert({
@@ -409,10 +464,37 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
           }
         }
       } else {
-        await streamLLMIntoRow(rowId, model, systemPrompt, history);
+        const usage = await streamLLMIntoRow(rowId, model, systemPrompt, history);
+        if ((usage.prompt_tokens ?? 0) + (usage.completion_tokens ?? 0) > 0) {
+          await chargeCredits({
+            user_id: context.userId,
+            workspace_id,
+            message_id: rowId,
+            agent_id: agent.id,
+            model,
+            kind: "text",
+            usage,
+          });
+        }
       }
       dispatched++;
     }
 
-    return { dispatched };
+    // If at least one gateway-routed agent was blocked, post a single system
+    // notice with a top-up CTA. We use the originating user's row as a
+    // synthetic "system" message — channel-scoped, surfaced inline.
+    if (blockedByCredits) {
+      await supabaseAdmin.from("messages").insert({
+        workspace_id,
+        channel_id: channel_id ?? null,
+        dm_id: dm_id ?? null,
+        author_type: "agent",
+        author_agent_id: (agents ?? [])[0]?.id ?? null,
+        content:
+          "_You're out of credits. Top up to continue using gateway agents, or switch this agent to your own API key in Profile → AI Connections._",
+        status: "error",
+      } as any);
+    }
+
+    return { dispatched, blockedByCredits };
   });
