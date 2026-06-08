@@ -1,47 +1,62 @@
-## Goal
+# Lovable AI Gateway, DMs, realtime, and team-aware agents
 
-Stop blocking the onboarding flow on Paddle webhook confirmation. Let users continue immediately after they signal intent (click Subscribe), and reconcile subscription status in the background.
+## 1. What models the gateway uses + how routing works (answer, no code change)
 
-## UX changes (`/onboarding/features`)
+The Lovable AI Gateway is an OpenAI-compatible proxy at `https://ai.gateway.lovable.dev/v1`. Your app authenticates with a single server-side `LOVABLE_API_KEY` and picks a model per request. There are no separate "GPTs" or "agents" inside the gateway — your `agents` table rows are *your* personas, and each one is mapped to a model.
 
-- Remove the "I've paid — check again" link and the "Payment is still syncing…" copy.
-- Remove the full-screen "You're in! / Setting up the next step…" confirming state.
-- Keep the Subscribe button as the primary CTA.
-- Add a secondary **Continue** button below Subscribe.
-  - Disabled by default.
-  - Becomes enabled the moment the user clicks Subscribe (intent captured), and stays enabled for the rest of the session.
-  - Also enabled immediately if the user already has an active sub / is comped (returning user).
-- Clicking Continue: optimistically advance step → navigate to `/onboarding/invites`. No waiting, no polling.
+Models the gateway exposes (and that your code uses):
+- Google: `google/gemini-3-flash-preview` (default), `gemini-3.1-flash-lite-preview`, `gemini-3.5-flash`, `gemini-3.1-pro-preview`, `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`
+- OpenAI: `openai/gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-5.2`, `gpt-5.4` (+ mini/nano/pro), `gpt-5.5` (+ pro)
+- Image: `google/gemini-2.5-flash-image` (Nano Banana), `gemini-3-pro-image-preview`, `gemini-3.1-flash-image-preview`, `openai/gpt-image-2`, `openai/gpt-image-1-mini`
 
-## Intent tracking
+How your app routes today (see `src/lib/agent-router.functions.ts`):
+- `agent.provider === "google"` → `google/gemini-2.5-flash`
+- `anthropic` / `manus` / anything else → `openai/gpt-5-mini` (Anthropic and Manus aren't on the gateway, so they're silently aliased to GPT-5-mini)
+- If the agent has `preferred_route = "byok:<provider>"` and the *calling user* has a key in `user_ai_connections`, the call goes direct to that provider via `src/lib/ai-providers.server.ts`, bypassing the gateway. Manus has no direct adapter yet.
 
-- On Subscribe click: set a local "intent given" flag (component state + `sessionStorage` key like `hf_subscribe_intent`) so the Continue button stays unlocked if they bounce back from Paddle to this screen.
-- Still call `advance({ to: 4 })` in the background when they hit Continue, and `patch({ step: 4 })` in the cache so the rest of the flow doesn't regress.
+## 2. Why DMs to a bot return nothing (bug fix)
 
-## Background reconciliation
+In `src/routes/_auth.w.$workspaceId.d.$dmId.tsx`, `send()` passes `mention_agent_ids: mentions` — only @-mentioned agents. In `invokeAgentRouter`, the fallback that picks up "everyone in the room" only runs for `channel_id`, never `dm_id`. So a plain DM to a bot (no `@handle`) resolves to zero agents and the router returns `{ dispatched: 0 }`.
 
-- Drop the `?checkout=success` polling loop and the auto-advance on `checkout.completed`. We no longer need to gate the UI on it.
-- Keep the existing Paddle webhook (`/api/public/payments/webhook`) as the source of truth — it already writes to `subscriptions` with the right `environment`.
-- The existing `has_active_subscription` SQL function + `useSubscription`-style reads continue to gate premium features elsewhere in the app. No change needed there.
+Fix:
+- In the DM `send()`, when no mentions are present, pass the DM's agent participants as `mention_agent_ids` (use the existing `participantAgentIds`).
+- Defensive: in `invokeAgentRouter`, also fall back to `dm_participants` (member_type=agent) when `agentIds` is empty and `dm_id` is set.
 
-## Access enforcement (the "shut off access if it never processes" half)
+## 3. Why channel replies only appear on reload (realtime not enabled)
 
-- No new server logic in this pass — access is already derived from the `subscriptions` table via `has_active_subscription`. If the webhook never arrives, the user simply won't have an active sub and existing gates will block premium features after onboarding.
-- Out of scope for this change (call out, don't build): a future cleanup job could flag users who hit Continue with intent but never got a webhook within N hours and downgrade their workspace / prompt them. We can add that later if it becomes a real problem.
+Both routes subscribe via `supabase.channel(...).on("postgres_changes", ...)` on `public.messages`. But `public.messages` is **not in the `supabase_realtime` publication**, so INSERTs are never broadcast. The agent reply is written by the server, but the client only sees it after a reload (initial fetch). The "thinking" bubble vanishes after the 60-second client-side timeout.
+
+Fix (single migration):
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+ALTER TABLE public.messages REPLICA IDENTITY FULL;
+```
+RLS already scopes who can read messages, so subscribers only get rows they're allowed to see.
+
+## 4. Give every agent context of itself and its teammates
+
+In `invokeAgentRouter`, build a "team roster" block once per request and prepend it to each agent's system prompt:
+- Load all agents in `workspace_id` (id, name, handle, role/title, one-line description from `system_prompt` or a new short bio field if present).
+- Load the workspace's human members (display_name, role) from `workspace_members` + `profiles`.
+- Inject as:
+  ```
+  YOU ARE: @{handle} — {name}, {role}.
+  TEAMMATES (other AI):
+   - @alex (Strategist): ...
+   - @sam (Designer): ...
+  HUMAN TEAMMATES:
+   - Jane Doe (Owner)
+   - ...
+  When another @handle is mentioned, defer to them on their specialty.
+  ```
+- Keep it compact (cap each bio to ~120 chars) so it doesn't blow the context.
 
 ## Files to change
+- `src/routes/_auth.w.$workspaceId.d.$dmId.tsx` — pass `participantAgentIds` when no mentions.
+- `src/lib/agent-router.functions.ts` — DM fallback to `dm_participants`; build + inject team roster block.
+- New migration — add `public.messages` to `supabase_realtime` + `REPLICA IDENTITY FULL`.
 
-- `src/routes/_auth.onboarding.features.tsx`
-  - Remove: `confirming` state, `checking` state, `syncMessage`, `pollForSubscription`, `handleCheckAgain`, the `?checkout=success` effect branch, the "You're in!" return block, the "I've paid — check again" button.
-  - Add: `intentGiven` state, hydrated from `sessionStorage` and from `data?.has_active_subscription || data?.is_comped`.
-  - Add: `<Button>Continue</Button>` under Subscribe, `disabled={!intentGiven}`, onClick advances + navigates to `/onboarding/invites`.
-  - In `onSubscribe`: set `intentGiven = true` and persist to `sessionStorage` before opening checkout. Remove the `onEvent` auto-advance.
-  - Use `useOnboardingState()` (already imported pattern in sibling steps) instead of the local `fetchState` effect, so there's no loading flash.
-- No changes to webhook, DB, or server fns.
-
-## Verification
-
-1. Fresh user lands on `/onboarding/features` — Subscribe enabled, Continue disabled.
-2. Click Subscribe → Paddle opens. Close it without paying → Continue is now enabled. Click → lands on `/onboarding/invites` instantly, no spinner.
-3. Returning user with active sub lands on the screen → Continue enabled immediately (Subscribe still visible but they can just continue).
-4. Confirm no "loading your workspace" / "preparing" / "I've paid" copy appears anywhere in the step.
+## Out of scope (ask before doing)
+- Adding a `bio` / `title` column to `agents` for richer roster lines.
+- Switching the default chat model from `gpt-5-mini` to `google/gemini-3-flash-preview` (cheaper/faster, current Lovable default).
+- Streaming agent replies token-by-token instead of single insert at the end.

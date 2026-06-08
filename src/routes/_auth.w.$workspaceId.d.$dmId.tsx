@@ -175,7 +175,7 @@ function DmPage() {
           workspace_id: workspaceId,
           dm_id: dmId,
           message_id: msg.id,
-          mention_agent_ids: mentions,
+          mention_agent_ids: targets,
         },
       }).catch((e: unknown) => {
         console.error(e);

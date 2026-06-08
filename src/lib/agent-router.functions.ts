@@ -83,6 +83,14 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
         .eq("member_type", "agent");
       agentIds = (members ?? []).map((m: any) => m.agent_id).filter(Boolean);
     }
+    if (agentIds.length === 0 && dm_id) {
+      const { data: parts } = await supabase
+        .from("dm_participants")
+        .select("agent_id")
+        .eq("dm_id", dm_id)
+        .eq("member_type", "agent");
+      agentIds = (parts ?? []).map((m: any) => m.agent_id).filter(Boolean);
+    }
     if (agentIds.length === 0) return { dispatched: 0 };
 
 
@@ -146,6 +154,34 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
             .join("\n\n")}`
         : "";
 
+    // Team roster — every agent gets to know its siblings + human teammates.
+    const [{ data: allWsAgents }, { data: wsMembers }] = await Promise.all([
+      supabase
+        .from("agents")
+        .select("id,name,handle,description,system_prompt")
+        .eq("workspace_id", workspace_id),
+      supabase
+        .from("workspace_members")
+        .select("user_id,role")
+        .eq("workspace_id", workspace_id),
+    ]);
+    const memberUserIds = (wsMembers ?? []).map((m: any) => m.user_id).filter(Boolean);
+    const { data: memberProfiles } =
+      memberUserIds.length > 0
+        ? await supabase.from("profiles").select("id,display_name").in("id", memberUserIds)
+        : { data: [] as any[] };
+    const profileById = new Map<string, string>(
+      (memberProfiles ?? []).map((p: any) => [p.id, p.display_name ?? "Member"]),
+    );
+    const bio = (a: any) =>
+      (a.description || (a.system_prompt ?? "").replace(/\s+/g, " ").slice(0, 120) || "Teammate").trim();
+    const agentRosterLines = (allWsAgents ?? []).map(
+      (a: any) => `- @${a.handle} (${a.name}): ${bio(a)}`,
+    );
+    const humanRosterLines = (wsMembers ?? []).map(
+      (m: any) => `- ${profileById.get(m.user_id) ?? "Member"} (${m.role ?? "member"})`,
+    );
+
     // Load the calling user's connected BYOK providers (we only need the
     // encrypted key for those we may actually route through).
     const { data: byokRows } = await supabase
@@ -171,7 +207,20 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
 
       // Brand voice + pinned files come BEFORE the agent's own prompt so they
       // anchor tone, and KB comes after as supporting reference material.
-      const systemPrompt = `${brandBlock}${pinnedBlock}\n\n${agent.system_prompt ?? `You are ${agent.name}.`}${kbBlock}\n\nReply concisely in markdown. Stay strictly on brand.`;
+      const selfLine = `YOU ARE: @${agent.handle} — ${agent.name}${((agent as any).description) ? `, ${(agent as any).description}` : ""}.`;
+      const teammateLines = agentRosterLines.filter(
+        (l) => !l.startsWith(`- @${agent.handle} `),
+      );
+      const rosterBlock = `\n\n---\n${selfLine}${
+        teammateLines.length > 0
+          ? `\nAI TEAMMATES (you can @-mention them to hand off):\n${teammateLines.join("\n")}`
+          : ""
+      }${
+        humanRosterLines.length > 0
+          ? `\nHUMAN TEAMMATES:\n${humanRosterLines.join("\n")}`
+          : ""
+      }\nDefer to a teammate on their specialty when relevant. Don't impersonate them.\n---`;
+      const systemPrompt = `${brandBlock}${pinnedBlock}${rosterBlock}\n\n${agent.system_prompt ?? `You are ${agent.name}.`}${kbBlock}\n\nReply concisely in markdown. Stay strictly on brand.`;
 
       // Resolve route explicitly. The only legal values for preferred_route
       // are null (== lovable gateway) or "byok:<provider>" where <provider>
