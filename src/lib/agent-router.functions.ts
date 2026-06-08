@@ -41,6 +41,41 @@ async function callLLM(model: string, system: string, history: { role: string; c
   }
 }
 
+async function callImageGen(model: string, prompt: string, handle: string) {
+  const apiKey = process.env.LOVABLE_API_KEY;
+  if (!apiKey) return `_(@${handle} can't generate images — LOVABLE_API_KEY not configured.)_`;
+  try {
+    const res = await fetch(LOVABLE_AI_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        modalities: ["image", "text"],
+      }),
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      return `_(@${handle} couldn't generate an image: ${res.status} ${t.slice(0, 200)})_`;
+    }
+    const json = await res.json();
+    const msg = json.choices?.[0]?.message;
+    const url: string | undefined =
+      msg?.images?.[0]?.image_url?.url ?? msg?.images?.[0]?.url;
+    if (!url) {
+      const text = msg?.content ?? "";
+      return `_(@${handle} didn't return an image.)_${text ? `\n\n${text}` : ""}`;
+    }
+    const caption = typeof msg?.content === "string" && msg.content.trim() ? msg.content.trim() : "";
+    return `${caption ? caption + "\n\n" : ""}![${prompt.slice(0, 100)}](${url})`;
+  } catch (e: any) {
+    return `_(@${handle} image gen error: ${e.message})_`;
+  }
+}
+
 export const invokeAgentRouter = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => InputSchema.parse(input))
