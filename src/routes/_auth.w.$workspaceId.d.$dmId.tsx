@@ -158,6 +158,7 @@ function DmPage() {
       if (error) throw error;
       setInput("");
 
+      const participantAgentIds = participantAgents.map((a) => a.id);
       const targets = mentions.length > 0 ? mentions : participantAgentIds;
       if (targets.length > 0) {
         setThinking((s) => Array.from(new Set([...s, ...targets])));
@@ -175,7 +176,7 @@ function DmPage() {
           workspace_id: workspaceId,
           dm_id: dmId,
           message_id: msg.id,
-          mention_agent_ids: mentions,
+          mention_agent_ids: targets,
         },
       }).catch((e: unknown) => {
         console.error(e);
