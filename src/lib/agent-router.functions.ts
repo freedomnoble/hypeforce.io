@@ -83,6 +83,14 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
         .eq("member_type", "agent");
       agentIds = (members ?? []).map((m: any) => m.agent_id).filter(Boolean);
     }
+    if (agentIds.length === 0 && dm_id) {
+      const { data: parts } = await supabase
+        .from("dm_participants")
+        .select("agent_id")
+        .eq("dm_id", dm_id)
+        .eq("member_type", "agent");
+      agentIds = (parts ?? []).map((m: any) => m.agent_id).filter(Boolean);
+    }
     if (agentIds.length === 0) return { dispatched: 0 };
 
 
