@@ -305,6 +305,7 @@ function ChannelPage() {
                   </Avatar>
                 ))}
               </div>
+              <CreditBadge />
               <Button variant="ghost" size="icon" className="h-8 w-8" title="Pinned items">
                 <Pin className="w-4 h-4" />
               </Button>
