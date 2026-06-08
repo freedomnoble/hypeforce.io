@@ -29,18 +29,19 @@ async function streamLLMIntoRow(
   model: string,
   system: string,
   history: { role: string; content: string }[],
-): Promise<void> {
+): Promise<CreditsUsage> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) {
     await supabaseAdmin
       .from("messages")
       .update({ content: "_(LOVABLE_API_KEY not configured — this is a stub reply.)_", status: "error" })
       .eq("id", rowId);
-    return;
+    return {};
   }
 
   let buffer = "";
   let lastFlushAt = 0;
+  let usage: CreditsUsage = {};
   const flush = async (final: boolean) => {
     const now = Date.now();
     if (!final && now - lastFlushAt < 120) return;
@@ -61,6 +62,7 @@ async function streamLLMIntoRow(
       body: JSON.stringify({
         model,
         stream: true,
+        stream_options: { include_usage: true },
         messages: [{ role: "system", content: system }, ...history],
       }),
     });
@@ -69,7 +71,7 @@ async function streamLLMIntoRow(
       const t = await res.text().catch(() => "");
       buffer = `_(AI gateway error ${res.status}: ${t.slice(0, 200)})_`;
       await supabaseAdmin.from("messages").update({ content: buffer, status: "error" }).eq("id", rowId);
-      return;
+      return {};
     }
 
     const reader = res.body.getReader();
@@ -93,6 +95,12 @@ async function streamLLMIntoRow(
             buffer += delta;
             await flush(false);
           }
+          if (json.usage) {
+            usage = {
+              prompt_tokens: json.usage.prompt_tokens ?? 0,
+              completion_tokens: json.usage.completion_tokens ?? 0,
+            };
+          }
         } catch {
           // skip malformed SSE frame
         }
@@ -100,9 +108,11 @@ async function streamLLMIntoRow(
     }
     if (buffer === "") buffer = "_(no reply)_";
     await flush(true);
+    return usage;
   } catch (e: any) {
     buffer = buffer || `_(LLM error: ${e?.message ?? "unknown"})_`;
     await supabaseAdmin.from("messages").update({ content: buffer, status: "error" }).eq("id", rowId);
+    return usage;
   }
 }
 
