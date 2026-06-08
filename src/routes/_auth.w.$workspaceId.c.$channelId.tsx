@@ -151,6 +151,14 @@ function ChannelPage() {
           }
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `channel_id=eq.${channelId}` },
+        (payload) => {
+          const updated = payload.new as Message;
+          setMessages((m) => m.map((x) => (x.id === updated.id ? { ...x, ...updated } : x)));
+        }
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
