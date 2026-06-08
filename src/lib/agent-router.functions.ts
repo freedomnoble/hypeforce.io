@@ -158,7 +158,7 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
     const [{ data: allWsAgents }, { data: wsMembers }] = await Promise.all([
       supabase
         .from("agents")
-        .select("id,name,handle,role,system_prompt")
+        .select("id,name,handle,description,system_prompt")
         .eq("workspace_id", workspace_id),
       supabase
         .from("workspace_members")
@@ -174,7 +174,7 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
       (memberProfiles ?? []).map((p: any) => [p.id, p.display_name ?? "Member"]),
     );
     const bio = (a: any) =>
-      (a.role || (a.system_prompt ?? "").replace(/\s+/g, " ").slice(0, 120) || "Teammate").trim();
+      (a.description || (a.system_prompt ?? "").replace(/\s+/g, " ").slice(0, 120) || "Teammate").trim();
     const agentRosterLines = (allWsAgents ?? []).map(
       (a: any) => `- @${a.handle} (${a.name}): ${bio(a)}`,
     );
@@ -207,7 +207,7 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
 
       // Brand voice + pinned files come BEFORE the agent's own prompt so they
       // anchor tone, and KB comes after as supporting reference material.
-      const selfLine = `YOU ARE: @${agent.handle} — ${agent.name}${agent.role ? `, ${agent.role}` : ""}.`;
+      const selfLine = `YOU ARE: @${agent.handle} — ${agent.name}${((agent as any).description) ? `, ${(agent as any).description}` : ""}.`;
       const teammateLines = agentRosterLines.filter(
         (l) => !l.startsWith(`- @${agent.handle} `),
       );
