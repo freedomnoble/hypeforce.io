@@ -1,62 +1,48 @@
-# Lovable AI Gateway, DMs, realtime, and team-aware agents
+# Trim default agents to ChatGPT + Gemini + Nano Banana
 
-## 1. What models the gateway uses + how routing works (answer, no code change)
+Anthropic and Manus stay available as BYOK providers — only the auto-seeded starter agents and existing seeded rows change. Marketing copy is left alone.
 
-The Lovable AI Gateway is an OpenAI-compatible proxy at `https://ai.gateway.lovable.dev/v1`. Your app authenticates with a single server-side `LOVABLE_API_KEY` and picks a model per request. There are no separate "GPTs" or "agents" inside the gateway — your `agents` table rows are *your* personas, and each one is mapped to a model.
+## 1. Update starter seed (`src/lib/bootstrap.functions.ts`)
 
-Models the gateway exposes (and that your code uses):
-- Google: `google/gemini-3-flash-preview` (default), `gemini-3.1-flash-lite-preview`, `gemini-3.5-flash`, `gemini-3.1-pro-preview`, `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`
-- OpenAI: `openai/gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-5.2`, `gpt-5.4` (+ mini/nano/pro), `gpt-5.5` (+ pro)
-- Image: `google/gemini-2.5-flash-image` (Nano Banana), `gemini-3-pro-image-preview`, `gemini-3.1-flash-image-preview`, `openai/gpt-image-2`, `openai/gpt-image-1-mini`
+Replace the 4-agent `starters` array with 3:
+- **ChatGPT** — `provider: "openai"`, `model: "openai/gpt-5-mini"` (unchanged).
+- **Gemini** — `provider: "google"`, `model: "google/gemini-3-flash-preview"` (unchanged).
+- **Nano Banana** — `handle: "nano"`, `provider: "google"`, `model: "google/gemini-2.5-flash-image"`, description "Image generator — @nano to make pictures".
 
-How your app routes today (see `src/lib/agent-router.functions.ts`):
-- `agent.provider === "google"` → `google/gemini-2.5-flash`
-- `anthropic` / `manus` / anything else → `openai/gpt-5-mini` (Anthropic and Manus aren't on the gateway, so they're silently aliased to GPT-5-mini)
-- If the agent has `preferred_route = "byok:<provider>"` and the *calling user* has a key in `user_ai_connections`, the call goes direct to that provider via `src/lib/ai-providers.server.ts`, bypassing the gateway. Manus has no direct adapter yet.
+Drop Manus and Claude entries. Tighten the local provider union type to `"openai" | "google"` since those are the only seeded providers (the broader `SUPPORTED_PROVIDERS` list in `ai-connections.functions.ts` is unchanged so BYOK still works for Anthropic/Manus).
 
-## 2. Why DMs to a bot return nothing (bug fix)
+## 2. Replace the DB-side seed trigger (`handle_new_user`)
 
-In `src/routes/_auth.w.$workspaceId.d.$dmId.tsx`, `send()` passes `mention_agent_ids: mentions` — only @-mentioned agents. In `invokeAgentRouter`, the fallback that picks up "everyone in the room" only runs for `channel_id`, never `dm_id`. So a plain DM to a bot (no `@handle`) resolves to zero agents and the router returns `{ dispatched: 0 }`.
+The `public.handle_new_user()` function (run on signup) also seeds Manus + Claude and adds them to the `launch-plan` channel. Migration to:
+- Rewrite the function to insert only ChatGPT, Gemini, Nano Banana.
+- Add all three to the default `launch-plan` channel (replacing the manus/chatgpt/claude trio).
+- Change the welcome message author from `agent_manus_id` to `agent_chatgpt_id` and update the copy to reference the 3-agent roster.
 
-Fix:
-- In the DM `send()`, when no mentions are present, pass the DM's agent participants as `mention_agent_ids` (use the existing `participantAgentIds`).
-- Defensive: in `invokeAgentRouter`, also fall back to `dm_participants` (member_type=agent) when `agentIds` is empty and `dm_id` is set.
+## 3. Image-only agent behavior (`src/lib/agent-router.functions.ts`)
 
-## 3. Why channel replies only appear on reload (realtime not enabled)
+Nano Banana must reply with a generated image, not text. Add a branch in the per-agent loop:
+- If `agent.model === "google/gemini-2.5-flash-image"` (or `handle === "nano"`), call the Lovable AI Gateway `/v1/chat/completions` endpoint with that model and `modalities: ["image","text"]` (gateway-supported), grab the returned image URL/data, and insert a message whose `content` is a markdown image: `![generated](<url>)` (optionally with a short caption above).
+- On any error, insert a friendly fallback text reply instead.
+- Skip brand voice / KB blocks for the image path (they bloat the prompt and the model ignores them); keep just the last user message as the prompt.
 
-Both routes subscribe via `supabase.channel(...).on("postgres_changes", ...)` on `public.messages`. But `public.messages` is **not in the `supabase_realtime` publication**, so INSERTs are never broadcast. The agent reply is written by the server, but the client only sees it after a reload (initial fetch). The "thinking" bubble vanishes after the 60-second client-side timeout.
+No schema change to `messages` needed — image is embedded in markdown and the chat UI already renders markdown.
 
-Fix (single migration):
-```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
-ALTER TABLE public.messages REPLICA IDENTITY FULL;
-```
-RLS already scopes who can read messages, so subscribers only get rows they're allowed to see.
+## 4. Backfill existing workspaces (data migration via insert tool)
 
-## 4. Give every agent context of itself and its teammates
+Run a one-off cleanup:
+- `DELETE FROM public.messages WHERE author_agent_id IN (SELECT id FROM public.agents WHERE handle IN ('manus','claude'));` — required because `messages.author_agent_id` FKs to agents.
+- `DELETE FROM public.channel_members WHERE agent_id IN (SELECT id FROM public.agents WHERE handle IN ('manus','claude'));`
+- `DELETE FROM public.dm_participants WHERE agent_id IN (SELECT id FROM public.agents WHERE handle IN ('manus','claude'));`
+- `DELETE FROM public.agents WHERE handle IN ('manus','claude');`
+- For every workspace missing a `nano` agent, insert the Nano Banana row and add it as a member of the workspace's first/`launch-plan` channel.
 
-In `invokeAgentRouter`, build a "team roster" block once per request and prepend it to each agent's system prompt:
-- Load all agents in `workspace_id` (id, name, handle, role/title, one-line description from `system_prompt` or a new short bio field if present).
-- Load the workspace's human members (display_name, role) from `workspace_members` + `profiles`.
-- Inject as:
-  ```
-  YOU ARE: @{handle} — {name}, {role}.
-  TEAMMATES (other AI):
-   - @alex (Strategist): ...
-   - @sam (Designer): ...
-  HUMAN TEAMMATES:
-   - Jane Doe (Owner)
-   - ...
-  When another @handle is mentioned, defer to them on their specialty.
-  ```
-- Keep it compact (cap each bio to ~120 chars) so it doesn't blow the context.
+## Files / migrations
+- Edit: `src/lib/bootstrap.functions.ts`
+- Edit: `src/lib/agent-router.functions.ts`
+- New migration: rewrite `public.handle_new_user()`
+- Data cleanup: bulk delete + nano backfill via insert tool
 
-## Files to change
-- `src/routes/_auth.w.$workspaceId.d.$dmId.tsx` — pass `participantAgentIds` when no mentions.
-- `src/lib/agent-router.functions.ts` — DM fallback to `dm_participants`; build + inject team roster block.
-- New migration — add `public.messages` to `supabase_realtime` + `REPLICA IDENTITY FULL`.
-
-## Out of scope (ask before doing)
-- Adding a `bio` / `title` column to `agents` for richer roster lines.
-- Switching the default chat model from `gpt-5-mini` to `google/gemini-3-flash-preview` (cheaper/faster, current Lovable default).
-- Streaming agent replies token-by-token instead of single insert at the end.
+## Out of scope
+- Landing page, tour, FAQ, and index `<head>` copy still mention Claude/Manus (per your call — they remain valid BYOK options).
+- `SUPPORTED_PROVIDERS` / BYOK connect screen unchanged — Anthropic + Manus stay connectable.
+- No streaming/tool-call rework for Nano Banana; it's a single-shot image response.

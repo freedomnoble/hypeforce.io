@@ -71,22 +71,12 @@ export const ensureUserBootstrap = createServerFn({ method: "POST" })
     const starters: Array<{
       name: string;
       handle: string;
-      provider: "manus" | "openai" | "anthropic" | "google";
+      provider: "openai" | "google";
       model: string;
       description: string;
       system_prompt: string;
       avatar_url: string;
     }> = [
-      {
-        name: "Manus",
-        handle: "manus",
-        provider: "manus",
-        model: "manus-default",
-        description: "Autonomous research & ops agent",
-        system_prompt:
-          "You are Manus, an autonomous research and operations agent. Be concise, practical, and structured.",
-        avatar_url: "/avatars/manus.png",
-      },
       {
         name: "ChatGPT",
         handle: "chatgpt",
@@ -98,16 +88,6 @@ export const ensureUserBootstrap = createServerFn({ method: "POST" })
         avatar_url: "/avatars/chatgpt.png",
       },
       {
-        name: "Claude",
-        handle: "claude",
-        provider: "anthropic",
-        model: "openai/gpt-5-mini",
-        description: "Long-form writing & reasoning",
-        system_prompt:
-          "You are Claude, a thoughtful writer and reasoner. Favor clarity, nuance, and warmth.",
-        avatar_url: "/avatars/claude.png",
-      },
-      {
         name: "Gemini",
         handle: "gemini",
         provider: "google",
@@ -116,6 +96,16 @@ export const ensureUserBootstrap = createServerFn({ method: "POST" })
         system_prompt:
           "You are Gemini, a fast multimodal assistant. Be quick, structured, and friendly.",
         avatar_url: "/avatars/gemini.png",
+      },
+      {
+        name: "Nano Banana",
+        handle: "nano",
+        provider: "google",
+        model: "google/gemini-2.5-flash-image",
+        description: "Image generator — @nano to make pictures",
+        system_prompt:
+          "You are Nano Banana, an image generation agent. When @-mentioned, generate an image that matches the request.",
+        avatar_url: "/avatars/nano.png",
       },
     ];
 

@@ -41,6 +41,41 @@ async function callLLM(model: string, system: string, history: { role: string; c
   }
 }
 
+async function callImageGen(model: string, prompt: string, handle: string) {
+  const apiKey = process.env.LOVABLE_API_KEY;
+  if (!apiKey) return `_(@${handle} can't generate images — LOVABLE_API_KEY not configured.)_`;
+  try {
+    const res = await fetch(LOVABLE_AI_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        modalities: ["image", "text"],
+      }),
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      return `_(@${handle} couldn't generate an image: ${res.status} ${t.slice(0, 200)})_`;
+    }
+    const json = await res.json();
+    const msg = json.choices?.[0]?.message;
+    const url: string | undefined =
+      msg?.images?.[0]?.image_url?.url ?? msg?.images?.[0]?.url;
+    if (!url) {
+      const text = msg?.content ?? "";
+      return `_(@${handle} didn't return an image.)_${text ? `\n\n${text}` : ""}`;
+    }
+    const caption = typeof msg?.content === "string" && msg.content.trim() ? msg.content.trim() : "";
+    return `${caption ? caption + "\n\n" : ""}![${prompt.slice(0, 100)}](${url})`;
+  } catch (e: any) {
+    return `_(@${handle} image gen error: ${e.message})_`;
+  }
+}
+
 export const invokeAgentRouter = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => InputSchema.parse(input))
@@ -196,14 +231,14 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
     // For each agent, generate and insert a reply.
     let dispatched = 0;
     for (const agent of agents ?? []) {
-      const model =
-        agent.provider === "google"
-          ? "google/gemini-2.5-flash"
-          : agent.provider === "anthropic"
-          ? "openai/gpt-5-mini"
-          : agent.provider === "manus"
-          ? "openai/gpt-5-mini"
-          : "openai/gpt-5-mini";
+      const isImageAgent =
+        agent.model === "google/gemini-2.5-flash-image" || agent.handle === "nano";
+
+      const model = isImageAgent
+        ? "google/gemini-2.5-flash-image"
+        : agent.provider === "google"
+        ? "google/gemini-2.5-flash"
+        : "openai/gpt-5-mini";
 
       // Brand voice + pinned files come BEFORE the agent's own prompt so they
       // anchor tone, and KB comes after as supporting reference material.
@@ -232,7 +267,13 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
       const byokMatch = pref?.match(/^byok:(openai|anthropic|google|manus)$/);
       const byokProvider = byokMatch ? (byokMatch[1] as ProviderId) : null;
 
-      if (byokProvider) {
+      if (isImageAgent) {
+        // Image-only agent (Nano Banana). Use the last user message as the
+        // prompt; skip brand voice / KB blocks (they bloat the image prompt).
+        const lastUser = [...history].reverse().find((m) => m.role === "user");
+        const imgPrompt = lastUser?.content ?? "An image";
+        content = await callImageGen(model, imgPrompt, agent.handle);
+      } else if (byokProvider) {
         // BYOK route requested. Use the calling user's PERSONAL key; never
         // someone else's. If no active key exists, return a friendly agent
         // message rather than silently switching providers — admins set
