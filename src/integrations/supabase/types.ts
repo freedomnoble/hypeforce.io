@@ -570,6 +570,7 @@ export type Database = {
           dm_id: string | null
           id: string
           mentions: string[]
+          status: string
           workspace_id: string
         }
         Insert: {
@@ -583,6 +584,7 @@ export type Database = {
           dm_id?: string | null
           id?: string
           mentions?: string[]
+          status?: string
           workspace_id: string
         }
         Update: {
@@ -596,6 +598,7 @@ export type Database = {
           dm_id?: string | null
           id?: string
           mentions?: string[]
+          status?: string
           workspace_id?: string
         }
         Relationships: [
