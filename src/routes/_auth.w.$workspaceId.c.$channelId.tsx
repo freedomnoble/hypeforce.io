@@ -93,41 +93,6 @@ function ChannelPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const thinkingTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  useEffect(() => {
-    (async () => {
-      const { data: c } = await supabase.from("channels").select("name,topic").eq("id", channelId).maybeSingle();
-      setChannel(c);
-      const { data: ag } = await supabase.from("agents").select("*").eq("workspace_id", workspaceId);
-      setAgents(ag ?? []);
-      const { data: cm } = await supabase
-        .from("channel_members")
-        .select("agent_id")
-        .eq("channel_id", channelId)
-        .eq("member_type", "agent");
-      setChannelAgentIds((cm ?? []).map((r: any) => r.agent_id).filter(Boolean));
-      const { data: msgs } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("channel_id", channelId)
-        .order("created_at", { ascending: true })
-        .limit(200);
-      setMessages((msgs ?? []) as Message[]);
-      const userIds = Array.from(new Set((msgs ?? []).map((m: any) => m.author_user_id).filter(Boolean)));
-      if (userIds.length) {
-        const { data: ps } = await supabase.from("profiles").select("*").in("id", userIds);
-        const map: Record<string, Profile> = {};
-        (ps ?? []).forEach((p: any) => (map[p.id] = p));
-        setProfiles(map);
-      }
-      const { data: u } = await supabase.auth.getUser();
-      if (u.user) {
-        const { data: p } = await supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle();
-        setMe(p);
-      }
-      await refetchPinnedFiles();
-    })();
-  }, [channelId, workspaceId]);
-
   const refetchPinnedFiles = async () => {
     const { data: pf } = await supabase
       .from("files")
@@ -138,6 +103,55 @@ function ChannelPage() {
       .limit(20);
     setPinnedFiles((pf ?? []) as PinnedFile[]);
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const { data: c } = await supabase.from("channels").select("name,topic").eq("id", channelId).maybeSingle();
+      if (cancelled) return;
+      setChannel(c);
+      const { data: ag } = await supabase.from("agents").select("*").eq("workspace_id", workspaceId);
+      if (cancelled) return;
+      setAgents(ag ?? []);
+      const { data: cm } = await supabase
+        .from("channel_members")
+        .select("agent_id")
+        .eq("channel_id", channelId)
+        .eq("member_type", "agent");
+      if (cancelled) return;
+      setChannelAgentIds((cm ?? []).map((r: any) => r.agent_id).filter(Boolean));
+      const { data: msgs } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("channel_id", channelId)
+        .order("created_at", { ascending: true })
+        .limit(200);
+      if (cancelled) return;
+      setMessages((msgs ?? []) as Message[]);
+      const userIds = Array.from(new Set((msgs ?? []).map((m: any) => m.author_user_id).filter(Boolean)));
+      if (userIds.length) {
+        const { data: ps } = await supabase.from("profiles").select("*").in("id", userIds);
+        if (cancelled) return;
+        const map: Record<string, Profile> = {};
+        (ps ?? []).forEach((p: any) => (map[p.id] = p));
+        setProfiles(map);
+      }
+      const { data: u } = await supabase.auth.getUser();
+      if (cancelled) return;
+      if (u.user) {
+        const { data: p } = await supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle();
+        if (cancelled) return;
+        setMe(p);
+      }
+      await refetchPinnedFiles();
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [channelId, workspaceId]);
+
+
 
 
   // realtime
