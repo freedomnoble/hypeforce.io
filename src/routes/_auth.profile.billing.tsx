@@ -93,8 +93,7 @@ function BillingPage() {
           environment: sub.environment,
         },
       });
-      const url =
-        res?.subscriptions?.[0]?.updatePaymentMethod ?? res?.overview;
+      const url = res?.overview ?? null;
       if (url) window.open(url, "_blank", "noopener,noreferrer");
       else toast.error("Could not open billing portal");
     } catch (e: any) {
