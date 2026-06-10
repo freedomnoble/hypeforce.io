@@ -94,6 +94,8 @@ function AdminPage() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [brandVoice, setBrandVoice] = useState("");
   const [savingBrand, setSavingBrand] = useState(false);
+  const [coffeeEnabled, setCoffeeEnabled] = useState(false);
+  const [savingFlag, setSavingFlag] = useState(false);
   const [entries, setEntries] = useState<KBEntry[]>([]);
   const [files, setFiles] = useState<Record<string, FileRow>>({});
   const [uploading, setUploading] = useState(false);
