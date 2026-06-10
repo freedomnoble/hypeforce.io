@@ -502,7 +502,7 @@ function ChannelPage() {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto scrollbar-thin">
-              <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} />
+              <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} allAgents={agents} channelId={channelId} onMembershipChanged={refetchChannelAgents} />
             </div>
           </SheetContent>
         </Sheet>
