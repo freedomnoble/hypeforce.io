@@ -33,8 +33,11 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { invokeAgentRouter } from "@/lib/agent-router.functions";
 import { renameChannel } from "@/lib/collab.functions";
+import { addAgentToChannel, removeAgentFromChannel } from "@/lib/channel-membership.functions";
 import { CreditBadge } from "@/components/hypeforce/credit-badge";
 import { ShareMessageDialog, type ShareableMessage } from "@/components/hypeforce/share-message-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/c/$channelId")({
   component: ChannelPage,
@@ -183,6 +186,15 @@ function ChannelPage() {
     () => agents.filter((a) => channelAgentIds.includes(a.id)),
     [agents, channelAgentIds],
   );
+
+  const refetchChannelAgents = async () => {
+    const { data: cm } = await supabase
+      .from("channel_members")
+      .select("agent_id")
+      .eq("channel_id", channelId)
+      .eq("member_type", "agent");
+    setChannelAgentIds((cm ?? []).map((r: any) => r.agent_id).filter(Boolean));
+  };
 
   const parseMentions = (text: string): string[] => {
     const ids: string[] = [];
@@ -476,7 +488,7 @@ function ChannelPage() {
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} />
+            <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} allAgents={agents} channelId={channelId} onMembershipChanged={refetchChannelAgents} />
           </aside>
         )}
 
@@ -490,7 +502,7 @@ function ChannelPage() {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto scrollbar-thin">
-              <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} />
+              <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} allAgents={agents} channelId={channelId} onMembershipChanged={refetchChannelAgents} />
             </div>
           </SheetContent>
         </Sheet>
@@ -510,11 +522,51 @@ function ChannelDetailsBody({
   me,
   roomAgents,
   pinnedFiles,
+  allAgents,
+  channelId,
+  onMembershipChanged,
 }: {
   me: Profile | null;
   roomAgents: Agent[];
   pinnedFiles: PinnedFile[];
+  allAgents: Agent[];
+  channelId: string;
+  onMembershipChanged: () => Promise<void> | void;
 }) {
+  const addAgentFn = useServerFn(addAgentToChannel);
+  const removeAgentFn = useServerFn(removeAgentFromChannel);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const roomIds = new Set(roomAgents.map((a) => a.id));
+  const available = allAgents.filter((a) => !roomIds.has(a.id));
+
+  const handleAdd = async (agentId: string) => {
+    setBusyId(agentId);
+    try {
+      await addAgentFn({ data: { channelId, agentId } });
+      await onMembershipChanged();
+      setPickerOpen(false);
+      toast.success("Agent added");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Couldn't add agent");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleRemove = async (agentId: string) => {
+    setBusyId(agentId);
+    try {
+      await removeAgentFn({ data: { channelId, agentId } });
+      await onMembershipChanged();
+      toast.success("Agent removed");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Couldn't remove agent");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <>
       <div className="px-4 py-4 border-b border-border">
@@ -530,18 +582,69 @@ function ChannelDetailsBody({
             online
           />
           {roomAgents.map((a) => (
-            <MemberRow
-              key={a.id}
-              name={a.name}
-              subtitle={a.description ?? a.provider}
-              avatar={a.avatar_url ?? undefined}
-              badge={a.provider}
-              fallback={<Bot className="w-3.5 h-3.5" />}
-              online
-            />
+            <div key={a.id} className="group flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <MemberRow
+                  name={a.name}
+                  subtitle={a.description ?? a.provider}
+                  avatar={a.avatar_url ?? undefined}
+                  badge={a.provider}
+                  fallback={<Bot className="w-3.5 h-3.5" />}
+                  online
+                />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                title="Remove from channel"
+                disabled={busyId === a.id}
+                onClick={() => handleRemove(a.id)}
+              >
+                {busyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+              </Button>
+            </div>
           ))}
         </div>
+        <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="sm" className="mt-3 h-7 px-2 text-xs gap-1.5 w-full justify-start">
+              <Plus className="w-3.5 h-3.5" />
+              Add agent
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-64 p-1">
+            {available.length === 0 ? (
+              <div className="text-xs text-muted-foreground px-2 py-3 text-center">
+                All your agents are already here.
+              </div>
+            ) : (
+              <div className="max-h-64 overflow-y-auto scrollbar-thin">
+                {available.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    disabled={busyId === a.id}
+                    onClick={() => handleAdd(a.id)}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent/40 transition-colors text-left disabled:opacity-50"
+                  >
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src={a.avatar_url ?? undefined} />
+                      <AvatarFallback className="text-[10px]"><Bot className="w-3 h-3" /></AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm truncate">{a.name}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">@{a.handle}</div>
+                    </div>
+                    {busyId === a.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
       </div>
+
 
       <div className="px-4 py-4 border-b border-border">
         <div className="flex items-center justify-between mb-3">
