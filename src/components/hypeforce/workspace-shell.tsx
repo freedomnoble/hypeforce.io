@@ -74,6 +74,7 @@ export interface Workspace {
   id: string;
   name: string;
   slug: string;
+  feature_flags?: Record<string, boolean> | null;
 }
 export interface Channel {
   id: string;
