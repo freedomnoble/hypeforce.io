@@ -30,8 +30,9 @@ function InvitesPage() {
   const { data: cfg } = useQuery({ queryKey: ["invite-config"], queryFn: () => fetchCfg() });
   const { data: comped } = useQuery({ queryKey: ["comped-users"], queryFn: () => fetchComped() });
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const url = cfg ? `${origin}/join/${cfg.token}` : "";
+  // Always share the canonical published origin so previews and OG metadata
+  // resolve to the real site, not a Lovable preview URL.
+  const url = cfg ? `https://hypeforce.io/join/${cfg.token}` : "";
 
   const wrap = async (label: string, fn: () => Promise<any>, keys: string[][] = []) => {
     setBusy(true);
