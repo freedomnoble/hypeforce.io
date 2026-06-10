@@ -255,6 +255,26 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
       pinned = (pf ?? []) as any;
     }
 
+    // Recent project-log memos for this channel.
+    let memos: {
+      title: string | null;
+      body: string;
+      tags: string[];
+      created_at: string;
+      author_type: string;
+      author_user_id: string | null;
+      author_agent_id: string | null;
+    }[] = [];
+    if (channel_id) {
+      const { data: ms } = await supabase
+        .from("channel_memos")
+        .select("title,body,tags,created_at,author_type,author_user_id,author_agent_id")
+        .eq("channel_id", channel_id)
+        .order("created_at", { ascending: false })
+        .limit(15);
+      memos = ((ms ?? []) as any[]).reverse();
+    }
+
     const history: { role: "user" | "assistant"; content: string }[] = (recent ?? [])
       .reverse()
       .map((m: any) => ({
@@ -275,11 +295,27 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
 
     const pinnedBlock =
       pinned.filter((p) => p.content_text).length > 0
-        ? `\n\nPinned files in this channel:\n${pinned
+        ? `\n\n# Pinned files (always-on context for this channel)\n${pinned
             .filter((p) => p.content_text)
-            .map((p) => `<<FILE: ${p.filename}>>\n${(p.content_text ?? "").slice(0, 4000)}\n<<END FILE>>`)
+            .map((p) => `<<FILE: ${p.filename}>>\n${(p.content_text ?? "").slice(0, 12000)}\n<<END FILE>>`)
             .join("\n\n")}`
         : "";
+
+    const memoBlock =
+      memos.length > 0
+        ? `\n\n# Project log (shared notebook — humans and agents append memos here)\n${memos
+            .map((m) => {
+              const who =
+                m.author_type === "agent"
+                  ? `@${(allWsAgentsForName(m.author_agent_id) ?? "agent")}`
+                  : "human teammate";
+              const head = m.title ? `## ${m.title} — ${who}` : `## ${who}`;
+              const tags = m.tags?.length ? ` _[${m.tags.join(", ")}]_` : "";
+              return `${head}${tags}\n${(m.body ?? "").slice(0, 2000)}`;
+            })
+            .join("\n\n")}`
+        : "";
+
 
     // Team roster — every agent gets to know its siblings + human teammates.
     const [{ data: allWsAgents }, { data: wsMembers }] = await Promise.all([
