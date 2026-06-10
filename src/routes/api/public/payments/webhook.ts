@@ -273,6 +273,13 @@ async function handleWebhook(req: Request, env: PaddleEnv) {
     case EventName.TransactionCompleted:
       await handleTransactionCompleted(event.data);
       break;
+    case EventName.TransactionPaymentFailed:
+      // subscription.updated also fires with status='past_due'; just log here.
+      console.warn("[paddle webhook] transaction.payment_failed", {
+        transactionId: (event.data as any)?.id,
+        subscriptionId: (event.data as any)?.subscriptionId,
+      });
+      break;
     default:
       console.log("[paddle webhook] unhandled event:", event.eventType);
   }
