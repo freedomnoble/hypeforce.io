@@ -1077,6 +1077,48 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_credit_periods: {
+        Row: {
+          created_at: string
+          credits_granted: number
+          grant_id: string | null
+          id: string
+          period_start: string
+          subscription_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_granted: number
+          grant_id?: string | null
+          id?: string
+          period_start: string
+          subscription_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_granted?: number
+          grant_id?: string | null
+          id?: string
+          period_start?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_credit_periods_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "credit_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_credit_periods_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           admin_note: string | null

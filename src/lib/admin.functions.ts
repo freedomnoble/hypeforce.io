@@ -185,12 +185,29 @@ export const setSubscription = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: any = { ...data };
+    // subscriptions has no UNIQUE on user_id (a user may re-subscribe over time),
+    // so upsert(onConflict: user_id) is invalid. Update most recent row, else insert.
+    const { data: existing } = await supabaseAdmin
+      .from("subscriptions")
+      .select("id")
+      .eq("user_id", data.user_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const patch: any = { ...data, updated_at: new Date().toISOString() };
     if (data.status === "canceled") patch.canceled_at = new Date().toISOString();
-    const { error } = await supabaseAdmin.from("subscriptions").upsert(patch, {
-      onConflict: "user_id",
-    });
-    if (error) throw new Error(error.message);
+    if (existing) {
+      const { error } = await supabaseAdmin
+        .from("subscriptions")
+        .update(patch)
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabaseAdmin
+        .from("subscriptions")
+        .insert({ ...patch, environment: "live" });
+      if (error) throw new Error(error.message);
+    }
     return { ok: true };
   });
 
@@ -200,9 +217,35 @@ export const approveCancellation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Pull the most recent subscription so we can also tell Paddle to stop billing.
+    const { data: row } = await supabaseAdmin
+      .from("subscriptions")
+      .select("id, paddle_subscription_id, environment, status")
+      .eq("user_id", data.user_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (row?.paddle_subscription_id) {
+      try {
+        const { getPaddleClient } = await import("@/lib/paddle.server");
+        const paddle = getPaddleClient(row.environment as "sandbox" | "live");
+        await paddle.subscriptions.cancel(row.paddle_subscription_id, {
+          effectiveFrom: "next_billing_period",
+        });
+      } catch (e: any) {
+        // Don't block the admin action if Paddle is already canceled / unreachable.
+        console.warn("[admin] paddle cancel failed:", e?.message);
+      }
+    }
     const { error } = await supabaseAdmin
       .from("subscriptions")
-      .update({ status: "canceled", canceled_at: new Date().toISOString() })
+      .update({
+        status: "canceled",
+        canceled_at: new Date().toISOString(),
+        cancel_at_period_end: false,
+        updated_at: new Date().toISOString(),
+      })
       .eq("user_id", data.user_id);
     if (error) throw new Error(error.message);
     return { ok: true };

@@ -31,6 +31,7 @@ import { Route as AuthOnboardingRouteImport } from './routes/_auth.onboarding'
 import { Route as AuthOnboardingIndexRouteImport } from './routes/_auth.onboarding.index'
 import { Route as AuthProfileCreditsRouteImport } from './routes/_auth.profile.credits'
 import { Route as AuthProfileConnectionsRouteImport } from './routes/_auth.profile.connections'
+import { Route as AuthProfileBillingRouteImport } from './routes/_auth.profile.billing'
 import { Route as AuthOnboardingTourRouteImport } from './routes/_auth.onboarding.tour'
 import { Route as AuthOnboardingTeamRouteImport } from './routes/_auth.onboarding.team'
 import { Route as AuthOnboardingProjectRouteImport } from './routes/_auth.onboarding.project'
@@ -153,6 +154,11 @@ const AuthProfileConnectionsRoute = AuthProfileConnectionsRouteImport.update({
   path: '/connections',
   getParentRoute: () => AuthProfileRoute,
 } as any)
+const AuthProfileBillingRoute = AuthProfileBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AuthProfileRoute,
+} as any)
 const AuthOnboardingTourRoute = AuthOnboardingTourRouteImport.update({
   id: '/tour',
   path: '/tour',
@@ -242,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/onboarding/project': typeof AuthOnboardingProjectRoute
   '/onboarding/team': typeof AuthOnboardingTeamRoute
   '/onboarding/tour': typeof AuthOnboardingTourRoute
+  '/profile/billing': typeof AuthProfileBillingRoute
   '/profile/connections': typeof AuthProfileConnectionsRoute
   '/profile/credits': typeof AuthProfileCreditsRoute
   '/onboarding/': typeof AuthOnboardingIndexRoute
@@ -275,6 +282,7 @@ export interface FileRoutesByTo {
   '/onboarding/project': typeof AuthOnboardingProjectRoute
   '/onboarding/team': typeof AuthOnboardingTeamRoute
   '/onboarding/tour': typeof AuthOnboardingTourRoute
+  '/profile/billing': typeof AuthProfileBillingRoute
   '/profile/connections': typeof AuthProfileConnectionsRoute
   '/profile/credits': typeof AuthProfileCreditsRoute
   '/onboarding': typeof AuthOnboardingIndexRoute
@@ -312,6 +320,7 @@ export interface FileRoutesById {
   '/_auth/onboarding/project': typeof AuthOnboardingProjectRoute
   '/_auth/onboarding/team': typeof AuthOnboardingTeamRoute
   '/_auth/onboarding/tour': typeof AuthOnboardingTourRoute
+  '/_auth/profile/billing': typeof AuthProfileBillingRoute
   '/_auth/profile/connections': typeof AuthProfileConnectionsRoute
   '/_auth/profile/credits': typeof AuthProfileCreditsRoute
   '/_auth/onboarding/': typeof AuthOnboardingIndexRoute
@@ -349,6 +358,7 @@ export interface FileRouteTypes {
     | '/onboarding/project'
     | '/onboarding/team'
     | '/onboarding/tour'
+    | '/profile/billing'
     | '/profile/connections'
     | '/profile/credits'
     | '/onboarding/'
@@ -382,6 +392,7 @@ export interface FileRouteTypes {
     | '/onboarding/project'
     | '/onboarding/team'
     | '/onboarding/tour'
+    | '/profile/billing'
     | '/profile/connections'
     | '/profile/credits'
     | '/onboarding'
@@ -418,6 +429,7 @@ export interface FileRouteTypes {
     | '/_auth/onboarding/project'
     | '/_auth/onboarding/team'
     | '/_auth/onboarding/tour'
+    | '/_auth/profile/billing'
     | '/_auth/profile/connections'
     | '/_auth/profile/credits'
     | '/_auth/onboarding/'
@@ -600,6 +612,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthProfileConnectionsRouteImport
       parentRoute: typeof AuthProfileRoute
     }
+    '/_auth/profile/billing': {
+      id: '/_auth/profile/billing'
+      path: '/billing'
+      fullPath: '/profile/billing'
+      preLoaderRoute: typeof AuthProfileBillingRouteImport
+      parentRoute: typeof AuthProfileRoute
+    }
     '/_auth/onboarding/tour': {
       id: '/_auth/onboarding/tour'
       path: '/tour'
@@ -712,11 +731,13 @@ const AuthOnboardingRouteWithChildren = AuthOnboardingRoute._addFileChildren(
 )
 
 interface AuthProfileRouteChildren {
+  AuthProfileBillingRoute: typeof AuthProfileBillingRoute
   AuthProfileConnectionsRoute: typeof AuthProfileConnectionsRoute
   AuthProfileCreditsRoute: typeof AuthProfileCreditsRoute
 }
 
 const AuthProfileRouteChildren: AuthProfileRouteChildren = {
+  AuthProfileBillingRoute: AuthProfileBillingRoute,
   AuthProfileConnectionsRoute: AuthProfileConnectionsRoute,
   AuthProfileCreditsRoute: AuthProfileCreditsRoute,
 }
