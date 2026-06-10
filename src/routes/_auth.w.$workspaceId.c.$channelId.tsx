@@ -495,6 +495,13 @@ function ChannelPage() {
           </SheetContent>
         </Sheet>
       </div>
+      <ShareMessageDialog
+        open={!!shareMsg}
+        onOpenChange={(v) => !v && setShareMsg(null)}
+        message={shareMsg}
+        workspaceId={workspaceId}
+        sourceLabel={channel ? `#${channel.name}` : "channel"}
+      />
     </WorkspaceShell>
   );
 }
