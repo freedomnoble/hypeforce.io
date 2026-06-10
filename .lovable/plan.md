@@ -1,61 +1,35 @@
-# Agent personality + reinforcement
+## What the error actually is
 
-Let each agent carry a short identity (name, role, personality) edited workspace-wide in Admin, with optional per-channel overrides. Inject the identity as a brief reminder on every 10th agent reply.
+Your DB does **not** gate sending on subscription. The only requirement to insert a message is being a `workspace_member`. The real cause for the `brand-voice` channel:
 
-## 1. Schema
+- `handle_new_user` (the signup trigger) only adds the new user to `channel_members` for **one** of the four default channels (`launch-plan`). The other three (`brand-voice`, `build-log`, `market-research`) have agents added but **no user row**.
+- The send call does `.insert(...).select().single()`. The INSERT's `WITH CHECK` passes (you're a workspace member), but the `RETURNING` row is filtered by the SELECT policy, which requires a `channel_members` row for the user. PostgREST surfaces that as the cryptic `new row violates row-level security policy for table "messages"` toast you're seeing.
 
-**`agents` (workspace-level defaults)** — add three nullable columns:
-- `role` (text) — short title (e.g. "Senior brand strategist")
-- `personality` (text) — voice/tone paragraph (markdown OK)
-- `display_name` (text) — overrides `name` in chat when set; falls back to `name`
+Verified: for workspace Madelocal, `channel_members` has user rows for `launch-plan` only; `brand-voice`/`build-log`/`market-research` have no user member, so sending there throws RLS for the workspace owner.
 
-**New `channel_agent_overrides` table** — per-channel per-agent override:
-- `channel_id`, `agent_id` (composite PK), `workspace_id`
-- `display_name`, `role`, `personality` (all nullable; null = inherit from agent)
-- RLS: workspace members read/write for their workspace
+## Plan
 
-**New `agent_reply_counters`** — per-channel per-agent counter:
-- `channel_id`, `agent_id` (composite PK), `count int default 0`, `updated_at`
-- Incremented server-side after each agent reply in `agent-router`
+### 1. Fix the root cause (DB migration)
 
-## 2. Backend (`agent-router.functions.ts`)
+- Update `public.handle_new_user()` to insert a `channel_members` row (member_type `user`) for the creating user on **all four** default channels, not just `launch-plan`.
+- One-shot backfill: for every existing channel, insert a `channel_members` row for the workspace owner (and any `workspace_members` with role `owner`/`admin`) where one doesn't already exist. Scoped to channels created by the owner so we don't auto-join admins into channels someone else explicitly invited them out of.
 
-For each agent reply, resolve identity = override ?? agent defaults. Build a compact identity block:
+### 2. Make the toast customer-friendly
 
-```
-You are {display_name}, {role}.
-{personality}
-```
+In `src/routes/_auth.w.$workspaceId.c.$channelId.tsx` `send()` and `src/routes/_auth.w.$workspaceId.d.$dmId.tsx` (DM send), replace the raw `e.message` with a friendly message:
 
-- Always prepend a one-line identity tag to the system prompt: `Identity: {display_name} — {role}`.
-- Increment `agent_reply_counters.count`. If `count % 10 === 0`, also prepend the full identity block above the chat history as a system message ("Reminder of who you are…").
-- Skip reinforcement if all three fields are empty.
+- Detect Postgres permission / RLS errors (Supabase `PostgrestError` with `code` `42501` or message containing `row-level security` / `permission denied`) and show: **"Couldn't send your message. Please refresh and try again — if it keeps happening, contact support."**
+- Other errors keep a short generic fallback: **"Couldn't send your message. Please try again."**
+- Log the original error to `console.error` so we still see it in dev tools / logs.
 
-## 3. UI
+Skipping the literal "To start a new channel please subscribe" wording because (a) it's a different bug than missing subscription, and (b) it would mislead users who actually have an active subscription. Happy to swap wording if you'd rather.
 
-**Admin Console → Agents** (`src/routes/_auth.w.$workspaceId.admin.tsx` or its agents tab):
-- Add inputs for Display name, Role, Personality on each agent card.
-- Save via existing agent update path (extend server fn).
+### 3. Verify
 
-**Channel details pane** (`channel-details` body, next to each room agent):
-- Pencil icon on hover → small popover with Display name / Role / Personality inputs.
-- Header text: "Override for #channel-name" with "Reset to workspace default" link.
-- Writes to `channel_agent_overrides`.
+- After migration runs and you reload, try sending in `brand-voice`, `build-log`, `market-research` — should succeed.
+- Force an RLS error (e.g. simulate by signing in as a non-member) → confirm the friendly toast appears, not the raw Postgres string.
 
-**Display name resolution** in chat: messages render `effectiveName(agent, override)` everywhere agents are listed (member row, message header, mention autocomplete still uses `handle`).
+## Technical details
 
-## 4. Files
-
-- **Migration**: add columns + new tables + RLS + grants.
-- **New**: `src/lib/agent-identity.functions.ts` (update agent defaults, upsert/clear channel override, fetch effective identity).
-- **Edited**:
-  - `src/lib/agent-router.functions.ts` — resolve identity, inject reminder every 10th reply, bump counter.
-  - `src/components/hypeforce/channel-log-panel.tsx` or `channel-details` body — add override popover.
-  - Admin agents view — add the three fields.
-  - `src/routes/_auth.w.$workspaceId.c.$channelId.tsx` — use effective display name in member list and message headers.
-
-## Out of scope
-
-- Voice samples, avatars (already exist).
-- Cross-workspace agent sharing.
-- A separate "reset counter" UI — counter just lives in the background.
+- Migration touches: `public.handle_new_user` (replace), and a one-time `INSERT ... ON CONFLICT DO NOTHING` into `public.channel_members` for owner-created channels. No table schema changes, no new GRANTs needed.
+- Frontend touches: `send()` catch block in the two route files above. No new dependencies.
