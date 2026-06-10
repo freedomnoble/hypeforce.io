@@ -21,6 +21,65 @@ const InputSchema = z.object({
 
 const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
+// Extract <memo title="..." tags="a,b">body</memo> blocks from a model reply.
+function extractMemos(raw: string): {
+  cleaned: string;
+  memos: { title: string | null; tags: string[]; body: string }[];
+} {
+  const memos: { title: string | null; tags: string[]; body: string }[] = [];
+  const re = /<memo\b([^>]*)>([\s\S]*?)<\/memo>/gi;
+  let cleaned = raw.replace(re, (_full, attrs: string, body: string) => {
+    const titleMatch = attrs.match(/title\s*=\s*"([^"]*)"/i);
+    const tagsMatch = attrs.match(/tags\s*=\s*"([^"]*)"/i);
+    const tags = tagsMatch
+      ? tagsMatch[1]
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+          .slice(0, 8)
+      : [];
+    memos.push({
+      title: titleMatch ? titleMatch[1].trim().slice(0, 160) || null : null,
+      tags,
+      body: body.trim().slice(0, 8000),
+    });
+    return "";
+  });
+  cleaned = cleaned.replace(/\n{3,}/g, "\n\n").trim();
+  if (memos.length > 0) {
+    const note =
+      memos.length === 1
+        ? "_— logged 1 memo to project log_"
+        : `_— logged ${memos.length} memos to project log_`;
+    cleaned = cleaned ? `${cleaned}\n\n${note}` : note;
+  }
+  return { cleaned, memos };
+}
+
+async function persistMemos(
+  rowId: string,
+  workspaceId: string,
+  channelId: string,
+  agentId: string,
+  cleaned: string,
+  memos: { title: string | null; tags: string[]; body: string }[],
+) {
+  if (memos.length === 0) return;
+  await supabaseAdmin.from("messages").update({ content: cleaned }).eq("id", rowId);
+  const rows = memos.map((m) => ({
+    workspace_id: workspaceId,
+    channel_id: channelId,
+    author_type: "agent",
+    author_agent_id: agentId,
+    title: m.title,
+    body: m.body,
+    tags: m.tags,
+    source_message_id: rowId,
+  }));
+  const { error } = await supabaseAdmin.from("channel_memos").insert(rows as any);
+  if (error) console.error("memo insert failed", error);
+}
+
 // Stream from the Lovable AI gateway (OpenAI-compatible SSE), writing partial
 // content into the given message row as tokens arrive. All chat viewers
 // subscribe to message UPDATE events, so they see the reply type out live.
@@ -255,31 +314,25 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
       pinned = (pf ?? []) as any;
     }
 
-    const history: { role: "user" | "assistant"; content: string }[] = (recent ?? [])
-      .reverse()
-      .map((m: any) => ({
-        role: (m.author_type === "user" ? "user" : "assistant") as "user" | "assistant",
-        content: m.content as string,
-      }));
-
-    const brandBlock = (ws as any)?.brand_voice
-      ? `\n\n---\nBRAND VOICE & GUIDELINES (always follow):\n${(ws as any).brand_voice}\n---`
-      : "";
-
-    const kbBlock =
-      (kb ?? []).length > 0
-        ? `\n\nWorkspace knowledge:\n${(kb ?? [])
-            .map((k: any) => `- ${k.title}: ${(k.body ?? "").slice(0, 400)}`)
-            .join("\n")}`
-        : "";
-
-    const pinnedBlock =
-      pinned.filter((p) => p.content_text).length > 0
-        ? `\n\nPinned files in this channel:\n${pinned
-            .filter((p) => p.content_text)
-            .map((p) => `<<FILE: ${p.filename}>>\n${(p.content_text ?? "").slice(0, 4000)}\n<<END FILE>>`)
-            .join("\n\n")}`
-        : "";
+    // Recent project-log memos for this channel.
+    let memos: {
+      title: string | null;
+      body: string;
+      tags: string[];
+      created_at: string;
+      author_type: string;
+      author_user_id: string | null;
+      author_agent_id: string | null;
+    }[] = [];
+    if (channel_id) {
+      const { data: ms } = await supabase
+        .from("channel_memos")
+        .select("title,body,tags,created_at,author_type,author_user_id,author_agent_id")
+        .eq("channel_id", channel_id)
+        .order("created_at", { ascending: false })
+        .limit(15);
+      memos = ((ms ?? []) as any[]).reverse();
+    }
 
     // Team roster — every agent gets to know its siblings + human teammates.
     const [{ data: allWsAgents }, { data: wsMembers }] = await Promise.all([
@@ -300,6 +353,9 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
     const profileById = new Map<string, string>(
       (memberProfiles ?? []).map((p: any) => [p.id, p.display_name ?? "Member"]),
     );
+    const handleByAgentId = new Map<string, string>(
+      (allWsAgents ?? []).map((a: any) => [a.id, a.handle]),
+    );
     const bio = (a: any) =>
       (a.description || (a.system_prompt ?? "").replace(/\s+/g, " ").slice(0, 120) || "Teammate").trim();
     const agentRosterLines = (allWsAgents ?? []).map(
@@ -308,6 +364,51 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
     const humanRosterLines = (wsMembers ?? []).map(
       (m: any) => `- ${profileById.get(m.user_id) ?? "Member"} (${m.role ?? "member"})`,
     );
+
+    const history: { role: "user" | "assistant"; content: string }[] = (recent ?? [])
+      .reverse()
+      .map((m: any) => ({
+        role: (m.author_type === "user" ? "user" : "assistant") as "user" | "assistant",
+        content: m.content as string,
+      }));
+
+    const brandBlock = (ws as any)?.brand_voice
+      ? `\n\n---\nBRAND VOICE & GUIDELINES (always follow):\n${(ws as any).brand_voice}\n---`
+      : "";
+
+    const kbBlock =
+      (kb ?? []).length > 0
+        ? `\n\nWorkspace knowledge:\n${(kb ?? [])
+            .map((k: any) => `- ${k.title}: ${(k.body ?? "").slice(0, 400)}`)
+            .join("\n")}`
+        : "";
+
+    const pinnedBlock =
+      pinned.filter((p) => p.content_text).length > 0
+        ? `\n\n# Pinned files (always-on context for this channel)\n${pinned
+            .filter((p) => p.content_text)
+            .map((p) => `<<FILE: ${p.filename}>>\n${(p.content_text ?? "").slice(0, 12000)}\n<<END FILE>>`)
+            .join("\n\n")}`
+        : "";
+
+    const memoBlock =
+      memos.length > 0
+        ? `\n\n# Project log (shared notebook — humans and agents append memos here)\n${memos
+            .map((m) => {
+              const who =
+                m.author_type === "agent" && m.author_agent_id
+                  ? `@${handleByAgentId.get(m.author_agent_id) ?? "agent"}`
+                  : m.author_type === "user" && m.author_user_id
+                  ? profileById.get(m.author_user_id) ?? "human teammate"
+                  : "teammate";
+              const head = m.title ? `## ${m.title} — ${who}` : `## ${who}`;
+              const tags = m.tags?.length ? ` _[${m.tags.join(", ")}]_` : "";
+              return `${head}${tags}\n${(m.body ?? "").slice(0, 2000)}`;
+            })
+            .join("\n\n")}`
+        : "";
+
+
 
     // Load the calling user's connected BYOK providers (we only need the
     // encrypted key for those we may actually route through).
@@ -353,7 +454,8 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
           ? `\nHUMAN TEAMMATES:\n${humanRosterLines.join("\n")}`
           : ""
       }\nDefer to a teammate on their specialty when relevant. Don't impersonate them.\n---`;
-      const systemPrompt = `${brandBlock}${pinnedBlock}${rosterBlock}\n\n${agent.system_prompt ?? `You are ${agent.name}.`}${kbBlock}\n\nReply concisely in markdown. Stay strictly on brand.`;
+      const memoInstructions = `\n\n# Project log — writing memos\nWhen you decide something concrete, learn a fact worth remembering, or finish a unit of work that teammates need to know about, emit one or more blocks like:\n<memo title="Optional short title" tags="decision,api">Markdown body that captures the takeaway concisely.</memo>\nThese blocks are stripped from your visible reply and saved to the channel's shared project log so humans and other agents can build on them. Use sparingly — only when it advances shared context, not for chit-chat.`;
+      const systemPrompt = `${brandBlock}${pinnedBlock}${memoBlock}${rosterBlock}\n\n${agent.system_prompt ?? `You are ${agent.name}.`}${kbBlock}${memoInstructions}\n\nReply concisely in markdown. Stay strictly on brand.`;
 
       const pref = (agent as { preferred_route?: string | null }).preferred_route ?? null;
       const byokMatch = pref?.match(/^byok:(openai|anthropic|google|manus)$/);
@@ -442,11 +544,15 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
             const { decryptApiKey } = await import("./ai-crypto.server");
             const { callProvider } = await import("./ai-providers.server");
             const apiKey = await decryptApiKey(encrypted);
-            const content = await callProvider(byokProvider, apiKey, agent.model ?? "", systemPrompt, history);
+            const rawContent = await callProvider(byokProvider, apiKey, agent.model ?? "", systemPrompt, history);
+            const { cleaned, memos } = extractMemos(rawContent);
             await supabaseAdmin
               .from("messages")
-              .update({ content, status: "complete" })
+              .update({ content: cleaned, status: "complete" })
               .eq("id", rowId);
+            if (channel_id && memos.length > 0) {
+              await persistMemos(rowId, workspace_id, channel_id, agent.id, cleaned, memos);
+            }
           } catch (e: any) {
             console.error("BYOK call failed", { provider: byokProvider, message: e?.message });
             await supabaseAdmin
@@ -475,6 +581,19 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
             kind: "text",
             usage,
           });
+        }
+        // Post-process memo tags out of the streamed reply.
+        if (channel_id) {
+          const { data: finalRow } = await supabaseAdmin
+            .from("messages")
+            .select("content")
+            .eq("id", rowId)
+            .maybeSingle();
+          const raw = (finalRow as { content: string } | null)?.content ?? "";
+          const { cleaned, memos } = extractMemos(raw);
+          if (memos.length > 0) {
+            await persistMemos(rowId, workspace_id, channel_id, agent.id, cleaned, memos);
+          }
         }
       }
       dispatched++;

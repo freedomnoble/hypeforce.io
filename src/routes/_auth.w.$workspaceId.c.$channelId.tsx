@@ -124,16 +124,21 @@ function ChannelPage() {
         const { data: p } = await supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle();
         setMe(p);
       }
-      const { data: pf } = await supabase
-        .from("files")
-        .select("id,filename,mime_type,size_bytes")
-        .eq("channel_id", channelId)
-        .eq("is_pinned", true)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      setPinnedFiles((pf ?? []) as PinnedFile[]);
+      await refetchPinnedFiles();
     })();
   }, [channelId, workspaceId]);
+
+  const refetchPinnedFiles = async () => {
+    const { data: pf } = await supabase
+      .from("files")
+      .select("id,filename,mime_type,size_bytes")
+      .eq("channel_id", channelId)
+      .eq("is_pinned", true)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setPinnedFiles((pf ?? []) as PinnedFile[]);
+  };
+
 
   // realtime
   useEffect(() => {
@@ -488,7 +493,7 @@ function ChannelPage() {
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} allAgents={agents} channelId={channelId} onMembershipChanged={refetchChannelAgents} />
+            <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} allAgents={agents} channelId={channelId} workspaceId={workspaceId} profiles={profiles} onMembershipChanged={refetchChannelAgents} onFilesChanged={refetchPinnedFiles} />
           </aside>
         )}
 
@@ -502,7 +507,7 @@ function ChannelPage() {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto scrollbar-thin">
-              <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} allAgents={agents} channelId={channelId} onMembershipChanged={refetchChannelAgents} />
+              <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} allAgents={agents} channelId={channelId} workspaceId={workspaceId} profiles={profiles} onMembershipChanged={refetchChannelAgents} onFilesChanged={refetchPinnedFiles} />
             </div>
           </SheetContent>
         </Sheet>
