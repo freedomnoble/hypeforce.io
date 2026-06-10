@@ -241,7 +241,14 @@ function DmPage() {
               </div>
             )}
             {messages.map((m) => (
-              <MessageRow key={m.id} message={m} agents={agents} profiles={profiles} me={me} />
+              <MessageRow
+                key={m.id}
+                message={m}
+                agents={agents}
+                profiles={profiles}
+                me={me}
+                onShare={(payload) => setShareMsg(payload)}
+              />
             ))}
             {thinking.map((id) => {
               const a = agents.find((x) => x.id === id);
