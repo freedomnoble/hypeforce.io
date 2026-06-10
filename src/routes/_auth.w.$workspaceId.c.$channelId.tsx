@@ -543,15 +543,22 @@ function ChannelDetailsBody({
   pinnedFiles,
   allAgents,
   channelId,
+  workspaceId,
+  profiles,
   onMembershipChanged,
+  onFilesChanged,
 }: {
   me: Profile | null;
   roomAgents: Agent[];
   pinnedFiles: PinnedFile[];
   allAgents: Agent[];
   channelId: string;
+  workspaceId: string;
+  profiles: Record<string, Profile>;
   onMembershipChanged: () => Promise<void> | void;
+  onFilesChanged: () => Promise<void> | void;
 }) {
+
   const addAgentFn = useServerFn(addAgentToChannel);
   const removeAgentFn = useServerFn(removeAgentFromChannel);
   const [busyId, setBusyId] = useState<string | null>(null);
