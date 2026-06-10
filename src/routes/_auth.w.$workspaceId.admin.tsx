@@ -9,6 +9,8 @@ import {
   listMyConnections,
   setAgentRoute,
 } from "@/lib/ai-connections.functions";
+import { updateAgentIdentity } from "@/lib/agent-identity.functions";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
