@@ -26,7 +26,7 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-export const Route = createFileRoute("/_auth/profile")({
+export const Route = createFileRoute("/_auth/profile/")({
   head: () => ({ meta: [{ title: "Profile — Hypeforce" }] }),
   component: ProfilePage,
 });
