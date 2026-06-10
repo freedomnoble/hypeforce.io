@@ -138,11 +138,7 @@ function ChannelPage() {
       .limit(20);
     setPinnedFiles((pf ?? []) as PinnedFile[]);
   };
-  // placeholder so previous closing brace stays valid:
-  void 0;
-  ((
-    })();
-  }, [channelId, workspaceId]);
+
 
   // realtime
   useEffect(() => {
