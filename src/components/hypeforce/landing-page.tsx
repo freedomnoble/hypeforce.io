@@ -21,7 +21,7 @@ import {
 
 } from "lucide-react";
 import heroAsset from "@/assets/hero-we-are-ready.png.asset.json";
-import wordmarkAsset from "@/assets/hypeforce-wordmark-white.png.asset.json";
+import wordmarkAsset from "@/assets/hypeforce-wordmark-v2.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 import { useTheme } from "@/components/hypeforce/theme-provider";
@@ -516,7 +516,7 @@ export function LandingPage({
       <footer className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 pb-10">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <span className="hf-wordmark text-base">Hypeforce</span>
+            <img src={wordmarkAsset.url} alt="Hypeforce" className="h-5 w-auto select-none" draggable={false} />
             <span>· © {new Date().getFullYear()}</span>
           </div>
           <div className="flex items-center gap-5">
