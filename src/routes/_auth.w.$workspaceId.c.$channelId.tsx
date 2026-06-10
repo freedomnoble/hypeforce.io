@@ -672,13 +672,6 @@ function ChannelDetailsBody({
       </div>
 
 
-      <div className="px-4 py-4 border-b border-border">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">
-            Pinned files
-          </div>
-          <Pin className="w-3 h-3 text-muted-foreground" />
-        </div>
       {pinnedFiles.length > 0 && (
         <div className="px-4 py-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
@@ -694,6 +687,7 @@ function ChannelDetailsBody({
           </div>
         </div>
       )}
+
 
       <ChannelLogPanel
         workspaceId={workspaceId}
