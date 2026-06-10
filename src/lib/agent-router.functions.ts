@@ -472,7 +472,43 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
         ? agentModel
         : providerDefault;
 
-      const selfLine = `YOU ARE: @${agent.handle} — ${agent.name}${((agent as any).description) ? `, ${(agent as any).description}` : ""}.`;
+      // Effective identity = override ?? agent default.
+      const ovr = overrideByAgent.get(agent.id);
+      const effectiveDisplayName =
+        ovr?.display_name?.trim() ||
+        (agent as any).display_name?.trim() ||
+        agent.name;
+      const effectiveRole = ovr?.role?.trim() || (agent as any).role?.trim() || "";
+      const effectivePersonality =
+        ovr?.personality?.trim() || (agent as any).personality?.trim() || "";
+
+      const identityHeader = `Identity: ${effectiveDisplayName}${effectiveRole ? ` — ${effectiveRole}` : ""}`;
+      const fullIdentityBlock =
+        effectiveRole || effectivePersonality
+          ? `You are ${effectiveDisplayName}${effectiveRole ? `, ${effectiveRole}` : ""}.${
+              effectivePersonality ? `\n${effectivePersonality}` : ""
+            }\nStay in character. Don't break this persona.`
+          : `You are ${effectiveDisplayName}.`;
+
+      // Bump per-channel reply counter; every 10th reply re-inject full identity.
+      let replyNumber = 0;
+      if (channel_id) {
+        replyNumber = (counterByAgent.get(agent.id) ?? 0) + 1;
+        counterByAgent.set(agent.id, replyNumber);
+        await supabaseAdmin
+          .from("agent_reply_counters")
+          .upsert(
+            { channel_id, agent_id: agent.id, count: replyNumber, updated_at: new Date().toISOString() } as any,
+            { onConflict: "channel_id,agent_id" },
+          );
+      }
+      const shouldReinforceIdentity =
+        replyNumber > 0 && replyNumber % 10 === 0 && (effectiveRole || effectivePersonality);
+      const identityReminderBlock = shouldReinforceIdentity
+        ? `\n\n# Reminder of who you are\n${fullIdentityBlock}`
+        : "";
+
+      const selfLine = `YOU ARE: @${agent.handle} — ${effectiveDisplayName}${effectiveRole ? `, ${effectiveRole}` : ""}${((agent as any).description) ? `. ${(agent as any).description}` : ""}.`;
       const teammateLines = agentRosterLines.filter(
         (l) => !l.startsWith(`- @${agent.handle} `),
       );
