@@ -34,12 +34,19 @@ import { useServerFn } from "@tanstack/react-start";
 import { invokeAgentRouter } from "@/lib/agent-router.functions";
 import { renameChannel } from "@/lib/collab.functions";
 import { addAgentToChannel, removeAgentFromChannel } from "@/lib/channel-membership.functions";
+import {
+  upsertChannelAgentOverride,
+  clearChannelAgentOverride,
+  listChannelAgentOverrides,
+} from "@/lib/agent-identity.functions";
 import { CreditBadge } from "@/components/hypeforce/credit-badge";
 import { ShareMessageDialog, type ShareableMessage } from "@/components/hypeforce/share-message-dialog";
 import { ChannelLogPanel } from "@/components/hypeforce/channel-log-panel";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Settings2 } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/c/$channelId")({
   component: ChannelPage,
