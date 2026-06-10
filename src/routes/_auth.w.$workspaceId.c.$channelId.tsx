@@ -36,6 +36,8 @@ import { renameChannel } from "@/lib/collab.functions";
 import { addAgentToChannel, removeAgentFromChannel } from "@/lib/channel-membership.functions";
 import { CreditBadge } from "@/components/hypeforce/credit-badge";
 import { ShareMessageDialog, type ShareableMessage } from "@/components/hypeforce/share-message-dialog";
+import { ChannelLogPanel } from "@/components/hypeforce/channel-log-panel";
+
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Plus } from "lucide-react";
 
