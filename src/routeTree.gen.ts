@@ -28,6 +28,7 @@ import { Route as PretentiousBillingRouteImport } from './routes/pretentious.bil
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as AuthProfileRouteImport } from './routes/_auth.profile'
 import { Route as AuthOnboardingRouteImport } from './routes/_auth.onboarding'
+import { Route as AuthProfileIndexRouteImport } from './routes/_auth.profile.index'
 import { Route as AuthOnboardingIndexRouteImport } from './routes/_auth.onboarding.index'
 import { Route as AuthProfileCreditsRouteImport } from './routes/_auth.profile.credits'
 import { Route as AuthProfileConnectionsRouteImport } from './routes/_auth.profile.connections'
@@ -138,6 +139,11 @@ const AuthOnboardingRoute = AuthOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
   getParentRoute: () => AuthRoute,
+} as any)
+const AuthProfileIndexRoute = AuthProfileIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthProfileRoute,
 } as any)
 const AuthOnboardingIndexRoute = AuthOnboardingIndexRouteImport.update({
   id: '/',
@@ -252,6 +258,7 @@ export interface FileRoutesByFullPath {
   '/profile/connections': typeof AuthProfileConnectionsRoute
   '/profile/credits': typeof AuthProfileCreditsRoute
   '/onboarding/': typeof AuthOnboardingIndexRoute
+  '/profile/': typeof AuthProfileIndexRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -266,7 +273,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/welcome': typeof WelcomeRoute
-  '/profile': typeof AuthProfileRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
   '/pretentious/billing': typeof PretentiousBillingRoute
   '/pretentious/flags': typeof PretentiousFlagsRoute
@@ -286,6 +292,7 @@ export interface FileRoutesByTo {
   '/profile/connections': typeof AuthProfileConnectionsRoute
   '/profile/credits': typeof AuthProfileCreditsRoute
   '/onboarding': typeof AuthOnboardingIndexRoute
+  '/profile': typeof AuthProfileIndexRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -324,6 +331,7 @@ export interface FileRoutesById {
   '/_auth/profile/connections': typeof AuthProfileConnectionsRoute
   '/_auth/profile/credits': typeof AuthProfileCreditsRoute
   '/_auth/onboarding/': typeof AuthOnboardingIndexRoute
+  '/_auth/profile/': typeof AuthProfileIndexRoute
   '/_auth/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -362,6 +370,7 @@ export interface FileRouteTypes {
     | '/profile/connections'
     | '/profile/credits'
     | '/onboarding/'
+    | '/profile/'
     | '/w/$workspaceId/admin'
     | '/api/public/payments/webhook'
     | '/lovable/email/queue/process'
@@ -376,7 +385,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/verify-email'
     | '/welcome'
-    | '/profile'
     | '/join/$token'
     | '/pretentious/billing'
     | '/pretentious/flags'
@@ -396,6 +404,7 @@ export interface FileRouteTypes {
     | '/profile/connections'
     | '/profile/credits'
     | '/onboarding'
+    | '/profile'
     | '/w/$workspaceId/admin'
     | '/api/public/payments/webhook'
     | '/lovable/email/queue/process'
@@ -433,6 +442,7 @@ export interface FileRouteTypes {
     | '/_auth/profile/connections'
     | '/_auth/profile/credits'
     | '/_auth/onboarding/'
+    | '/_auth/profile/'
     | '/_auth/w/$workspaceId/admin'
     | '/api/public/payments/webhook'
     | '/lovable/email/queue/process'
@@ -591,6 +601,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthOnboardingRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/profile/': {
+      id: '/_auth/profile/'
+      path: '/'
+      fullPath: '/profile/'
+      preLoaderRoute: typeof AuthProfileIndexRouteImport
+      parentRoute: typeof AuthProfileRoute
+    }
     '/_auth/onboarding/': {
       id: '/_auth/onboarding/'
       path: '/'
@@ -734,12 +751,14 @@ interface AuthProfileRouteChildren {
   AuthProfileBillingRoute: typeof AuthProfileBillingRoute
   AuthProfileConnectionsRoute: typeof AuthProfileConnectionsRoute
   AuthProfileCreditsRoute: typeof AuthProfileCreditsRoute
+  AuthProfileIndexRoute: typeof AuthProfileIndexRoute
 }
 
 const AuthProfileRouteChildren: AuthProfileRouteChildren = {
   AuthProfileBillingRoute: AuthProfileBillingRoute,
   AuthProfileConnectionsRoute: AuthProfileConnectionsRoute,
   AuthProfileCreditsRoute: AuthProfileCreditsRoute,
+  AuthProfileIndexRoute: AuthProfileIndexRoute,
 }
 
 const AuthProfileRouteWithChildren = AuthProfileRoute._addFileChildren(
