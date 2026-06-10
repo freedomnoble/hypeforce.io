@@ -21,6 +21,65 @@ const InputSchema = z.object({
 
 const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
+// Extract <memo title="..." tags="a,b">body</memo> blocks from a model reply.
+function extractMemos(raw: string): {
+  cleaned: string;
+  memos: { title: string | null; tags: string[]; body: string }[];
+} {
+  const memos: { title: string | null; tags: string[]; body: string }[] = [];
+  const re = /<memo\b([^>]*)>([\s\S]*?)<\/memo>/gi;
+  let cleaned = raw.replace(re, (_full, attrs: string, body: string) => {
+    const titleMatch = attrs.match(/title\s*=\s*"([^"]*)"/i);
+    const tagsMatch = attrs.match(/tags\s*=\s*"([^"]*)"/i);
+    const tags = tagsMatch
+      ? tagsMatch[1]
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+          .slice(0, 8)
+      : [];
+    memos.push({
+      title: titleMatch ? titleMatch[1].trim().slice(0, 160) || null : null,
+      tags,
+      body: body.trim().slice(0, 8000),
+    });
+    return "";
+  });
+  cleaned = cleaned.replace(/\n{3,}/g, "\n\n").trim();
+  if (memos.length > 0) {
+    const note =
+      memos.length === 1
+        ? "_— logged 1 memo to project log_"
+        : `_— logged ${memos.length} memos to project log_`;
+    cleaned = cleaned ? `${cleaned}\n\n${note}` : note;
+  }
+  return { cleaned, memos };
+}
+
+async function persistMemos(
+  rowId: string,
+  workspaceId: string,
+  channelId: string,
+  agentId: string,
+  cleaned: string,
+  memos: { title: string | null; tags: string[]; body: string }[],
+) {
+  if (memos.length === 0) return;
+  await supabaseAdmin.from("messages").update({ content: cleaned }).eq("id", rowId);
+  const rows = memos.map((m) => ({
+    workspace_id: workspaceId,
+    channel_id: channelId,
+    author_type: "agent",
+    author_agent_id: agentId,
+    title: m.title,
+    body: m.body,
+    tags: m.tags,
+    source_message_id: rowId,
+  }));
+  const { error } = await supabaseAdmin.from("channel_memos").insert(rows as any);
+  if (error) console.error("memo insert failed", error);
+}
+
 // Stream from the Lovable AI gateway (OpenAI-compatible SSE), writing partial
 // content into the given message row as tokens arrive. All chat viewers
 // subscribe to message UPDATE events, so they see the reply type out live.
