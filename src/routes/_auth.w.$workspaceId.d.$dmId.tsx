@@ -193,7 +193,8 @@ function DmPage() {
         setThinking((s) => s.filter((id) => !targets.includes(id)));
       });
     } catch (e: any) {
-      toast.error(e.message ?? "Failed to send");
+      console.error("[send dm message]", e);
+      toast.error(friendlySendError(e));
     } finally {
       setSending(false);
     }
