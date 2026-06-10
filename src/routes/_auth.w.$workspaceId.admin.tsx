@@ -195,6 +195,29 @@ function AdminPage() {
     else toast.success("Brand voice saved — agents will use it on every reply");
   };
 
+  const toggleCoffeeFlag = async (next: boolean) => {
+    setSavingFlag(true);
+    const { data: ws } = await supabase
+      .from("workspaces")
+      .select("feature_flags")
+      .eq("id", workspaceId)
+      .maybeSingle();
+    const current = ((ws as any)?.feature_flags ?? {}) as Record<string, boolean>;
+    const updated = { ...current, coffee_button: next };
+    const { error } = await supabase
+      .from("workspaces")
+      .update({ feature_flags: updated })
+      .eq("id", workspaceId);
+    setSavingFlag(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setCoffeeEnabled(next);
+    toast.success(next ? "Coffee button enabled" : "Coffee button hidden");
+  };
+
+
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
     setUploading(true);
