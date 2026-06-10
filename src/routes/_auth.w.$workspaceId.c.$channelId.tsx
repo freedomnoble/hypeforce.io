@@ -187,6 +187,15 @@ function ChannelPage() {
     [agents, channelAgentIds],
   );
 
+  const refetchChannelAgents = async () => {
+    const { data: cm } = await supabase
+      .from("channel_members")
+      .select("agent_id")
+      .eq("channel_id", channelId)
+      .eq("member_type", "agent");
+    setChannelAgentIds((cm ?? []).map((r: any) => r.agent_id).filter(Boolean));
+  };
+
   const parseMentions = (text: string): string[] => {
     const ids: string[] = [];
     const re = /@([a-z0-9_-]+)/gi;
