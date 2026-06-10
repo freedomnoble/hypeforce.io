@@ -94,6 +94,8 @@ function AdminPage() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [brandVoice, setBrandVoice] = useState("");
   const [savingBrand, setSavingBrand] = useState(false);
+  const [coffeeEnabled, setCoffeeEnabled] = useState(false);
+  const [savingFlag, setSavingFlag] = useState(false);
   const [entries, setEntries] = useState<KBEntry[]>([]);
   const [files, setFiles] = useState<Record<string, FileRow>>({});
   const [uploading, setUploading] = useState(false);
@@ -120,10 +122,11 @@ function AdminPage() {
 
       const { data: ws } = await supabase
         .from("workspaces")
-        .select("brand_voice")
+        .select("brand_voice, feature_flags")
         .eq("id", workspaceId)
         .maybeSingle();
       setBrandVoice((ws as any)?.brand_voice ?? "");
+      setCoffeeEnabled(!!(ws as any)?.feature_flags?.coffee_button);
 
       await Promise.all([loadKB(), loadAgents(), loadConns()]);
     })();
@@ -191,6 +194,29 @@ function AdminPage() {
     if (error) toast.error(error.message);
     else toast.success("Brand voice saved — agents will use it on every reply");
   };
+
+  const toggleCoffeeFlag = async (next: boolean) => {
+    setSavingFlag(true);
+    const { data: ws } = await supabase
+      .from("workspaces")
+      .select("feature_flags")
+      .eq("id", workspaceId)
+      .maybeSingle();
+    const current = ((ws as any)?.feature_flags ?? {}) as Record<string, boolean>;
+    const updated = { ...current, coffee_button: next };
+    const { error } = await supabase
+      .from("workspaces")
+      .update({ feature_flags: updated })
+      .eq("id", workspaceId);
+    setSavingFlag(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setCoffeeEnabled(next);
+    toast.success(next ? "Coffee button enabled" : "Coffee button hidden");
+  };
+
 
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
@@ -331,6 +357,31 @@ function AdminPage() {
             </Button>
           </div>
         </section>
+
+        {/* Feature flags */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Settings2 className="w-4 h-4 text-electric" />
+            <h2 className="font-display text-lg font-semibold">Features</h2>
+          </div>
+          <div className="flex items-center justify-between rounded-2xl border border-border bg-background/40 p-4">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">Coffee sample button</div>
+              <div className="text-xs text-muted-foreground">
+                Floating button that lets users request a free coffee sample.
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant={coffeeEnabled ? "default" : "outline"}
+              disabled={savingFlag}
+              onClick={() => toggleCoffeeFlag(!coffeeEnabled)}
+            >
+              {savingFlag ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : coffeeEnabled ? "On" : "Off"}
+            </Button>
+          </div>
+        </section>
+
 
         {/* Knowledge base */}
         <section className="space-y-3">

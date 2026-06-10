@@ -1482,6 +1482,7 @@ export type Database = {
         Row: {
           brand_voice: string | null
           created_at: string
+          feature_flags: Json
           icon_url: string | null
           id: string
           name: string
@@ -1491,6 +1492,7 @@ export type Database = {
         Insert: {
           brand_voice?: string | null
           created_at?: string
+          feature_flags?: Json
           icon_url?: string | null
           id?: string
           name: string
@@ -1500,6 +1502,7 @@ export type Database = {
         Update: {
           brand_voice?: string | null
           created_at?: string
+          feature_flags?: Json
           icon_url?: string | null
           id?: string
           name?: string
