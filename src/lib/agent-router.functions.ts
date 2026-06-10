@@ -282,6 +282,37 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
 
     const { data: agents } = await supabase.from("agents").select("*").in("id", agentIds);
 
+    // Load per-channel identity overrides + reply counters (server-only).
+    const overrideByAgent = new Map<
+      string,
+      { display_name: string | null; role: string | null; personality: string | null }
+    >();
+    const counterByAgent = new Map<string, number>();
+    if (channel_id) {
+      const [{ data: ovr }, { data: ctr }] = await Promise.all([
+        supabaseAdmin
+          .from("channel_agent_overrides")
+          .select("agent_id,display_name,role,personality")
+          .eq("channel_id", channel_id)
+          .in("agent_id", agentIds),
+        supabaseAdmin
+          .from("agent_reply_counters")
+          .select("agent_id,count")
+          .eq("channel_id", channel_id)
+          .in("agent_id", agentIds),
+      ]);
+      for (const o of (ovr ?? []) as any[]) {
+        overrideByAgent.set(o.agent_id, {
+          display_name: o.display_name ?? null,
+          role: o.role ?? null,
+          personality: o.personality ?? null,
+        });
+      }
+      for (const c of (ctr ?? []) as any[]) {
+        counterByAgent.set(c.agent_id, c.count ?? 0);
+      }
+    }
+
     // Load last 10 messages for context.
     const baseQuery = supabase
       .from("messages")
@@ -441,7 +472,43 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
         ? agentModel
         : providerDefault;
 
-      const selfLine = `YOU ARE: @${agent.handle} — ${agent.name}${((agent as any).description) ? `, ${(agent as any).description}` : ""}.`;
+      // Effective identity = override ?? agent default.
+      const ovr = overrideByAgent.get(agent.id);
+      const effectiveDisplayName =
+        ovr?.display_name?.trim() ||
+        (agent as any).display_name?.trim() ||
+        agent.name;
+      const effectiveRole = ovr?.role?.trim() || (agent as any).role?.trim() || "";
+      const effectivePersonality =
+        ovr?.personality?.trim() || (agent as any).personality?.trim() || "";
+
+      const identityHeader = `Identity: ${effectiveDisplayName}${effectiveRole ? ` — ${effectiveRole}` : ""}`;
+      const fullIdentityBlock =
+        effectiveRole || effectivePersonality
+          ? `You are ${effectiveDisplayName}${effectiveRole ? `, ${effectiveRole}` : ""}.${
+              effectivePersonality ? `\n${effectivePersonality}` : ""
+            }\nStay in character. Don't break this persona.`
+          : `You are ${effectiveDisplayName}.`;
+
+      // Bump per-channel reply counter; every 10th reply re-inject full identity.
+      let replyNumber = 0;
+      if (channel_id) {
+        replyNumber = (counterByAgent.get(agent.id) ?? 0) + 1;
+        counterByAgent.set(agent.id, replyNumber);
+        await supabaseAdmin
+          .from("agent_reply_counters")
+          .upsert(
+            { channel_id, agent_id: agent.id, count: replyNumber, updated_at: new Date().toISOString() } as any,
+            { onConflict: "channel_id,agent_id" },
+          );
+      }
+      const shouldReinforceIdentity =
+        replyNumber > 0 && replyNumber % 10 === 0 && (effectiveRole || effectivePersonality);
+      const identityReminderBlock = shouldReinforceIdentity
+        ? `\n\n# Reminder of who you are\n${fullIdentityBlock}`
+        : "";
+
+      const selfLine = `YOU ARE: @${agent.handle} — ${effectiveDisplayName}${effectiveRole ? `, ${effectiveRole}` : ""}${((agent as any).description) ? `. ${(agent as any).description}` : ""}.`;
       const teammateLines = agentRosterLines.filter(
         (l) => !l.startsWith(`- @${agent.handle} `),
       );
@@ -455,7 +522,7 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
           : ""
       }\nDefer to a teammate on their specialty when relevant. Don't impersonate them.\n---`;
       const memoInstructions = `\n\n# Project log — writing memos\nWhen you decide something concrete, learn a fact worth remembering, or finish a unit of work that teammates need to know about, emit one or more blocks like:\n<memo title="Optional short title" tags="decision,api">Markdown body that captures the takeaway concisely.</memo>\nThese blocks are stripped from your visible reply and saved to the channel's shared project log so humans and other agents can build on them. Use sparingly — only when it advances shared context, not for chit-chat.`;
-      const systemPrompt = `${brandBlock}${pinnedBlock}${memoBlock}${rosterBlock}\n\n${agent.system_prompt ?? `You are ${agent.name}.`}${kbBlock}${memoInstructions}\n\nReply concisely in markdown. Stay strictly on brand.`;
+      const systemPrompt = `${identityHeader}\n${brandBlock}${pinnedBlock}${memoBlock}${rosterBlock}${identityReminderBlock}\n\n${fullIdentityBlock}\n\n${agent.system_prompt ?? `You are ${effectiveDisplayName}.`}${kbBlock}${memoInstructions}\n\nReply concisely in markdown. Stay strictly on brand and in character.`;
 
       const pref = (agent as { preferred_route?: string | null }).preferred_route ?? null;
       const byokMatch = pref?.match(/^byok:(openai|anthropic|google|manus)$/);

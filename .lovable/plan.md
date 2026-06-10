@@ -1,93 +1,61 @@
-# Shared channel context: pinned files + project log
+# Agent personality + reinforcement
 
-Three threads, all so humans and agents share one source of truth per channel:
+Let each agent carry a short identity (name, role, personality) edited workspace-wide in Admin, with optional per-channel overrides. Inject the identity as a brief reminder on every 10th agent reply.
 
-1. **Pinned files → markdown, always in context.**
-2. **Per-channel project log** (append-only notebook) visible in the details pane.
-3. **Agents read the log and add to it** via inline `<memo>` tags.
+## 1. Schema
 
----
+**`agents` (workspace-level defaults)** — add three nullable columns:
+- `role` (text) — short title (e.g. "Senior brand strategist")
+- `personality` (text) — voice/tone paragraph (markdown OK)
+- `display_name` (text) — overrides `name` in chat when set; falls back to `name`
 
-## 1. Pinned files become markdown
+**New `channel_agent_overrides` table** — per-channel per-agent override:
+- `channel_id`, `agent_id` (composite PK), `workspace_id`
+- `display_name`, `role`, `personality` (all nullable; null = inherit from agent)
+- RLS: workspace members read/write for their workspace
 
-### Upload + convert
-- Add a paperclip in the channel composer and an "Add file" button in the details pane → opens the existing-style upload flow but scoped to the current channel (`files.channel_id = channelId`, `is_pinned = true`, `scope = 'channel'`).
-- Server fn `extractFileText({ fileId })` runs after upload:
-  - Downloads the object from storage.
-  - Routes by mime/extension to a pure-JS converter (Worker-safe):
-    - **PDF** → `unpdf` (pdfjs wrapper) → text → markdown
-    - **DOCX** → `mammoth` → HTML → markdown via `turndown`
-    - **XLSX/XLS/CSV** → `xlsx` (SheetJS) → markdown table per sheet
-    - **MD/TXT/JSON/code** → read as text, fenced if not markdown
-  - Stores result in `files.content_text` (existing column), truncated to ~80k chars with a "[truncated]" footer if longer.
-  - Sets `files.extraction_status` (new column: `pending|ok|failed`) and `extraction_error`.
-- Existing files get a "Re-extract" action in the details pane.
+**New `agent_reply_counters`** — per-channel per-agent counter:
+- `channel_id`, `agent_id` (composite PK), `count int default 0`, `updated_at`
+- Incremented server-side after each agent reply in `agent-router`
 
-### Always-in-context
-- `agent-router.functions.ts` already injects pinned-file content. Two changes:
-  - Raise per-file slice from 4 000 → 12 000 chars (still bounded).
-  - Add a clear header block (`# Pinned files (always-on context)`) so the model treats them as canonical.
-- No truncation of the chat history beyond the existing 10-message window; pinned files supplement, never replace.
+## 2. Backend (`agent-router.functions.ts`)
 
-### Dependencies
-`bun add unpdf mammoth turndown xlsx` — all pure JS, Worker-compatible.
+For each agent reply, resolve identity = override ?? agent defaults. Build a compact identity block:
 
----
+```
+You are {display_name}, {role}.
+{personality}
+```
 
-## 2. Per-channel project log (the "git-style" space)
+- Always prepend a one-line identity tag to the system prompt: `Identity: {display_name} — {role}`.
+- Increment `agent_reply_counters.count`. If `count % 10 === 0`, also prepend the full identity block above the chat history as a system message ("Reminder of who you are…").
+- Skip reinforcement if all three fields are empty.
 
-### Data model
-New table `channel_memos`:
-- `channel_id`, `workspace_id`
-- `author_type` (`user` | `agent`), `author_user_id`, `author_agent_id`
-- `title` (short, optional), `body` (markdown), `tags` (text[])
-- `source_message_id` (nullable — links memo back to the reply that produced it)
-- `created_at`
+## 3. UI
 
-RLS: workspace members read; members insert; author or admin update/delete. Realtime enabled so the details pane updates live.
+**Admin Console → Agents** (`src/routes/_auth.w.$workspaceId.admin.tsx` or its agents tab):
+- Add inputs for Display name, Role, Personality on each agent card.
+- Save via existing agent update path (extend server fn).
 
-### UI in the details pane
-- New section **"Project log"** between "In this room" and "Pinned files".
-- Shows the 3 most recent memos (author avatar, title, first ~140 chars, relative time).
-- "View all" opens a full-height side sheet with the complete log, filters (mine / agents / tag), and a "+ New memo" form (markdown textarea, optional title/tags).
-- Each memo row has a "Copy as context" action and (for the author/admin) edit/delete.
+**Channel details pane** (`channel-details` body, next to each room agent):
+- Pencil icon on hover → small popover with Display name / Role / Personality inputs.
+- Header text: "Override for #channel-name" with "Reset to workspace default" link.
+- Writes to `channel_agent_overrides`.
 
-### Channel header
-- Small chip next to the agent stack: "Log · N" — click opens the full sheet.
+**Display name resolution** in chat: messages render `effectiveName(agent, override)` everywhere agents are listed (member row, message header, mention autocomplete still uses `handle`).
 
----
+## 4. Files
 
-## 3. Agents read + write the log
-
-### Read
-Extend the system prompt in `agent-router.functions.ts` with a `# Project log` block: the last ~15 memos, each as `## [title] — @handle · time` + body, truncated to a sensible per-memo cap. This sits alongside (not inside) the pinned-files block.
-
-### Write (inline `<memo>` tags, no extra LLM calls)
-- Append to every agent's system prompt:
-  > When you decide something concrete, capture a fact worth referencing later, or finish a unit of work, emit one or more blocks like:
-  > `<memo title="Optional short title" tags="decision,api">Markdown body…</memo>`
-  > Memos are saved to the channel's project log and shown to teammates. Use sparingly — only when it advances shared context.
-- After streaming completes, the server:
-  1. Regex-extracts `<memo …>…</memo>` blocks from the final content.
-  2. Inserts each as a `channel_memos` row with `author_type='agent'`, `author_agent_id`, `source_message_id`.
-  3. Strips the raw tags from the message content and replaces them with a compact footer like `— logged 2 memos to project log`, so the chat reads cleanly while the memos appear in the log panel.
-- Same hook runs once per streaming reply; image-agent path skipped.
-
-### Mention support
-`@log` in a user message opens the new memo form pre-populated (purely client-side convenience — no separate agent).
-
----
+- **Migration**: add columns + new tables + RLS + grants.
+- **New**: `src/lib/agent-identity.functions.ts` (update agent defaults, upsert/clear channel override, fetch effective identity).
+- **Edited**:
+  - `src/lib/agent-router.functions.ts` — resolve identity, inject reminder every 10th reply, bump counter.
+  - `src/components/hypeforce/channel-log-panel.tsx` or `channel-details` body — add override popover.
+  - Admin agents view — add the three fields.
+  - `src/routes/_auth.w.$workspaceId.c.$channelId.tsx` — use effective display name in member list and message headers.
 
 ## Out of scope
 
-- True git semantics (branches, diffs, named versioned documents). Append-only entries cover "stay aligned" without that complexity.
-- Vector / RAG over file content — pinned files are injected wholesale, capped by char budget. Can be added later if budgets become a problem.
-- Cross-channel memo sharing (already covered by the existing "Forward message" feature).
-
----
-
-## Files touched
-
-- **New**: `src/lib/file-extraction.functions.ts`, `src/lib/file-extraction.server.ts`, `src/lib/channel-memos.functions.ts`, `src/components/hypeforce/channel-log-panel.tsx`, `src/components/hypeforce/channel-log-sheet.tsx`, `src/components/hypeforce/channel-upload-button.tsx`.
-- **Edited**: `src/routes/_auth.w.$workspaceId.c.$channelId.tsx` (composer paperclip, details pane log section + upload button, header chip), `src/lib/agent-router.functions.ts` (memo block in system prompt, post-stream memo extraction, pinned-file budget), `src/integrations/supabase/types.ts` (regenerated after migration), `package.json` (new deps).
-- **Migration**: `channel_memos` table + RLS + grants + realtime; add `extraction_status` + `extraction_error` columns to `files`.
+- Voice samples, avatars (already exist).
+- Cross-workspace agent sharing.
+- A separate "reset counter" UI — counter just lives in the background.

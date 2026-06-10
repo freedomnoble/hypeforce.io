@@ -9,6 +9,8 @@ import {
   listMyConnections,
   setAgentRoute,
 } from "@/lib/ai-connections.functions";
+import { updateAgentIdentity } from "@/lib/agent-identity.functions";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -80,6 +82,9 @@ interface AgentRow {
   name: string;
   provider: string;
   preferred_route: string | null;
+  display_name: string | null;
+  role: string | null;
+  personality: string | null;
 }
 
 type ConnectedProvider = "openai" | "anthropic" | "google" | "manus";
@@ -128,7 +133,7 @@ function AdminPage() {
   const loadAgents = async () => {
     const { data } = await supabase
       .from("agents")
-      .select("id,name,provider,preferred_route")
+      .select("id,name,provider,preferred_route,display_name,role,personality")
       .eq("workspace_id", workspaceId)
       .order("name");
     setAgents((data ?? []) as AgentRow[]);
@@ -410,30 +415,43 @@ function AdminPage() {
             {agents.map((a) => {
               const current = a.preferred_route ?? "lovable";
               return (
-                <li key={a.id} className="flex items-center gap-3 p-3 hover:bg-secondary/30">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{a.name}</div>
-                    <div className="text-[11px] font-mono text-muted-foreground">
-                      {a.provider}
+                <li key={a.id} className="p-3 hover:bg-secondary/30 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">
+                        {a.display_name?.trim() || a.name}
+                      </div>
+                      <div className="text-[11px] font-mono text-muted-foreground">
+                        @{a.name.toLowerCase()} · {a.provider}
+                        {a.role ? ` · ${a.role}` : ""}
+                      </div>
                     </div>
+                    <Select value={current} onValueChange={(v) => updateAgentRoute(a.id, v)}>
+                      <SelectTrigger className="w-[200px] h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="lovable">Lovable AI Gateway (default)</SelectItem>
+                        {(["openai", "anthropic", "google", "manus"] as const).map((p) => (
+                          <SelectItem
+                            key={p}
+                            value={`byok:${p}`}
+                            disabled={!myConns.includes(p)}
+                          >
+                            My {p} key{!myConns.includes(p) ? " (not connected)" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Select value={current} onValueChange={(v) => updateAgentRoute(a.id, v)}>
-                    <SelectTrigger className="w-[200px] h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="lovable">Lovable AI Gateway (default)</SelectItem>
-                      {(["openai", "anthropic", "google", "manus"] as const).map((p) => (
-                        <SelectItem
-                          key={p}
-                          value={`byok:${p}`}
-                          disabled={!myConns.includes(p)}
-                        >
-                          My {p} key{!myConns.includes(p) ? " (not connected)" : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <AgentIdentityEditor
+                    agent={a}
+                    onSaved={(patch) =>
+                      setAgents((prev) =>
+                        prev.map((x) => (x.id === a.id ? { ...x, ...patch } : x)),
+                      )
+                    }
+                  />
                 </li>
               );
             })}
@@ -441,5 +459,107 @@ function AdminPage() {
         </section>
       </div>
     </WorkspaceShell>
+  );
+}
+
+type IdentityPatch = {
+  display_name: string | null;
+  role: string | null;
+  personality: string | null;
+};
+
+function AgentIdentityEditor({
+  agent,
+  onSaved,
+}: {
+  agent: AgentRow;
+  onSaved: (patch: IdentityPatch) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [displayName, setDisplayName] = useState(agent.display_name ?? "");
+  const [role, setRole] = useState(agent.role ?? "");
+  const [personality, setPersonality] = useState(agent.personality ?? "");
+  const [saving, setSaving] = useState(false);
+  const save = useServerFn(updateAgentIdentity);
+
+  const hasIdentity = !!(agent.display_name || agent.role || agent.personality);
+
+  const onSave = async () => {
+    setSaving(true);
+    try {
+      const patch: IdentityPatch = {
+        display_name: displayName.trim() || null,
+        role: role.trim() || null,
+        personality: personality.trim() || null,
+      };
+      await save({ data: { agent_id: agent.id, ...patch } });
+      onSaved(patch);
+      toast.success("Identity saved — reinforced every 10 replies");
+      setOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Couldn't save identity");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-background/40">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-3 py-2 text-[11px] uppercase tracking-wider font-mono text-muted-foreground hover:text-foreground"
+      >
+        <span>
+          Persona · {hasIdentity ? "customized" : "default"}
+        </span>
+        <span>{open ? "Hide" : "Edit"}</span>
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">
+                Display name
+              </label>
+              <Input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder={agent.name}
+                className="h-8 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">
+                Role
+              </label>
+              <Input
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                placeholder="e.g. Senior brand strategist"
+                className="h-8 text-sm"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">
+              Personality
+            </label>
+            <Textarea
+              value={personality}
+              onChange={(e) => setPersonality(e.target.value)}
+              placeholder="Voice, tone, quirks. Re-injected as a reminder every 10 replies."
+              rows={3}
+              className="text-sm"
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button size="sm" onClick={onSave} disabled={saving}>
+              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save persona"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

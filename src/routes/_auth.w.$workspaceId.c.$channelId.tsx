@@ -34,12 +34,19 @@ import { useServerFn } from "@tanstack/react-start";
 import { invokeAgentRouter } from "@/lib/agent-router.functions";
 import { renameChannel } from "@/lib/collab.functions";
 import { addAgentToChannel, removeAgentFromChannel } from "@/lib/channel-membership.functions";
+import {
+  upsertChannelAgentOverride,
+  clearChannelAgentOverride,
+  listChannelAgentOverrides,
+} from "@/lib/agent-identity.functions";
 import { CreditBadge } from "@/components/hypeforce/credit-badge";
 import { ShareMessageDialog, type ShareableMessage } from "@/components/hypeforce/share-message-dialog";
 import { ChannelLogPanel } from "@/components/hypeforce/channel-log-panel";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Settings2 } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/c/$channelId")({
   component: ChannelPage,
@@ -563,10 +570,34 @@ function ChannelDetailsBody({
 
   const addAgentFn = useServerFn(addAgentToChannel);
   const removeAgentFn = useServerFn(removeAgentFromChannel);
+  const listOverridesFn = useServerFn(listChannelAgentOverrides);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [overrides, setOverrides] = useState<
+    Record<string, { display_name: string | null; role: string | null; personality: string | null }>
+  >({});
   const roomIds = new Set(roomAgents.map((a) => a.id));
   const available = allAgents.filter((a) => !roomIds.has(a.id));
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const rows = await listOverridesFn({ data: { channel_id: channelId } });
+        const map: Record<string, { display_name: string | null; role: string | null; personality: string | null }> = {};
+        for (const r of rows) {
+          map[r.agent_id] = {
+            display_name: r.display_name,
+            role: r.role,
+            personality: r.personality,
+          };
+        }
+        setOverrides(map);
+      } catch {
+        // ignore
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId]);
 
   const handleAdd = async (agentId: string) => {
     setBusyId(agentId);
@@ -609,30 +640,50 @@ function ChannelDetailsBody({
             fallback={<UserIcon className="w-3.5 h-3.5" />}
             online
           />
-          {roomAgents.map((a) => (
-            <div key={a.id} className="group flex items-center gap-2">
-              <div className="flex-1 min-w-0">
-                <MemberRow
-                  name={a.name}
-                  subtitle={a.description ?? a.provider}
-                  avatar={a.avatar_url ?? undefined}
-                  badge={a.provider}
-                  fallback={<Bot className="w-3.5 h-3.5" />}
-                  online
+          {roomAgents.map((a) => {
+            const ovr = overrides[a.id];
+            const effectiveName =
+              ovr?.display_name?.trim() || a.display_name?.trim() || a.name;
+            const effectiveRole = ovr?.role?.trim() || a.role?.trim() || null;
+            const subtitle = effectiveRole ?? a.description ?? a.provider;
+            return (
+              <div key={a.id} className="group flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <MemberRow
+                    name={effectiveName}
+                    subtitle={subtitle}
+                    avatar={a.avatar_url ?? undefined}
+                    badge={ovr ? "override" : a.provider}
+                    fallback={<Bot className="w-3.5 h-3.5" />}
+                    online
+                  />
+                </div>
+                <ChannelAgentOverridePopover
+                  agent={a}
+                  channelId={channelId}
+                  override={ovr}
+                  onChange={(next) =>
+                    setOverrides((prev) => {
+                      const copy = { ...prev };
+                      if (next) copy[a.id] = next;
+                      else delete copy[a.id];
+                      return copy;
+                    })
+                  }
                 />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                  title="Remove from channel"
+                  disabled={busyId === a.id}
+                  onClick={() => handleRemove(a.id)}
+                >
+                  {busyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
-                title="Remove from channel"
-                disabled={busyId === a.id}
-                onClick={() => handleRemove(a.id)}
-              >
-                {busyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
           <PopoverTrigger asChild>
@@ -816,7 +867,11 @@ function MessageRow({
   const isAgent = message.author_type === "agent";
   const agent = isAgent ? agents.find((a) => a.id === message.author_agent_id) : null;
   const profile = !isAgent && message.author_user_id ? profiles[message.author_user_id] : null;
-  const name = agent?.name ?? profile?.display_name ?? profile?.email ?? "Unknown";
+  const name =
+    (agent?.display_name?.trim() || agent?.name) ??
+    profile?.display_name ??
+    profile?.email ??
+    "Unknown";
   const avatar = agent?.avatar_url ?? profile?.avatar_url ?? undefined;
   const time = new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
@@ -916,4 +971,140 @@ function mentionMarkdownComponents(agents: Agent[]) {
     th: wrap("th"),
     blockquote: wrap("blockquote"),
   } as any;
+}
+
+type AgentOverride = {
+  display_name: string | null;
+  role: string | null;
+  personality: string | null;
+};
+
+function ChannelAgentOverridePopover({
+  agent,
+  channelId,
+  override,
+  onChange,
+}: {
+  agent: Agent;
+  channelId: string;
+  override: AgentOverride | undefined;
+  onChange: (next: AgentOverride | null) => void;
+}) {
+  const upsert = useServerFn(upsertChannelAgentOverride);
+  const clear = useServerFn(clearChannelAgentOverride);
+  const [open, setOpen] = useState(false);
+  const [displayName, setDisplayName] = useState(override?.display_name ?? "");
+  const [role, setRole] = useState(override?.role ?? "");
+  const [personality, setPersonality] = useState(override?.personality ?? "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setDisplayName(override?.display_name ?? "");
+      setRole(override?.role ?? "");
+      setPersonality(override?.personality ?? "");
+    }
+  }, [open, override?.display_name, override?.role, override?.personality]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const patch: AgentOverride = {
+        display_name: displayName.trim() || null,
+        role: role.trim() || null,
+        personality: personality.trim() || null,
+      };
+      await upsert({ data: { channel_id: channelId, agent_id: agent.id, ...patch } });
+      onChange(patch);
+      toast.success("Override saved for this channel");
+      setOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Couldn't save override");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const reset = async () => {
+    setSaving(true);
+    try {
+      await clear({ data: { channel_id: channelId, agent_id: agent.id } });
+      onChange(null);
+      toast.success("Reset to workspace default");
+      setOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Couldn't reset");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+          title="Override persona for this channel"
+        >
+          <Settings2 className="w-3 h-3" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-72 p-3 space-y-2">
+        <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">
+          Override for this channel
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">
+            Display name
+          </label>
+          <Input
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder={agent.display_name ?? agent.name}
+            className="h-8 text-sm"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">
+            Role
+          </label>
+          <Input
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            placeholder={agent.role ?? "e.g. Channel-specific role"}
+            className="h-8 text-sm"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">
+            Personality
+          </label>
+          <Textarea
+            value={personality}
+            onChange={(e) => setPersonality(e.target.value)}
+            placeholder={agent.personality ?? "Voice and tone for this channel only"}
+            rows={3}
+            className="text-sm"
+          />
+        </div>
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-xs h-7"
+            disabled={saving || !override}
+            onClick={reset}
+          >
+            Reset to default
+          </Button>
+          <Button type="button" size="sm" className="h-7" disabled={saving} onClick={save}>
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save"}
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 }
