@@ -415,30 +415,43 @@ function AdminPage() {
             {agents.map((a) => {
               const current = a.preferred_route ?? "lovable";
               return (
-                <li key={a.id} className="flex items-center gap-3 p-3 hover:bg-secondary/30">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{a.name}</div>
-                    <div className="text-[11px] font-mono text-muted-foreground">
-                      {a.provider}
+                <li key={a.id} className="p-3 hover:bg-secondary/30 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">
+                        {a.display_name?.trim() || a.name}
+                      </div>
+                      <div className="text-[11px] font-mono text-muted-foreground">
+                        @{a.name.toLowerCase()} · {a.provider}
+                        {a.role ? ` · ${a.role}` : ""}
+                      </div>
                     </div>
+                    <Select value={current} onValueChange={(v) => updateAgentRoute(a.id, v)}>
+                      <SelectTrigger className="w-[200px] h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="lovable">Lovable AI Gateway (default)</SelectItem>
+                        {(["openai", "anthropic", "google", "manus"] as const).map((p) => (
+                          <SelectItem
+                            key={p}
+                            value={`byok:${p}`}
+                            disabled={!myConns.includes(p)}
+                          >
+                            My {p} key{!myConns.includes(p) ? " (not connected)" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Select value={current} onValueChange={(v) => updateAgentRoute(a.id, v)}>
-                    <SelectTrigger className="w-[200px] h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="lovable">Lovable AI Gateway (default)</SelectItem>
-                      {(["openai", "anthropic", "google", "manus"] as const).map((p) => (
-                        <SelectItem
-                          key={p}
-                          value={`byok:${p}`}
-                          disabled={!myConns.includes(p)}
-                        >
-                          My {p} key{!myConns.includes(p) ? " (not connected)" : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <AgentIdentityEditor
+                    agent={a}
+                    onSaved={(patch) =>
+                      setAgents((prev) =>
+                        prev.map((x) => (x.id === a.id ? { ...x, ...patch } : x)),
+                      )
+                    }
+                  />
                 </li>
               );
             })}
