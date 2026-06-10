@@ -21,7 +21,7 @@ import {
 
 } from "lucide-react";
 import heroAsset from "@/assets/hero-we-are-ready.png.asset.json";
-import wordmarkAsset from "@/assets/hypeforce-wordmark-white.png.asset.json";
+import wordmarkAsset from "@/assets/hypeforce-wordmark-v2.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 import { useTheme } from "@/components/hypeforce/theme-provider";
