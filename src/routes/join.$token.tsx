@@ -27,7 +27,9 @@ function JoinPage() {
         try {
           sessionStorage.setItem(STORAGE_KEY, token);
         } catch {}
-        navigate({ to: "/login", replace: true });
+        // Invitees are new users — drop them into the create-profile flow,
+        // not the sign-in screen.
+        navigate({ to: "/welcome", replace: true });
         return;
       }
       try {
