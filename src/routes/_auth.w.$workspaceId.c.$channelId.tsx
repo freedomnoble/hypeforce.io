@@ -33,6 +33,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { invokeAgentRouter } from "@/lib/agent-router.functions";
 import { renameChannel } from "@/lib/collab.functions";
 import { CreditBadge } from "@/components/hypeforce/credit-badge";
+import { ShareMessageDialog, type ShareableMessage } from "@/components/hypeforce/share-message-dialog";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/c/$channelId")({
   component: ChannelPage,
