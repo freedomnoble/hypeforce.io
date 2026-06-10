@@ -5,12 +5,13 @@ import { WorkspaceShell, MobileChatTopBar, type Agent, type Profile } from "@/co
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Bot, Loader2, Send, AtSign, User as UserIcon, MessageSquare } from "lucide-react";
+import { Bot, Loader2, Send, AtSign, User as UserIcon, MessageSquare, Forward } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import { invokeAgentRouter } from "@/lib/agent-router.functions";
 import { CreditBadge } from "@/components/hypeforce/credit-badge";
+import { ShareMessageDialog, type ShareableMessage } from "@/components/hypeforce/share-message-dialog";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/d/$dmId")({
   component: DmPage,
@@ -38,6 +39,7 @@ function DmPage() {
   const [sending, setSending] = useState(false);
   const [thinking, setThinking] = useState<string[]>([]);
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
+  const [shareMsg, setShareMsg] = useState<ShareableMessage | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const thinkingTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -239,7 +241,14 @@ function DmPage() {
               </div>
             )}
             {messages.map((m) => (
-              <MessageRow key={m.id} message={m} agents={agents} profiles={profiles} me={me} />
+              <MessageRow
+                key={m.id}
+                message={m}
+                agents={agents}
+                profiles={profiles}
+                me={me}
+                onShare={(payload) => setShareMsg(payload)}
+              />
             ))}
             {thinking.map((id) => {
               const a = agents.find((x) => x.id === id);
@@ -326,6 +335,13 @@ function DmPage() {
           </SheetContent>
         </Sheet>
       </div>
+      <ShareMessageDialog
+        open={!!shareMsg}
+        onOpenChange={(v) => !v && setShareMsg(null)}
+        message={shareMsg}
+        workspaceId={workspaceId}
+        sourceLabel={otherAgent ? `DM with @${otherAgent.handle}` : `DM "${headerTitle}"`}
+      />
     </WorkspaceShell>
   );
 }
@@ -414,11 +430,13 @@ function MessageRow({
   agents,
   profiles,
   me,
+  onShare,
 }: {
   message: Message;
   agents: Agent[];
   profiles: Record<string, Profile>;
   me: Profile | null;
+  onShare: (payload: ShareableMessage) => void;
 }) {
   const isAgent = message.author_type === "agent";
   const agent = isAgent ? agents.find((a) => a.id === message.author_agent_id) : null;
@@ -432,7 +450,7 @@ function MessageRow({
   const isMe = !isAgent && me?.id === message.author_user_id;
 
   return (
-    <div className="flex gap-3 group">
+    <div className="flex gap-3 group relative">
       <Avatar className="w-9 h-9 mt-0.5">
         <AvatarImage src={avatar} />
         <AvatarFallback>{isAgent ? <Bot className="w-4 h-4" /> : name[0]?.toUpperCase()}</AvatarFallback>
@@ -455,6 +473,21 @@ function MessageRow({
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
         </div>
       </div>
+      <button
+        type="button"
+        onClick={() =>
+          onShare({
+            id: message.id,
+            content: message.content,
+            created_at: message.created_at,
+            authorName: name,
+          })
+        }
+        title="Share to channel or DM"
+        className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-0 right-0 h-7 w-7 inline-flex items-center justify-center rounded-md border border-border bg-background/60 hover:bg-accent/40 text-muted-foreground hover:text-foreground"
+      >
+        <Forward className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }
