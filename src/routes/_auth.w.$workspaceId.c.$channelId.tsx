@@ -33,8 +33,11 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { invokeAgentRouter } from "@/lib/agent-router.functions";
 import { renameChannel } from "@/lib/collab.functions";
+import { addAgentToChannel, removeAgentFromChannel } from "@/lib/channel-membership.functions";
 import { CreditBadge } from "@/components/hypeforce/credit-badge";
 import { ShareMessageDialog, type ShareableMessage } from "@/components/hypeforce/share-message-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/c/$channelId")({
   component: ChannelPage,
