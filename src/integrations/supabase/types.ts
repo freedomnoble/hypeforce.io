@@ -139,6 +139,80 @@ export type Database = {
           },
         ]
       }
+      channel_memos: {
+        Row: {
+          author_agent_id: string | null
+          author_type: string
+          author_user_id: string | null
+          body: string
+          channel_id: string
+          created_at: string
+          id: string
+          source_message_id: string | null
+          tags: string[]
+          title: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          author_agent_id?: string | null
+          author_type: string
+          author_user_id?: string | null
+          body: string
+          channel_id: string
+          created_at?: string
+          id?: string
+          source_message_id?: string | null
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          author_agent_id?: string | null
+          author_type?: string
+          author_user_id?: string | null
+          body?: string
+          channel_id?: string
+          created_at?: string
+          id?: string
+          source_message_id?: string | null
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_memos_author_agent_id_fkey"
+            columns: ["author_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_memos_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_memos_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_memos_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channels: {
         Row: {
           created_at: string
@@ -492,6 +566,8 @@ export type Database = {
           channel_id: string | null
           content_text: string | null
           created_at: string
+          extraction_error: string | null
+          extraction_status: string | null
           filename: string
           id: string
           is_pinned: boolean
@@ -508,6 +584,8 @@ export type Database = {
           channel_id?: string | null
           content_text?: string | null
           created_at?: string
+          extraction_error?: string | null
+          extraction_status?: string | null
           filename: string
           id?: string
           is_pinned?: boolean
@@ -524,6 +602,8 @@ export type Database = {
           channel_id?: string | null
           content_text?: string | null
           created_at?: string
+          extraction_error?: string | null
+          extraction_status?: string | null
           filename?: string
           id?: string
           is_pinned?: boolean
