@@ -282,6 +282,37 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
 
     const { data: agents } = await supabase.from("agents").select("*").in("id", agentIds);
 
+    // Load per-channel identity overrides + reply counters (server-only).
+    const overrideByAgent = new Map<
+      string,
+      { display_name: string | null; role: string | null; personality: string | null }
+    >();
+    const counterByAgent = new Map<string, number>();
+    if (channel_id) {
+      const [{ data: ovr }, { data: ctr }] = await Promise.all([
+        supabaseAdmin
+          .from("channel_agent_overrides")
+          .select("agent_id,display_name,role,personality")
+          .eq("channel_id", channel_id)
+          .in("agent_id", agentIds),
+        supabaseAdmin
+          .from("agent_reply_counters")
+          .select("agent_id,count")
+          .eq("channel_id", channel_id)
+          .in("agent_id", agentIds),
+      ]);
+      for (const o of (ovr ?? []) as any[]) {
+        overrideByAgent.set(o.agent_id, {
+          display_name: o.display_name ?? null,
+          role: o.role ?? null,
+          personality: o.personality ?? null,
+        });
+      }
+      for (const c of (ctr ?? []) as any[]) {
+        counterByAgent.set(c.agent_id, c.count ?? 0);
+      }
+    }
+
     // Load last 10 messages for context.
     const baseQuery = supabase
       .from("messages")
