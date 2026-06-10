@@ -640,30 +640,50 @@ function ChannelDetailsBody({
             fallback={<UserIcon className="w-3.5 h-3.5" />}
             online
           />
-          {roomAgents.map((a) => (
-            <div key={a.id} className="group flex items-center gap-2">
-              <div className="flex-1 min-w-0">
-                <MemberRow
-                  name={a.name}
-                  subtitle={a.description ?? a.provider}
-                  avatar={a.avatar_url ?? undefined}
-                  badge={a.provider}
-                  fallback={<Bot className="w-3.5 h-3.5" />}
-                  online
+          {roomAgents.map((a) => {
+            const ovr = overrides[a.id];
+            const effectiveName =
+              ovr?.display_name?.trim() || a.display_name?.trim() || a.name;
+            const effectiveRole = ovr?.role?.trim() || a.role?.trim() || null;
+            const subtitle = effectiveRole ?? a.description ?? a.provider;
+            return (
+              <div key={a.id} className="group flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <MemberRow
+                    name={effectiveName}
+                    subtitle={subtitle}
+                    avatar={a.avatar_url ?? undefined}
+                    badge={ovr ? "override" : a.provider}
+                    fallback={<Bot className="w-3.5 h-3.5" />}
+                    online
+                  />
+                </div>
+                <ChannelAgentOverridePopover
+                  agent={a}
+                  channelId={channelId}
+                  override={ovr}
+                  onChange={(next) =>
+                    setOverrides((prev) => {
+                      const copy = { ...prev };
+                      if (next) copy[a.id] = next;
+                      else delete copy[a.id];
+                      return copy;
+                    })
+                  }
                 />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                  title="Remove from channel"
+                  disabled={busyId === a.id}
+                  onClick={() => handleRemove(a.id)}
+                >
+                  {busyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
-                title="Remove from channel"
-                disabled={busyId === a.id}
-                onClick={() => handleRemove(a.id)}
-              >
-                {busyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
           <PopoverTrigger asChild>
