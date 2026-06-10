@@ -570,10 +570,34 @@ function ChannelDetailsBody({
 
   const addAgentFn = useServerFn(addAgentToChannel);
   const removeAgentFn = useServerFn(removeAgentFromChannel);
+  const listOverridesFn = useServerFn(listChannelAgentOverrides);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [overrides, setOverrides] = useState<
+    Record<string, { display_name: string | null; role: string | null; personality: string | null }>
+  >({});
   const roomIds = new Set(roomAgents.map((a) => a.id));
   const available = allAgents.filter((a) => !roomIds.has(a.id));
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const rows = await listOverridesFn({ data: { channel_id: channelId } });
+        const map: Record<string, { display_name: string | null; role: string | null; personality: string | null }> = {};
+        for (const r of rows) {
+          map[r.agent_id] = {
+            display_name: r.display_name,
+            role: r.role,
+            personality: r.personality,
+          };
+        }
+        setOverrides(map);
+      } catch {
+        // ignore
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId]);
 
   const handleAdd = async (agentId: string) => {
     setBusyId(agentId);
