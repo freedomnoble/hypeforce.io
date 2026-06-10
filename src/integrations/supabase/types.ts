@@ -44,18 +44,57 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_reply_counters: {
+        Row: {
+          agent_id: string
+          channel_id: string
+          count: number
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          channel_id: string
+          count?: number
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          channel_id?: string
+          count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_reply_counters_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_reply_counters_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agents: {
         Row: {
           avatar_url: string | null
           created_at: string
           description: string | null
+          display_name: string | null
           enabled: boolean
           handle: string
           id: string
           model: string
           name: string
+          personality: string | null
           preferred_route: string | null
           provider: Database["public"]["Enums"]["agent_provider"]
+          role: string | null
           system_prompt: string | null
           workspace_id: string
         }
@@ -63,13 +102,16 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           description?: string | null
+          display_name?: string | null
           enabled?: boolean
           handle: string
           id?: string
           model: string
           name: string
+          personality?: string | null
           preferred_route?: string | null
           provider: Database["public"]["Enums"]["agent_provider"]
+          role?: string | null
           system_prompt?: string | null
           workspace_id: string
         }
@@ -77,19 +119,77 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           description?: string | null
+          display_name?: string | null
           enabled?: boolean
           handle?: string
           id?: string
           model?: string
           name?: string
+          personality?: string | null
           preferred_route?: string | null
           provider?: Database["public"]["Enums"]["agent_provider"]
+          role?: string | null
           system_prompt?: string | null
           workspace_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "agents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_agent_overrides: {
+        Row: {
+          agent_id: string
+          channel_id: string
+          created_at: string
+          display_name: string | null
+          personality: string | null
+          role: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_id: string
+          channel_id: string
+          created_at?: string
+          display_name?: string | null
+          personality?: string | null
+          role?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string
+          channel_id?: string
+          created_at?: string
+          display_name?: string | null
+          personality?: string | null
+          role?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_agent_overrides_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_agent_overrides_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channel_agent_overrides_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
