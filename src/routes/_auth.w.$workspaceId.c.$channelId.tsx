@@ -124,14 +124,23 @@ function ChannelPage() {
         const { data: p } = await supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle();
         setMe(p);
       }
-      const { data: pf } = await supabase
-        .from("files")
-        .select("id,filename,mime_type,size_bytes")
-        .eq("channel_id", channelId)
-        .eq("is_pinned", true)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      setPinnedFiles((pf ?? []) as PinnedFile[]);
+      await refetchPinnedFiles();
+    })();
+  }, [channelId, workspaceId]);
+
+  const refetchPinnedFiles = async () => {
+    const { data: pf } = await supabase
+      .from("files")
+      .select("id,filename,mime_type,size_bytes")
+      .eq("channel_id", channelId)
+      .eq("is_pinned", true)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setPinnedFiles((pf ?? []) as PinnedFile[]);
+  };
+  // placeholder so previous closing brace stays valid:
+  void 0;
+  ((
     })();
   }, [channelId, workspaceId]);
 
