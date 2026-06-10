@@ -335,6 +335,13 @@ function DmPage() {
           </SheetContent>
         </Sheet>
       </div>
+      <ShareMessageDialog
+        open={!!shareMsg}
+        onOpenChange={(v) => !v && setShareMsg(null)}
+        message={shareMsg}
+        workspaceId={workspaceId}
+        sourceLabel={otherAgent ? `DM with @${otherAgent.handle}` : `DM "${headerTitle}"`}
+      />
     </WorkspaceShell>
   );
 }
