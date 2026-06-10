@@ -131,7 +131,7 @@ function AdminPage() {
   const loadAgents = async () => {
     const { data } = await supabase
       .from("agents")
-      .select("id,name,provider,preferred_route")
+      .select("id,name,provider,preferred_route,display_name,role,personality")
       .eq("workspace_id", workspaceId)
       .order("name");
     setAgents((data ?? []) as AgentRow[]);
