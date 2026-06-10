@@ -395,7 +395,8 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
           ? `\nHUMAN TEAMMATES:\n${humanRosterLines.join("\n")}`
           : ""
       }\nDefer to a teammate on their specialty when relevant. Don't impersonate them.\n---`;
-      const systemPrompt = `${brandBlock}${pinnedBlock}${rosterBlock}\n\n${agent.system_prompt ?? `You are ${agent.name}.`}${kbBlock}\n\nReply concisely in markdown. Stay strictly on brand.`;
+      const memoInstructions = `\n\n# Project log — writing memos\nWhen you decide something concrete, learn a fact worth remembering, or finish a unit of work that teammates need to know about, emit one or more blocks like:\n<memo title="Optional short title" tags="decision,api">Markdown body that captures the takeaway concisely.</memo>\nThese blocks are stripped from your visible reply and saved to the channel's shared project log so humans and other agents can build on them. Use sparingly — only when it advances shared context, not for chit-chat.`;
+      const systemPrompt = `${brandBlock}${pinnedBlock}${memoBlock}${rosterBlock}\n\n${agent.system_prompt ?? `You are ${agent.name}.`}${kbBlock}${memoInstructions}\n\nReply concisely in markdown. Stay strictly on brand.`;
 
       const pref = (agent as { preferred_route?: string | null }).preferred_route ?? null;
       const byokMatch = pref?.match(/^byok:(openai|anthropic|google|manus)$/);
