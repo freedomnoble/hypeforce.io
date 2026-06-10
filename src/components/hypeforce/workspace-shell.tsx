@@ -88,6 +88,9 @@ export interface Agent {
   provider: string;
   avatar_url: string | null;
   description: string | null;
+  display_name?: string | null;
+  role?: string | null;
+  personality?: string | null;
 }
 export interface Profile {
   id: string;
