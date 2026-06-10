@@ -358,6 +358,31 @@ function AdminPage() {
           </div>
         </section>
 
+        {/* Feature flags */}
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Settings2 className="w-4 h-4 text-electric" />
+            <h2 className="font-display text-lg font-semibold">Features</h2>
+          </div>
+          <div className="flex items-center justify-between rounded-2xl border border-border bg-background/40 p-4">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">Coffee sample button</div>
+              <div className="text-xs text-muted-foreground">
+                Floating button that lets users request a free coffee sample.
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant={coffeeEnabled ? "default" : "outline"}
+              disabled={savingFlag}
+              onClick={() => toggleCoffeeFlag(!coffeeEnabled)}
+            >
+              {savingFlag ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : coffeeEnabled ? "On" : "Off"}
+            </Button>
+          </div>
+        </section>
+
+
         {/* Knowledge base */}
         <section className="space-y-3">
           <div className="flex items-center gap-2">
