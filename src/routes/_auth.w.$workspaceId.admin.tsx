@@ -80,6 +80,9 @@ interface AgentRow {
   name: string;
   provider: string;
   preferred_route: string | null;
+  display_name: string | null;
+  role: string | null;
+  personality: string | null;
 }
 
 type ConnectedProvider = "openai" | "anthropic" | "google" | "manus";
