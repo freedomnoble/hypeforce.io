@@ -122,10 +122,11 @@ function AdminPage() {
 
       const { data: ws } = await supabase
         .from("workspaces")
-        .select("brand_voice")
+        .select("brand_voice, feature_flags")
         .eq("id", workspaceId)
         .maybeSingle();
       setBrandVoice((ws as any)?.brand_voice ?? "");
+      setCoffeeEnabled(!!(ws as any)?.feature_flags?.coffee_button);
 
       await Promise.all([loadKB(), loadAgents(), loadConns()]);
     })();
