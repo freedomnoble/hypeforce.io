@@ -544,11 +544,15 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
             const { decryptApiKey } = await import("./ai-crypto.server");
             const { callProvider } = await import("./ai-providers.server");
             const apiKey = await decryptApiKey(encrypted);
-            const content = await callProvider(byokProvider, apiKey, agent.model ?? "", systemPrompt, history);
+            const rawContent = await callProvider(byokProvider, apiKey, agent.model ?? "", systemPrompt, history);
+            const { cleaned, memos } = extractMemos(rawContent);
             await supabaseAdmin
               .from("messages")
-              .update({ content, status: "complete" })
+              .update({ content: cleaned, status: "complete" })
               .eq("id", rowId);
+            if (channel_id && memos.length > 0) {
+              await persistMemos(rowId, workspace_id, channel_id, agent.id, cleaned, memos);
+            }
           } catch (e: any) {
             console.error("BYOK call failed", { provider: byokProvider, message: e?.message });
             await supabaseAdmin
@@ -577,6 +581,19 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
             kind: "text",
             usage,
           });
+        }
+        // Post-process memo tags out of the streamed reply.
+        if (channel_id) {
+          const { data: finalRow } = await supabaseAdmin
+            .from("messages")
+            .select("content")
+            .eq("id", rowId)
+            .maybeSingle();
+          const raw = (finalRow as { content: string } | null)?.content ?? "";
+          const { cleaned, memos } = extractMemos(raw);
+          if (memos.length > 0) {
+            await persistMemos(rowId, workspace_id, channel_id, agent.id, cleaned, memos);
+          }
         }
       }
       dispatched++;
