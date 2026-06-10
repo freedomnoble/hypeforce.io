@@ -290,7 +290,8 @@ function ChannelPage() {
         setThinkingAgentIds((s) => s.filter((id) => !targetAgentIds.includes(id)));
       });
     } catch (e: any) {
-      toast.error(e.message ?? "Failed to send");
+      console.error("[send channel message]", e);
+      toast.error(friendlySendError(e));
     } finally {
       setSending(false);
     }
