@@ -85,6 +85,7 @@ function ChannelPage() {
   const [thinkingAgentIds, setThinkingAgentIds] = useState<string[]>([]);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
+  const [shareMsg, setShareMsg] = useState<ShareableMessage | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const thinkingTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
