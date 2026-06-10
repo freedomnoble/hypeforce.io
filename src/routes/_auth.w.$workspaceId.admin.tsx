@@ -461,3 +461,105 @@ function AdminPage() {
     </WorkspaceShell>
   );
 }
+
+type IdentityPatch = {
+  display_name: string | null;
+  role: string | null;
+  personality: string | null;
+};
+
+function AgentIdentityEditor({
+  agent,
+  onSaved,
+}: {
+  agent: AgentRow;
+  onSaved: (patch: IdentityPatch) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [displayName, setDisplayName] = useState(agent.display_name ?? "");
+  const [role, setRole] = useState(agent.role ?? "");
+  const [personality, setPersonality] = useState(agent.personality ?? "");
+  const [saving, setSaving] = useState(false);
+  const save = useServerFn(updateAgentIdentity);
+
+  const hasIdentity = !!(agent.display_name || agent.role || agent.personality);
+
+  const onSave = async () => {
+    setSaving(true);
+    try {
+      const patch: IdentityPatch = {
+        display_name: displayName.trim() || null,
+        role: role.trim() || null,
+        personality: personality.trim() || null,
+      };
+      await save({ data: { agent_id: agent.id, ...patch } });
+      onSaved(patch);
+      toast.success("Identity saved — reinforced every 10 replies");
+      setOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Couldn't save identity");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-background/40">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-3 py-2 text-[11px] uppercase tracking-wider font-mono text-muted-foreground hover:text-foreground"
+      >
+        <span>
+          Persona · {hasIdentity ? "customized" : "default"}
+        </span>
+        <span>{open ? "Hide" : "Edit"}</span>
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">
+                Display name
+              </label>
+              <Input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder={agent.name}
+                className="h-8 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">
+                Role
+              </label>
+              <Input
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                placeholder="e.g. Senior brand strategist"
+                className="h-8 text-sm"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">
+              Personality
+            </label>
+            <Textarea
+              value={personality}
+              onChange={(e) => setPersonality(e.target.value)}
+              placeholder="Voice, tone, quirks. Re-injected as a reminder every 10 replies."
+              rows={3}
+              className="text-sm"
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button size="sm" onClick={onSave} disabled={saving}>
+              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save persona"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
