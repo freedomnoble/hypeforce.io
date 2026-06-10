@@ -339,7 +339,13 @@ function ChannelPage() {
               <Fragment key={label}>
                 <DateDivider label={label} />
                 {items.map((m) => (
-                  <MessageRow key={m.id} message={m} agents={agents} profiles={profiles} />
+                  <MessageRow
+                    key={m.id}
+                    message={m}
+                    agents={agents}
+                    profiles={profiles}
+                    onShare={(payload) => setShareMsg(payload)}
+                  />
                 ))}
               </Fragment>
             ))}
