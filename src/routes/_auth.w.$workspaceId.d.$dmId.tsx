@@ -39,6 +39,7 @@ function DmPage() {
   const [sending, setSending] = useState(false);
   const [thinking, setThinking] = useState<string[]>([]);
   const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
+  const [shareMsg, setShareMsg] = useState<ShareableMessage | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const thinkingTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
