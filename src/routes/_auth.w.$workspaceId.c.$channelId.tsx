@@ -867,7 +867,11 @@ function MessageRow({
   const isAgent = message.author_type === "agent";
   const agent = isAgent ? agents.find((a) => a.id === message.author_agent_id) : null;
   const profile = !isAgent && message.author_user_id ? profiles[message.author_user_id] : null;
-  const name = agent?.name ?? profile?.display_name ?? profile?.email ?? "Unknown";
+  const name =
+    (agent?.display_name?.trim() || agent?.name) ??
+    profile?.display_name ??
+    profile?.email ??
+    "Unknown";
   const avatar = agent?.avatar_url ?? profile?.avatar_url ?? undefined;
   const time = new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
