@@ -35,8 +35,7 @@ async function extractPdf(buf: ArrayBuffer): Promise<string> {
 
 async function extractDocx(buf: ArrayBuffer): Promise<string> {
   const mammoth = await import("mammoth");
-  // mammoth uses Buffer; provide one via the Worker compat layer.
-  const { value } = await mammoth.convertToMarkdown({ buffer: Buffer.from(buf) as any });
+  const { value } = await mammoth.extractRawText({ buffer: Buffer.from(buf) as any });
   return value.trim();
 }
 
