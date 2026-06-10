@@ -493,7 +493,7 @@ function ChannelPage() {
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} allAgents={agents} channelId={channelId} onMembershipChanged={refetchChannelAgents} />
+            <ChannelDetailsBody me={me} roomAgents={roomAgents} pinnedFiles={pinnedFiles} allAgents={agents} channelId={channelId} workspaceId={workspaceId} profiles={profiles} onMembershipChanged={refetchChannelAgents} onFilesChanged={refetchPinnedFiles} />
           </aside>
         )}
 
