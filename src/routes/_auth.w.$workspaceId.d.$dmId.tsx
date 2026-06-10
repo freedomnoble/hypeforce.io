@@ -5,12 +5,13 @@ import { WorkspaceShell, MobileChatTopBar, type Agent, type Profile } from "@/co
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Bot, Loader2, Send, AtSign, User as UserIcon, MessageSquare } from "lucide-react";
+import { Bot, Loader2, Send, AtSign, User as UserIcon, MessageSquare, Forward } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import { invokeAgentRouter } from "@/lib/agent-router.functions";
 import { CreditBadge } from "@/components/hypeforce/credit-badge";
+import { ShareMessageDialog, type ShareableMessage } from "@/components/hypeforce/share-message-dialog";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/d/$dmId")({
   component: DmPage,
