@@ -32,9 +32,13 @@ export const Route = createFileRoute("/pretentious/users")({
 
 function UsersPage() {
   const fn = useServerFn(listUsers);
+  const bulkDel = useServerFn(bulkDeleteUsers);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<any | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -43,6 +47,46 @@ function UsersPage() {
   });
 
   const users = (data?.users as any[]) ?? [];
+  const allVisibleSelected = users.length > 0 && users.every((u) => selectedIds.has(u.id));
+  const someVisibleSelected = users.some((u) => selectedIds.has(u.id));
+
+  const toggleOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllVisible = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) users.forEach((u) => next.delete(u.id));
+      else users.forEach((u) => next.add(u.id));
+      return next;
+    });
+  };
+
+  const runBulkDelete = async () => {
+    setBulkBusy(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const res = await bulkDel({ data: { user_ids: ids } });
+      if (res.failed.length) {
+        toast.warning(`Deleted ${res.deleted}. ${res.failed.length} failed.`);
+      } else {
+        toast.success(`Deleted ${res.deleted} user${res.deleted === 1 ? "" : "s"}.`);
+      }
+      setSelectedIds(new Set());
+      setConfirmBulkDelete(false);
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "Bulk delete failed");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -56,11 +100,44 @@ function UsersPage() {
         />
       </div>
 
+      {selectedIds.size > 0 && (
+        <GlassPanel className="flex items-center justify-between px-4 py-2">
+          <div className="text-sm text-white/70">
+            <span className="font-mono text-white">{selectedIds.size}</span> selected
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="px-3 py-1.5 rounded-lg hover:bg-white/5 text-xs text-white/60"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => setConfirmBulkDelete(true)}
+              className="px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-200 text-xs"
+            >
+              Delete selected
+            </button>
+          </div>
+        </GlassPanel>
+      )}
+
       <GlassPanel className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-[10px] uppercase tracking-[0.18em] text-white/45">
               <tr className="border-b border-white/10">
+                <th className="px-3 py-3 w-8">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected;
+                    }}
+                    onChange={toggleAllVisible}
+                    aria-label="Select all"
+                  />
+                </th>
                 <th className="text-left px-4 py-3">User</th>
                 <th className="text-left px-4 py-3">Joined</th>
                 <th className="text-right px-4 py-3">Workspaces</th>
@@ -73,7 +150,7 @@ function UsersPage() {
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={8} className="px-4 py-6 text-white/40">Loading…</td></tr>
+                <tr><td colSpan={9} className="px-4 py-6 text-white/40">Loading…</td></tr>
               )}
               {users.map((u) => (
                 <tr
@@ -81,6 +158,14 @@ function UsersPage() {
                   className="border-b border-white/5 hover:bg-white/[0.03] cursor-pointer"
                   onClick={() => setSelected(u)}
                 >
+                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(u.id)}
+                      onChange={() => toggleOne(u.id)}
+                      aria-label={`Select ${u.email}`}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="text-white">{u.email}</div>
                     <div className="text-[10px] font-mono text-white/40">{u.id.slice(0, 8)}</div>
@@ -101,7 +186,7 @@ function UsersPage() {
                 </tr>
               ))}
               {!isLoading && users.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-6 text-white/40">No users found.</td></tr>
+                <tr><td colSpan={9} className="px-4 py-6 text-white/40">No users found.</td></tr>
               )}
             </tbody>
           </table>
@@ -122,9 +207,35 @@ function UsersPage() {
           onChanged={() => qc.invalidateQueries({ queryKey: ["admin-users"] })}
         />
       )}
+
+      <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size} user{selectedIds.size === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes the selected accounts and cascades to all their data
+              (workspaces, channels, agents, messages). This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={bulkBusy}
+              onClick={(e) => {
+                e.preventDefault();
+                runBulkDelete();
+              }}
+              className="bg-red-500/80 hover:bg-red-500 text-white"
+            >
+              {bulkBusy ? "Deleting…" : `Delete ${selectedIds.size}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
 
 function PlanBadge({ sub, comped }: { sub: any; comped?: boolean }) {
   if (comped) {
