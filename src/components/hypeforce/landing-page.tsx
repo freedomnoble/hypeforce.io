@@ -102,6 +102,9 @@ export function LandingPage({
     return Array.isArray(v) && v.length ? (v as T[]) : fallback;
   };
 
+  const videosEnabled = (content?.videos_enabled ?? "true") !== "false";
+
+
   // Pricing from CMS, with sensible defaults
   const founderActive = pricing?.founder_active ?? true;
   const monthlyCents = (pricing?.founder_price_monthly as number | undefined) ?? 900;
@@ -257,11 +260,14 @@ export function LandingPage({
                   <ArrowRight className="w-4 h-4 ml-0.5" />
                 </a>
               </Button>
-              <Button asChild size="lg" variant="ghost" className="text-base h-12 px-6">
-                <a href="#demo">
-                  <Play className="w-4 h-4" /> {t("hero_cta_secondary", "Watch the 90-second tour")}
-                </a>
-              </Button>
+              {videosEnabled && (
+                <Button asChild size="lg" variant="ghost" className="text-base h-12 px-6">
+                  <a href="#demo">
+                    <Play className="w-4 h-4" /> {t("hero_cta_secondary", "Watch the 90-second tour")}
+                  </a>
+                </Button>
+              )}
+
             </div>
             <p className="mt-4 text-xs text-muted-foreground/80">
               {t("hero_footnote", "Cancel anytime · Own your work and data")}
@@ -333,33 +339,36 @@ export function LandingPage({
 
 
       {/* DEMO VIDEO */}
-      <section id="demo" className="relative z-10 mx-auto max-w-6xl px-5 lg:px-8 py-16">
-        <div className="text-center max-w-2xl mx-auto mb-8">
-          <p className="hf-eyebrow">{t("demo_eyebrow", "See it move")}</p>
-          <h2 className="hf-h2">{t("demo_headline", "90 seconds inside a Hypeforce channel.")}</h2>
-        </div>
-        <div className="glass-strong rounded-3xl p-2 sm:p-3">
-          <div className="aspect-video rounded-2xl overflow-hidden relative bg-[oklch(0.15_0.08_262)] grid-blueprint">
-            {videoUrl ? (
-              <video
-                className="absolute inset-0 w-full h-full object-cover"
-                controls
-                playsInline
-                preload="metadata"
-                src={videoUrl}
-              />
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 pointer-events-none">
-                <div className="liquid-glass rounded-full w-20 h-20 grid place-items-center mb-4">
-                  <Play className="w-8 h-8" />
-                </div>
-                <p className="text-foreground/90 font-display text-lg">Demo video coming up</p>
-                <p className="text-sm text-muted-foreground mt-1">Upload your clip in /pretentious → Landing CMS.</p>
-              </div>
-            )}
+      {videosEnabled && (
+        <section id="demo" className="relative z-10 mx-auto max-w-6xl px-5 lg:px-8 py-16">
+          <div className="text-center max-w-2xl mx-auto mb-8">
+            <p className="hf-eyebrow">{t("demo_eyebrow", "See it move")}</p>
+            <h2 className="hf-h2">{t("demo_headline", "90 seconds inside a Hypeforce channel.")}</h2>
           </div>
-        </div>
-      </section>
+          <div className="glass-strong rounded-3xl p-2 sm:p-3">
+            <div className="aspect-video rounded-2xl overflow-hidden relative bg-[oklch(0.15_0.08_262)] grid-blueprint">
+              {videoUrl ? (
+                <video
+                  className="absolute inset-0 w-full h-full object-cover"
+                  controls
+                  playsInline
+                  preload="metadata"
+                  src={videoUrl}
+                />
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 pointer-events-none">
+                  <div className="liquid-glass rounded-full w-20 h-20 grid place-items-center mb-4">
+                    <Play className="w-8 h-8" />
+                  </div>
+                  <p className="text-foreground/90 font-display text-lg">Demo video coming up</p>
+                  <p className="text-sm text-muted-foreground mt-1">Upload your clip in /pretentious → Landing CMS.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
 
       {/* HOW IT WORKS */}
       <section id="how" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
