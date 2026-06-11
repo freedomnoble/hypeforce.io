@@ -314,7 +314,7 @@ export function LandingPage({
       <section id="features" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <p className="hf-eyebrow">{t("features_eyebrow", "The platform")}</p>
-          <h2 className="hf-h2">{t("features_headline", "No integra")}</h2>
+          <h2 className="hf-h2">{t("features_headline", "No integration needed; total control ready.")}</h2>
           <p className="mt-3 text-muted-foreground text-lg">
             {t("features_subhead", "Hypeforce is a chat-first workspace where humans and agents collaborate in shared channels with shared context, shared memory and shared goals.")}
           </p>
