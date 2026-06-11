@@ -260,11 +260,14 @@ export function LandingPage({
                   <ArrowRight className="w-4 h-4 ml-0.5" />
                 </a>
               </Button>
-              <Button asChild size="lg" variant="ghost" className="text-base h-12 px-6">
-                <a href="#demo">
-                  <Play className="w-4 h-4" /> {t("hero_cta_secondary", "Watch the 90-second tour")}
-                </a>
-              </Button>
+              {videosEnabled && (
+                <Button asChild size="lg" variant="ghost" className="text-base h-12 px-6">
+                  <a href="#demo">
+                    <Play className="w-4 h-4" /> {t("hero_cta_secondary", "Watch the 90-second tour")}
+                  </a>
+                </Button>
+              )}
+
             </div>
             <p className="mt-4 text-xs text-muted-foreground/80">
               {t("hero_footnote", "Cancel anytime · Own your work and data")}
