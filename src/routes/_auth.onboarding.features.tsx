@@ -108,10 +108,17 @@ function FeaturesStep() {
 
       <Button
         onClick={onSubscribe}
-        disabled={checkoutLoading}
-        className="w-full h-12 text-base"
+        disabled={checkoutLoading || alreadySubscribed}
+        variant={alreadySubscribed ? "secondary" : "default"}
+        className="w-full h-12 text-base disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {checkoutLoading ? "Opening checkout…" : alreadySubscribed ? "Subscribed" : "Subscribe"}
+        {checkoutLoading
+          ? "Opening checkout…"
+          : data?.is_comped
+            ? "Gifted"
+            : data?.has_active_subscription
+              ? "Subscribed"
+              : "Subscribe"}
       </Button>
 
       <Button
