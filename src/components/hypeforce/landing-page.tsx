@@ -173,6 +173,9 @@ export function LandingPage({
     { label: "Features", href: "#features" },
     { label: "Pricing", href: "#pricing" },
     { label: "Sign in", href: "/login" },
+    { label: "Terms", href: "/legal/terms" },
+    { label: "Privacy", href: "/legal/privacy" },
+    { label: "Refunds", href: "/legal/refunds" },
   ]);
 
 
