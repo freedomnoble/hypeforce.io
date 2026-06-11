@@ -14,6 +14,7 @@ import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PretentiousRouteImport } from './routes/pretentious'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -25,6 +26,9 @@ import { Route as PretentiousLandingRouteImport } from './routes/pretentious.lan
 import { Route as PretentiousInvitesRouteImport } from './routes/pretentious.invites'
 import { Route as PretentiousFlagsRouteImport } from './routes/pretentious.flags'
 import { Route as PretentiousBillingRouteImport } from './routes/pretentious.billing'
+import { Route as LegalTermsRouteImport } from './routes/legal.terms'
+import { Route as LegalRefundsRouteImport } from './routes/legal.refunds'
+import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as AuthProfileRouteImport } from './routes/_auth.profile'
 import { Route as AuthOnboardingRouteImport } from './routes/_auth.onboarding'
@@ -69,6 +73,11 @@ const PretentiousRoute = PretentiousRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -124,6 +133,21 @@ const PretentiousBillingRoute = PretentiousBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
   getParentRoute: () => PretentiousRoute,
+} as any)
+const LegalTermsRoute = LegalTermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => LegalRoute,
+} as any)
+const LegalRefundsRoute = LegalRefundsRouteImport.update({
+  id: '/refunds',
+  path: '/refunds',
+  getParentRoute: () => LegalRoute,
+} as any)
+const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => LegalRoute,
 } as any)
 const JoinTokenRoute = JoinTokenRouteImport.update({
   id: '/join/$token',
@@ -232,6 +256,7 @@ const AuthWWorkspaceIdCChannelIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/legal': typeof LegalRouteWithChildren
   '/login': typeof LoginRoute
   '/pretentious': typeof PretentiousRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
@@ -240,6 +265,9 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof AuthOnboardingRouteWithChildren
   '/profile': typeof AuthProfileRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/refunds': typeof LegalRefundsRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/pretentious/billing': typeof PretentiousBillingRoute
   '/pretentious/flags': typeof PretentiousFlagsRoute
   '/pretentious/invites': typeof PretentiousInvitesRoute
@@ -269,11 +297,15 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/legal': typeof LegalRouteWithChildren
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/verify-email': typeof VerifyEmailRoute
   '/welcome': typeof WelcomeRoute
   '/join/$token': typeof JoinTokenRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/refunds': typeof LegalRefundsRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/pretentious/billing': typeof PretentiousBillingRoute
   '/pretentious/flags': typeof PretentiousFlagsRoute
   '/pretentious/invites': typeof PretentiousInvitesRoute
@@ -305,6 +337,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_auth': typeof AuthRouteWithChildren
   '/app': typeof AppRoute
+  '/legal': typeof LegalRouteWithChildren
   '/login': typeof LoginRoute
   '/pretentious': typeof PretentiousRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
@@ -313,6 +346,9 @@ export interface FileRoutesById {
   '/_auth/onboarding': typeof AuthOnboardingRouteWithChildren
   '/_auth/profile': typeof AuthProfileRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/refunds': typeof LegalRefundsRoute
+  '/legal/terms': typeof LegalTermsRoute
   '/pretentious/billing': typeof PretentiousBillingRoute
   '/pretentious/flags': typeof PretentiousFlagsRoute
   '/pretentious/invites': typeof PretentiousInvitesRoute
@@ -344,6 +380,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/legal'
     | '/login'
     | '/pretentious'
     | '/reset-password'
@@ -352,6 +389,9 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile'
     | '/join/$token'
+    | '/legal/privacy'
+    | '/legal/refunds'
+    | '/legal/terms'
     | '/pretentious/billing'
     | '/pretentious/flags'
     | '/pretentious/invites'
@@ -381,11 +421,15 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/legal'
     | '/login'
     | '/reset-password'
     | '/verify-email'
     | '/welcome'
     | '/join/$token'
+    | '/legal/privacy'
+    | '/legal/refunds'
+    | '/legal/terms'
     | '/pretentious/billing'
     | '/pretentious/flags'
     | '/pretentious/invites'
@@ -416,6 +460,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_auth'
     | '/app'
+    | '/legal'
     | '/login'
     | '/pretentious'
     | '/reset-password'
@@ -424,6 +469,9 @@ export interface FileRouteTypes {
     | '/_auth/onboarding'
     | '/_auth/profile'
     | '/join/$token'
+    | '/legal/privacy'
+    | '/legal/refunds'
+    | '/legal/terms'
     | '/pretentious/billing'
     | '/pretentious/flags'
     | '/pretentious/invites'
@@ -455,6 +503,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   AppRoute: typeof AppRoute
+  LegalRoute: typeof LegalRouteWithChildren
   LoginRoute: typeof LoginRoute
   PretentiousRoute: typeof PretentiousRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -501,6 +550,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -579,6 +635,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/pretentious/billing'
       preLoaderRoute: typeof PretentiousBillingRouteImport
       parentRoute: typeof PretentiousRoute
+    }
+    '/legal/terms': {
+      id: '/legal/terms'
+      path: '/terms'
+      fullPath: '/legal/terms'
+      preLoaderRoute: typeof LegalTermsRouteImport
+      parentRoute: typeof LegalRoute
+    }
+    '/legal/refunds': {
+      id: '/legal/refunds'
+      path: '/refunds'
+      fullPath: '/legal/refunds'
+      preLoaderRoute: typeof LegalRefundsRouteImport
+      parentRoute: typeof LegalRoute
+    }
+    '/legal/privacy': {
+      id: '/legal/privacy'
+      path: '/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof LegalPrivacyRouteImport
+      parentRoute: typeof LegalRoute
     }
     '/join/$token': {
       id: '/join/$token'
@@ -785,6 +862,20 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface LegalRouteChildren {
+  LegalPrivacyRoute: typeof LegalPrivacyRoute
+  LegalRefundsRoute: typeof LegalRefundsRoute
+  LegalTermsRoute: typeof LegalTermsRoute
+}
+
+const LegalRouteChildren: LegalRouteChildren = {
+  LegalPrivacyRoute: LegalPrivacyRoute,
+  LegalRefundsRoute: LegalRefundsRoute,
+  LegalTermsRoute: LegalTermsRoute,
+}
+
+const LegalRouteWithChildren = LegalRoute._addFileChildren(LegalRouteChildren)
+
 interface PretentiousRouteChildren {
   PretentiousBillingRoute: typeof PretentiousBillingRoute
   PretentiousFlagsRoute: typeof PretentiousFlagsRoute
@@ -813,6 +904,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   AppRoute: AppRoute,
+  LegalRoute: LegalRouteWithChildren,
   LoginRoute: LoginRoute,
   PretentiousRoute: PretentiousRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
@@ -826,13 +918,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
