@@ -102,6 +102,9 @@ export function LandingPage({
     return Array.isArray(v) && v.length ? (v as T[]) : fallback;
   };
 
+  const videosEnabled = (content?.videos_enabled ?? "true") !== "false";
+
+
   // Pricing from CMS, with sensible defaults
   const founderActive = pricing?.founder_active ?? true;
   const monthlyCents = (pricing?.founder_price_monthly as number | undefined) ?? 900;
