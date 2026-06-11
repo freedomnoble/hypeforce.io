@@ -11,8 +11,10 @@ import {
   reactivateMySubscription,
   getCustomerPortalUrl,
 } from "@/lib/billing.functions";
-import { ArrowLeft, CreditCard, ExternalLink } from "lucide-react";
+import { ArrowLeft, CreditCard, ExternalLink, Check } from "lucide-react";
 import { toast } from "sonner";
+import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_auth/profile/billing")({
   component: BillingPage,
@@ -33,6 +35,7 @@ function BillingPage() {
   const cancel = useServerFn(cancelMySubscription);
   const reactivate = useServerFn(reactivateMySubscription);
   const getPortal = useServerFn(getCustomerPortalUrl);
+  const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
   const [busy, setBusy] = useState<string | null>(null);
 
   const { data } = useQuery({
@@ -43,6 +46,35 @@ function BillingPage() {
   const sub = data?.subscription as any;
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["billing"] });
+
+  const onSubscribe = async (plan: "monthly" | "annual") => {
+    setBusy(`subscribe-${plan}`);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const user = u.user;
+      if (!user) {
+        toast.error("Please sign in to subscribe");
+        return;
+      }
+      await openCheckout({
+        priceId: plan === "annual" ? "founder_annual" : "founder_monthly",
+        customerEmail: user.email ?? undefined,
+        customData: { userId: user.id },
+        successUrl: `${window.location.origin}/profile/billing?checkout=success`,
+        onEvent: (e: any) => {
+          if (e?.name === "checkout.completed") {
+            toast.success("Payment received — your subscription is being activated");
+            invalidate();
+          }
+        },
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Checkout failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
 
   const onCancel = async () => {
     if (!sub) return;
