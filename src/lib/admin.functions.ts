@@ -282,6 +282,30 @@ export const deleteUser = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const bulkDeleteUsers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: { user_ids: string[] }) =>
+    z.object({ user_ids: z.array(z.string().uuid()).min(1).max(200) }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const results: { user_id: string; ok: boolean; error?: string }[] = [];
+    for (const id of data.user_ids) {
+      if (id === context.userId) {
+        results.push({ user_id: id, ok: false, error: "Cannot delete yourself" });
+        continue;
+      }
+      const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
+      results.push({ user_id: id, ok: !error, error: error?.message });
+    }
+    return {
+      ok: true,
+      deleted: results.filter((r) => r.ok).length,
+      failed: results.filter((r) => !r.ok),
+    };
+  });
+
 // ============================================================ Support
 export const listTickets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
