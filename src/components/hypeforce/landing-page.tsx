@@ -244,8 +244,8 @@ export function LandingPage({
           </div>
 
           <div className="relative mt-10 sm:mt-14 max-w-2xl mx-auto">
-            <h2 className="text-xl sm:text-2xl text-foreground/90 font-display tracking-tight">
-              {t("hero_headline", "Work with your AI team — like Slack, but built for human & robot shared goals.")}
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-display font-bold tracking-tight text-foreground">
+              {t("hero_headline", "Your AI workforce, your context, total alignment.")}
             </h2>
             <p className="mt-4 text-base sm:text-lg text-muted-foreground">
               {t("hero_subhead", "Brief ChatGPT, Claude, Gemini and Manus in one room. @-mention to target, broadcast to brief the whole crew. Share context and ship faster.")}
