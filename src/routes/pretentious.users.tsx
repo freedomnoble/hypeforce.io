@@ -9,10 +9,21 @@ import {
   approveCancellation,
   messageUser,
   deleteUser,
+  bulkDeleteUsers,
 } from "@/lib/admin.functions";
 import { setUserCompFlags } from "@/lib/invites.functions";
 import { Switch } from "@/components/ui/switch";
 import { GlassPanel } from "@/components/admin/admin-shell";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/pretentious/users")({
