@@ -11,8 +11,10 @@ import {
   reactivateMySubscription,
   getCustomerPortalUrl,
 } from "@/lib/billing.functions";
-import { ArrowLeft, CreditCard, ExternalLink } from "lucide-react";
+import { ArrowLeft, CreditCard, ExternalLink, Check } from "lucide-react";
 import { toast } from "sonner";
+import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_auth/profile/billing")({
   component: BillingPage,
@@ -33,6 +35,7 @@ function BillingPage() {
   const cancel = useServerFn(cancelMySubscription);
   const reactivate = useServerFn(reactivateMySubscription);
   const getPortal = useServerFn(getCustomerPortalUrl);
+  const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
   const [busy, setBusy] = useState<string | null>(null);
 
   const { data } = useQuery({
@@ -43,6 +46,35 @@ function BillingPage() {
   const sub = data?.subscription as any;
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["billing"] });
+
+  const onSubscribe = async (plan: "monthly" | "annual") => {
+    setBusy(`subscribe-${plan}`);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      const user = u.user;
+      if (!user) {
+        toast.error("Please sign in to subscribe");
+        return;
+      }
+      await openCheckout({
+        priceId: plan === "annual" ? "founder_annual" : "founder_monthly",
+        customerEmail: user.email ?? undefined,
+        customData: { userId: user.id },
+        successUrl: `${window.location.origin}/profile/billing?checkout=success`,
+        onEvent: (e: any) => {
+          if (e?.name === "checkout.completed") {
+            toast.success("Payment received — your subscription is being activated");
+            invalidate();
+          }
+        },
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Checkout failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
 
   const onCancel = async () => {
     if (!sub) return;
@@ -125,15 +157,58 @@ function BillingPage() {
       </header>
 
       {!sub ? (
-        <Card className="p-6 text-center space-y-3">
-          <p className="text-muted-foreground">
-            You don't have an active subscription yet.
+        <Card className="p-6 space-y-5">
+          <div>
+            <h2 className="text-xl font-semibold">Choose your plan</h2>
+            <p className="text-sm text-muted-foreground">
+              Founder pricing — locked in for as long as you stay subscribed.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              onClick={() => onSubscribe("monthly")}
+              disabled={busy !== null || checkoutLoading}
+              className="text-left rounded-xl border border-border p-4 hover:border-primary hover:shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Monthly</div>
+              <div className="mt-1 flex items-baseline gap-1">
+                <span className="text-3xl font-bold">$9</span>
+                <span className="text-sm text-muted-foreground">/mo</span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                <Check className="w-3 h-3" /> Cancel anytime
+              </div>
+              {busy === "subscribe-monthly" && (
+                <div className="text-xs text-muted-foreground mt-2">Opening checkout…</div>
+              )}
+            </button>
+            <button
+              onClick={() => onSubscribe("annual")}
+              disabled={busy !== null || checkoutLoading}
+              className="relative text-left rounded-xl border border-primary/60 bg-primary/5 p-4 hover:border-primary hover:shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <span className="absolute -top-2 right-3 text-[10px] font-semibold uppercase tracking-wide bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                Save ~10%
+              </span>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Annual</div>
+              <div className="mt-1 flex items-baseline gap-1">
+                <span className="text-3xl font-bold">$97</span>
+                <span className="text-sm text-muted-foreground">/yr</span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                <Check className="w-3 h-3" /> Two months free
+              </div>
+              {busy === "subscribe-annual" && (
+                <div className="text-xs text-muted-foreground mt-2">Opening checkout…</div>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Payments are processed securely by Paddle, our Merchant of Record.
           </p>
-          <Button asChild>
-            <Link to="/onboarding/features">Subscribe</Link>
-          </Button>
         </Card>
       ) : (
+
         <Card className="p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
