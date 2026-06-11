@@ -170,6 +170,17 @@ function LandingCMS() {
 
       <GlassPanel className="p-5 space-y-4">
         <h3 className="font-display text-lg">Hero image & demo video</h3>
+        <label className="flex items-center justify-between gap-2 px-3 py-2 rounded bg-white/5 border border-white/10">
+          <div>
+            <div className="text-sm">Show videos on landing page</div>
+            <div className="text-[11px] text-white/50">When off, hides the 90-second demo section and the "Watch the tour" button in the hero.</div>
+          </div>
+          <input
+            type="checkbox"
+            checked={(content.videos_enabled ?? "true") !== "false"}
+            onChange={(e) => setContent({ ...content, videos_enabled: e.target.checked ? "true" : "false" })}
+          />
+        </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <div className="text-xs text-white/60 mb-2">Hero image</div>
@@ -185,6 +196,7 @@ function LandingCMS() {
           </div>
         </div>
       </GlassPanel>
+
 
       <GlassPanel className="p-5 space-y-3">
         <h3 className="font-display text-lg">Copy</h3>
