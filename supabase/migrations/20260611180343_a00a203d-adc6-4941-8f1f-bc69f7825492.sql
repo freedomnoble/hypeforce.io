@@ -1,0 +1,1 @@
+UPDATE public.pricing_config SET pro_price_monthly = 1900, updated_at = now() WHERE id = 1;
