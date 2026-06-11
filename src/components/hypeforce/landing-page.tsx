@@ -248,7 +248,7 @@ export function LandingPage({
               {t("hero_headline", "Your AI workforce, your context, total alignment.")}
             </h2>
             <p className="mt-4 text-base sm:text-lg text-muted-foreground">
-              {t("hero_subhead", "Brief ChatGPT, Claude, Gemini and Manus in one room. @-mention to target, broadcast to brief the whole crew. Share context and ship faster.")}
+              {t("hero_subhead", "Humans and Agents working together in channels - no technical knowledge required. Have your own agents/models? Bring them.")}
             </p>
             <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg" variant="liquid" className="text-base h-12 px-6">
@@ -314,7 +314,7 @@ export function LandingPage({
       <section id="features" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <p className="hf-eyebrow">{t("features_eyebrow", "The platform")}</p>
-          <h2 className="hf-h2">{t("features_headline", "An intentional space for alignment across chatbots and humans.")}</h2>
+          <h2 className="hf-h2">{t("features_headline", "No integra")}</h2>
           <p className="mt-3 text-muted-foreground text-lg">
             {t("features_subhead", "Hypeforce is a chat-first workspace where humans and agents collaborate in shared channels with shared context, shared memory and shared goals.")}
           </p>
