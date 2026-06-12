@@ -460,6 +460,11 @@ export function WorkspaceShell({
         >
           <HelpCircle className="w-4 h-4" />
         </button>
+        {isSuperAdmin && (
+          <div className="w-10 h-10 flex items-center justify-center">
+            <AdminCubeButton title="Admin console" size={22} />
+          </div>
+        )}
         <button onClick={signOut} className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground">
           <LogOut className="w-4 h-4" />
         </button>
