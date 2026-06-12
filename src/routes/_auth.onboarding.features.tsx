@@ -139,8 +139,8 @@ function FeaturesStep() {
 
       <Button
         onClick={onSubscribe}
-        disabled={checkoutLoading || alreadySubscribed}
-        variant={alreadySubscribed ? "secondary" : "default"}
+        disabled={checkoutLoading || alreadySubscribed || !!(data?.trial_ends_at && new Date(data.trial_ends_at) > new Date())}
+        variant={alreadySubscribed || data?.trial_ends_at ? "secondary" : "default"}
         className="w-full h-12 text-base disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {checkoutLoading
@@ -149,7 +149,9 @@ function FeaturesStep() {
             ? "Gifted"
             : data?.has_active_subscription
               ? "Subscribed"
-              : "Subscribe"}
+              : data?.trial_ends_at && new Date(data.trial_ends_at) > new Date()
+                ? "5-day free trial"
+                : "Subscribe"}
       </Button>
 
       <Button
