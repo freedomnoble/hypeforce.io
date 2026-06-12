@@ -489,7 +489,7 @@ export function WorkspaceShell({
 
 
         <div className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-4 space-y-5 pt-3">
-          <Section title="Channels" actionLabel="+ New" onAction={async () => {
+          <Section title="Channels" dataTour="channels-section" actionDataTour="new-channel-btn" actionLabel="+ New" onAction={async () => {
             const name = prompt("Channel name (no spaces)");
             if (!name) return;
             try {
@@ -502,6 +502,7 @@ export function WorkspaceShell({
               toast.error(err?.message ?? "Couldn't create channel");
             }
           }}>
+
             {channels.map((c) => (
               <Link
                 key={c.id}
@@ -520,7 +521,9 @@ export function WorkspaceShell({
 
           <Section
             title="Direct Messages"
+            dataTour="dms-section"
             titleBadge={totalUnread > 0 ? totalUnread : undefined}
+
             actionLabel="+ Group"
             onAction={async () => {
               const handles = prompt(
@@ -1051,15 +1054,19 @@ function Section({
   actionLabel,
   onAction,
   children,
+  dataTour,
+  actionDataTour,
 }: {
   title: string;
   titleBadge?: number;
   actionLabel?: string;
   onAction?: () => void;
   children: React.ReactNode;
+  dataTour?: string;
+  actionDataTour?: string;
 }) {
   return (
-    <div>
+    <div data-tour={dataTour}>
       <div className="flex items-center justify-between px-2 mb-1">
         <div className="text-[11px] uppercase tracking-wider font-mono text-muted-foreground flex items-center gap-1.5">
           {title}
@@ -1068,12 +1075,13 @@ function Section({
           ) : null}
         </div>
         {actionLabel && (
-          <button onClick={onAction} className="text-[11px] text-electric hover:underline font-mono">
+          <button data-tour={actionDataTour} onClick={onAction} className="text-[11px] text-electric hover:underline font-mono">
             {actionLabel}
           </button>
         )}
       </div>
       <div className="space-y-0.5">{children}</div>
     </div>
+
   );
 }
