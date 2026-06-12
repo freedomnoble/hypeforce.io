@@ -55,11 +55,14 @@ function AuthRouteError({ error, reset }: { error: Error; reset: () => void }) {
 
 type Stage = "intro" | "form";
 
+const TRIAL_INTENT_KEY = "hypeforce.trial_intent";
+
 function WelcomePage() {
   const navigate = useNavigate();
-  const { intent, billing } = Route.useSearch();
+  const { intent, billing, trial } = Route.useSearch();
   const sendVerification = useServerFn(sendVerificationEmail);
   const redeem = useServerFn(redeemInviteToken);
+  const startTrialFn = useServerFn(startTrial);
   const [stage, setStage] = useState<Stage>("intro");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -75,7 +78,10 @@ function WelcomePage() {
         );
       } catch {}
     }
-  }, [intent, billing]);
+    if (trial) {
+      try { sessionStorage.setItem(TRIAL_INTENT_KEY, "1"); } catch {}
+    }
+  }, [intent, billing, trial]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
