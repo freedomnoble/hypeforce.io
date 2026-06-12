@@ -58,12 +58,14 @@ export function LandingPage({
   themeKey,
   content,
   pricing,
+  freeTrialLanding,
 }: {
   heroUrl?: string | null;
   videoUrl?: string | null;
   themeKey?: string | null;
   content?: Record<string, any> | null;
   pricing?: Record<string, any> | null;
+  freeTrialLanding?: boolean;
 } = {}) {
   const [signedIn, setSignedIn] = useState(false);
   const [userEmail, setUserEmail] = useState<string | undefined>();
@@ -118,6 +120,17 @@ export function LandingPage({
   const seatsRemaining = pricing?.founder_seats_remaining as number | undefined;
 
   const handleCheckout = async () => {
+    if (freeTrialLanding && !signedIn) {
+      try {
+        sessionStorage.setItem(
+          "hf_onboarding_intent",
+          JSON.stringify({ intent: "founder", billing }),
+        );
+        sessionStorage.setItem("hypeforce.trial_intent", "1");
+      } catch {}
+      navigate({ to: "/welcome", search: { intent: "founder", billing, trial: "1" } as any });
+      return;
+    }
     if (!signedIn) {
       try {
         sessionStorage.setItem(
@@ -139,6 +152,11 @@ export function LandingPage({
       toast.error("Checkout failed to open. Please try again.");
     }
   };
+
+  const primaryCtaLabel = freeTrialLanding
+    ? "Start 5-day free trial"
+    : "Claim my founder spot";
+  const navCtaLabel = freeTrialLanding ? "Start free trial" : "Claim founder spot";
 
   const featureItems = arr<FeatureItem>("features", [
     { icon: "MessageSquare", title: "Slack-style channels", desc: "Pin briefs, thread replies, search everything. The familiar workspace your team already lives in." },
@@ -217,7 +235,7 @@ export function LandingPage({
                     <Link to="/login">Sign in</Link>
                   </Button>
                   <Button asChild size="sm" variant="liquid">
-                    <a href="#pricing">Claim founder spot</a>
+                    <a href="#pricing">{navCtaLabel}</a>
                   </Button>
                 </>
               )}
@@ -484,7 +502,7 @@ export function LandingPage({
                 onClick={handleCheckout}
                 disabled={checkoutLoading}
               >
-                {checkoutLoading ? "Opening checkout…" : "Claim my founder spot"}{" "}
+                {checkoutLoading ? "Opening checkout…" : primaryCtaLabel}{" "}
                 <ArrowRight className="w-4 h-4" />
               </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground">

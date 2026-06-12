@@ -292,7 +292,15 @@ function ChannelPage() {
       });
     } catch (e: any) {
       console.error("[send channel message]", e);
-      toast.error(friendlySendError(e));
+      const fe = friendlySendError(e);
+      if (fe.paywall) {
+        toast.error(fe.message, {
+          action: { label: "Subscribe", onClick: () => { window.location.href = "/profile/billing"; } },
+          duration: 10000,
+        });
+      } else {
+        toast.error(fe.message);
+      }
     } finally {
       setSending(false);
     }

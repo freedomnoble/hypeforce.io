@@ -33,6 +33,7 @@ function InvitesPage() {
   // Always share the canonical published origin so previews and OG metadata
   // resolve to the real site, not a Lovable preview URL.
   const url = cfg ? `https://hypeforce.io/join/${cfg.token}` : "";
+  const trialUrl = cfg?.trial ? `https://hypeforce.io/join/${cfg.trial.token}` : "";
 
   const wrap = async (label: string, fn: () => Promise<any>, keys: string[][] = []) => {
     setBusy(true);
@@ -104,6 +105,63 @@ function InvitesPage() {
           </button>
         </div>
       </GlassPanel>
+
+      <GlassPanel className="p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-white/45 font-mono">
+              Free-trial link
+            </div>
+            <div className="text-sm text-white/60 mt-1">
+              {cfg?.trial
+                ? cfg.trial.enabled
+                  ? "Active — gives a 5-day comp trial on sign-up."
+                  : "Disabled — link will not redeem."
+                : "Not configured."}
+            </div>
+          </div>
+          <Switch
+            checked={!!cfg?.trial?.enabled}
+            disabled={busy || !cfg?.trial}
+            onCheckedChange={(v) =>
+              wrap(v ? "Trial invite enabled" : "Trial invite disabled", () =>
+                toggleEnabled({ data: { enabled: v, kind: "trial" } }),
+                [["invite-config"]],
+              )
+            }
+          />
+        </div>
+
+        {cfg?.trial && (
+          <div className="flex items-center gap-2">
+            <input
+              readOnly
+              value={trialUrl}
+              className="flex-1 px-3 py-2 text-sm rounded-xl bg-white/5 border border-white/10 font-mono outline-none"
+            />
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(trialUrl);
+                toast.success("Copied");
+              }}
+              className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-sm flex items-center gap-1.5"
+            >
+              <Copy className="w-3.5 h-3.5" /> Copy
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => {
+                if (!confirm("Rotate the trial token? The current link will stop working.")) return;
+                wrap("Trial token rotated", () => rotate({ data: { kind: "trial" } }), [["invite-config"]]);
+              }}
+              className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-sm flex items-center gap-1.5"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Rotate
+            </button>
+          </div>
+        )}
+      </GlassPanel>
+
 
       <GlassPanel className="overflow-hidden">
         <div className="px-4 py-3 border-b border-white/10">

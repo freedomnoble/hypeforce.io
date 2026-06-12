@@ -7,7 +7,7 @@ import { advanceStep } from "@/lib/onboarding.functions";
 import { useOnboardingState } from "@/lib/onboarding-query";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 import { supabase } from "@/integrations/supabase/client";
-import { redeemInviteToken } from "@/lib/invites.functions";
+import { redeemInviteToken, requestTrialCancellation } from "@/lib/invites.functions";
 import { PENDING_INVITE_KEY } from "@/routes/join.$token";
 import { Users, AtSign, Pin, FileText, MessageCircle, Sparkles } from "lucide-react";
 
@@ -34,8 +34,16 @@ function FeaturesStep() {
   const alreadySubscribed = !!(data?.has_active_subscription || data?.is_comped);
   const [intentGiven, setIntentGiven] = useState<boolean>(false);
   const [continuing, setContinuing] = useState(false);
+  const [cancelRequested, setCancelRequested] = useState(false);
   const redeem = useServerFn(redeemInviteToken);
+  const cancelTrial = useServerFn(requestTrialCancellation);
   const { invalidate } = useOnboardingState();
+
+  const trialEndsMs = data?.trial_ends_at ? new Date(data.trial_ends_at).getTime() : 0;
+  const trialActive = !!trialEndsMs && trialEndsMs > Date.now();
+  const hoursLeft = trialActive ? Math.max(0, Math.ceil((trialEndsMs - Date.now()) / 3_600_000)) : 0;
+  const isLastDay = trialActive && hoursLeft <= 24;
+  const alreadyCancelled = !!data?.trial_cancel_requested_at || cancelRequested;
 
   useEffect(() => {
     try {
@@ -162,6 +170,32 @@ function FeaturesStep() {
       >
         Continue
       </Button>
+
+      {isLastDay && !alreadySubscribed && (
+        <div className="text-center mt-2">
+          {alreadyCancelled ? (
+            <span className="text-[11px] text-muted-foreground">
+              Cancellation request received — we'll be in touch.
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await cancelTrial();
+                  setCancelRequested(true);
+                  await invalidate();
+                } catch (e) {
+                  console.error("[trial cancel]", e);
+                }
+              }}
+              className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-4"
+            >
+              Request cancellation
+            </button>
+          )}
+        </div>
+      )}
 
       <p className="text-center text-xs text-muted-foreground mt-3">
         Cancel anytime. Your data is yours, always.

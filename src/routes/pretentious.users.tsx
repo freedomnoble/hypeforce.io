@@ -11,7 +11,7 @@ import {
   deleteUser,
   bulkDeleteUsers,
 } from "@/lib/admin.functions";
-import { setUserCompFlags } from "@/lib/invites.functions";
+import { setUserCompFlags, setUserTrial } from "@/lib/invites.functions";
 import { Switch } from "@/components/ui/switch";
 import { GlassPanel } from "@/components/admin/admin-shell";
 import {
@@ -271,9 +271,16 @@ function UserDrawer({ user, onClose, onChanged }: { user: any; onClose: () => vo
   const msg = useServerFn(messageUser);
   const del = useServerFn(deleteUser);
   const setFlags = useServerFn(setUserCompFlags);
+  const setTrial = useServerFn(setUserTrial);
 
   const [comped, setComped] = useState(!!user.profile_flags?.is_comped);
   const [upsell, setUpsell] = useState(!!user.profile_flags?.show_upsell);
+
+  const trialEnds = user.profile_flags?.trial_ends_at
+    ? new Date(user.profile_flags.trial_ends_at as string)
+    : null;
+  const trialActive = !!trialEnds && trialEnds.getTime() > Date.now();
+  const trialCancelRequested = !!user.profile_flags?.trial_cancel_requested_at;
 
   const [paused, setPaused] = useState(user.usage_limit?.lovable_gateway_paused ?? false);
   const [cap, setCap] = useState<string>(user.usage_limit?.monthly_message_cap?.toString() ?? "");
@@ -398,6 +405,42 @@ function UserDrawer({ user, onClose, onChanged }: { user: any; onClose: () => vo
               }}
             />
           </label>
+        </Section>
+
+        <Section title="Free trial">
+          <div className="text-xs text-white/60">
+            {trialActive
+              ? `Active · ends ${trialEnds!.toLocaleString()}`
+              : trialEnds
+                ? `Ended ${trialEnds.toLocaleString()}`
+                : "No trial started."}
+            {trialCancelRequested && (
+              <span className="ml-2 text-amber-300">· cancel requested</span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              disabled={busy}
+              onClick={() => wrap("Trial started", () => setTrial({ data: { user_id: user.id, action: "start" } }))}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-sm"
+            >
+              Start 5-day trial
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => wrap("Trial extended", () => setTrial({ data: { user_id: user.id, action: "extend" } }))}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-sm"
+            >
+              Extend +5 days
+            </button>
+            <button
+              disabled={busy || !trialActive}
+              onClick={() => wrap("Trial ended", () => setTrial({ data: { user_id: user.id, action: "end" } }))}
+              className="px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-200 text-sm disabled:opacity-40"
+            >
+              End trial now
+            </button>
+          </div>
         </Section>
 
         <Section title="Message user (in-app)">
