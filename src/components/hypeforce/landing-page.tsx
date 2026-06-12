@@ -584,11 +584,11 @@ function StepCard({ n, title, desc }: { n: string; title: string; desc: string }
   );
 }
 
-function Bullet({ children }: { children: React.ReactNode }) {
+function Bullet({ children, highlight = false }: { children: React.ReactNode; highlight?: boolean }) {
   return (
     <li className="flex items-start gap-2.5">
       <Check className="w-4 h-4 mt-0.5 text-electric shrink-0" />
-      <span>{children}</span>
+      <span className={highlight ? "text-electric font-medium" : undefined}>{children}</span>
     </li>
   );
 }
