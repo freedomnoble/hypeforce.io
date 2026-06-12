@@ -157,6 +157,13 @@ export function WorkspaceShell({
     refetchOnWindowFocus: true,
   });
   const unreadCount = unread?.count ?? 0;
+  const fetchIsAdmin = useServerFn(checkSuperAdmin);
+  const { data: adminData } = useQuery({
+    queryKey: ["is-super-admin"],
+    queryFn: () => fetchIsAdmin(),
+    staleTime: 5 * 60_000,
+  });
+  const isSuperAdmin = !!adminData?.isSuperAdmin;
   const [lastByDm, setLastByDm] = useState<Record<string, LastMessage>>({});
   const [readVersion, setReadVersion] = useState(0); // bump to recompute unread counts
   const [dmQuery, setDmQuery] = useState("");
