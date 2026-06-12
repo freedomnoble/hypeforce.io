@@ -7,6 +7,8 @@ import { advanceStep } from "@/lib/onboarding.functions";
 import { useOnboardingState } from "@/lib/onboarding-query";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 import { supabase } from "@/integrations/supabase/client";
+import { redeemInviteToken } from "@/lib/invites.functions";
+import { PENDING_INVITE_KEY } from "@/routes/join.$token";
 import { Users, AtSign, Pin, FileText, MessageCircle, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/onboarding/features")({
