@@ -74,7 +74,11 @@ function UsersPage() {
       const ids = Array.from(selectedIds);
       const res = await bulkDel({ data: { user_ids: ids } });
       if (res.failed.length) {
-        toast.warning(`Deleted ${res.deleted}. ${res.failed.length} failed.`);
+        console.error("Bulk delete failures:", res.failed);
+        const firstErr = res.failed[0]?.error ?? "unknown error";
+        toast.warning(`Deleted ${res.deleted}. ${res.failed.length} failed.`, {
+          description: firstErr,
+        });
       } else {
         toast.success(`Deleted ${res.deleted} user${res.deleted === 1 ? "" : "s"}.`);
       }
