@@ -848,9 +848,6 @@ export function WorkspaceShell({
               </div>
               <div className="text-[10px] font-mono text-mint">● online</div>
             </div>
-            {isSuperAdmin && (
-              <AdminCubeButton title="Admin console" />
-            )}
           </div>
           <div className="flex-1 overflow-y-auto scrollbar-thin py-2">
             {themeHasModes(useTheme().theme) && (
@@ -883,6 +880,21 @@ export function WorkspaceShell({
               label="Sign out"
               onClick={() => { setProfileSheetOpen(false); signOut(); }}
             />
+            {isSuperAdmin && (
+              <>
+                <div className="h-px bg-border my-2 mx-5" />
+                <button
+                  onClick={() => { setProfileSheetOpen(false); navigate({ to: "/pretentious" }); }}
+                  className="w-full flex items-center gap-3 px-5 py-3 hover:bg-secondary/40 transition-colors"
+                  title="Admin console"
+                >
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-secondary/60 text-foreground">
+                    <AdminCubeButton title="Admin console" size={18} className="!w-auto !h-auto hover:bg-transparent" />
+                  </div>
+                  <div className="text-sm">Admin console</div>
+                </button>
+              </>
+            )}
           </div>
         </SheetContent>
       </Sheet>
