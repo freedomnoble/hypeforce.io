@@ -81,7 +81,7 @@ export const listUsers = createServerFn({ method: "POST" })
       supabaseAdmin.from("user_ai_connections").select("user_id,provider,status").in("user_id", ids),
       supabaseAdmin.from("subscriptions").select("*").in("user_id", ids),
       supabaseAdmin.from("user_usage_limits").select("*").in("user_id", ids),
-      supabaseAdmin.from("profiles").select("id,is_comped,show_upsell").in("id", ids),
+      supabaseAdmin.from("profiles").select("id,is_comped,show_upsell,trial_started_at,trial_ends_at,trial_cancel_requested_at").in("id", ids),
     ]);
     const [channelsRes] = await Promise.all([
       supabaseAdmin.from("channels").select("id,workspace_id,created_by").in("created_by", ids),
