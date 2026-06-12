@@ -502,7 +502,7 @@ export function LandingPage({
                 onClick={handleCheckout}
                 disabled={checkoutLoading}
               >
-                {checkoutLoading ? "Opening checkout…" : "Claim my founder spot"}{" "}
+                {checkoutLoading ? "Opening checkout…" : primaryCtaLabel}{" "}
                 <ArrowRight className="w-4 h-4" />
               </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground">
