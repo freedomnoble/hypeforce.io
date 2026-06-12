@@ -235,7 +235,7 @@ export function LandingPage({
                     <Link to="/login">Sign in</Link>
                   </Button>
                   <Button asChild size="sm" variant="liquid">
-                    <a href="#pricing">Claim founder spot</a>
+                    <a href="#pricing">{navCtaLabel}</a>
                   </Button>
                 </>
               )}
