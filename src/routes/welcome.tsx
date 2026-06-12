@@ -10,12 +10,13 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { sendVerificationEmail } from "@/lib/email-verification.functions";
-import { redeemInviteToken } from "@/lib/invites.functions";
+import { redeemInviteToken, startTrial } from "@/lib/invites.functions";
 import { PENDING_INVITE_KEY } from "@/routes/join.$token";
 
 const searchSchema = z.object({
   intent: z.enum(["founder"]).optional(),
   billing: z.enum(["monthly", "annual"]).optional(),
+  trial: z.union([z.literal("1"), z.literal(1), z.boolean()]).optional(),
 });
 
 export const Route = createFileRoute("/welcome")({
