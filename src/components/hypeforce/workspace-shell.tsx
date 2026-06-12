@@ -493,7 +493,7 @@ export function WorkspaceShell({
       {/* Sidebar */}
       <aside className={`${hasActive ? "hidden" : "flex sm:hidden"} md:flex w-full md:w-64 flex-col paper-panel rounded-2xl overflow-hidden`}>
 
-        <div className="p-4 border-b border-border">
+        <div className="p-4 border-b border-border" data-tour="workspace-switcher-mobile">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="text-xs uppercase tracking-wider text-muted-foreground font-mono">workspace</div>
@@ -782,11 +782,9 @@ export function WorkspaceShell({
           try { await markTourSeenFn(); } catch {}
           setProfile((p) => (p ? ({ ...p, tour_completed_at: new Date().toISOString() } as any) : p));
         }}
-        openMobileSidebar={() => {
-          // On mobile, the workspace home view already shows the sidebar
-          // (since there's no active channel). No sheet needs opening.
+        navigateHome={() => {
+          navigate({ to: "/w/$workspaceId", params: { workspaceId } });
         }}
-        closeMobileSidebar={() => {}}
       />
 
 
@@ -968,6 +966,7 @@ export function WorkspaceShell({
         <MobileTabButton
           icon={<MoreHorizontal className="w-5 h-5" />}
           label="More"
+          dataTour="mobile-more-tab"
           onClick={() => setProfileSheetOpen(true)}
         />
       </nav>
@@ -983,15 +982,18 @@ function MobileTabButton({
   active,
   badge,
   onClick,
+  dataTour,
 }: {
   icon: React.ReactNode;
   label: string;
   active?: boolean;
   badge?: boolean;
   onClick: () => void;
+  dataTour?: string;
 }) {
   return (
     <button
+      data-tour={dataTour}
       onClick={onClick}
       className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative ${
         active ? "text-foreground" : "text-muted-foreground hover:text-foreground"

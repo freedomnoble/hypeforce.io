@@ -139,25 +139,27 @@ export function TourOverlay({
   const prev = () => setIndex((i) => Math.max(0, i - 1));
 
   const tooltipStyle: React.CSSProperties = useMemo(() => {
-    if (isMobile || !rect) {
-      // Centered on mobile, or when no target rect
+    if (isMobile) {
+      // Always dock to the bottom of the viewport on phones so the card
+      // never overflows horizontally and can't get clipped by a target rect.
       if (!rect) {
-        return {
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-          width: `min(${TOOLTIP_W}px, calc(100vw - 24px))`,
-        };
+        return { left: 12, right: 12, bottom: 16 } as React.CSSProperties;
       }
-      // Mobile with rect: dock to bottom (or top if rect is in bottom half)
       const vh = window.innerHeight;
       const dockBottom = rect.top + rect.height / 2 < vh / 2;
       return {
         left: 12,
         right: 12,
         [dockBottom ? "bottom" : "top"]: 12,
-        width: "auto",
       } as React.CSSProperties;
+    }
+    if (!rect) {
+      return {
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+        width: `min(${TOOLTIP_W}px, calc(100vw - 24px))`,
+      };
     }
     // Desktop placement
     const placement = step?.placement ?? "auto";
@@ -261,7 +263,7 @@ export function TourOverlay({
           className="absolute pointer-events-auto"
           style={tooltipStyle}
         >
-          <div className="glass-strong rounded-2xl ring-1 ring-border shadow-2xl p-5 backdrop-blur-xl">
+          <div className="glass-strong rounded-2xl ring-1 ring-border shadow-2xl p-5 backdrop-blur-xl box-border max-w-[calc(100vw-24px)] max-h-[75vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <div className="text-[10px] font-mono uppercase tracking-wider text-electric">
                 {step.id === "outro" ? "Last step" : `Step ${index + 1} of ${steps.length}`}
@@ -360,18 +362,31 @@ interface WorkspaceTourProps {
   open: boolean;
   onClose: () => void;
   onFinish: (didComplete: boolean) => void;
-  openMobileSidebar?: () => void;
-  closeMobileSidebar?: () => void;
+  navigateHome?: () => void;
 }
 
 export function WorkspaceTour({
   open,
   onClose,
   onFinish,
-  openMobileSidebar,
-  closeMobileSidebar,
+  navigateHome,
 }: WorkspaceTourProps) {
   const navigate = useNavigate();
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 639px)");
+    const onChange = () => setIsMobile(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  // On mobile, navigating to the workspace home reveals the sidebar that
+  // hosts the channels / DMs / new-channel targets (it's hidden when a
+  // channel is active). Trigger it on entering any of those steps.
+  const goHomeIfMobile = () => {
+    if (isMobile) navigateHome?.();
+  };
 
   const steps: TourStep[] = useMemo(
     () => [
@@ -395,15 +410,16 @@ export function WorkspaceTour({
           </>
         ),
         target: '[data-tour="channels-section"]',
-        placement: "right",
-        onEnter: openMobileSidebar,
+        placement: isMobile ? "auto" : "right",
+        onEnter: goHomeIfMobile,
       },
       {
         id: "new-channel",
         title: "Spin up a channel anytime",
         body: <>Tap the <b>+ New</b> button to create a channel for a new project or workstream.</>,
         target: '[data-tour="new-channel-btn"]',
-        placement: "right",
+        placement: isMobile ? "auto" : "right",
+        onEnter: goHomeIfMobile,
       },
       {
         id: "dms",
@@ -415,20 +431,28 @@ export function WorkspaceTour({
           </>
         ),
         target: '[data-tour="dms-section"]',
-        placement: "right",
+        placement: isMobile ? "auto" : "right",
+        onEnter: goHomeIfMobile,
       },
       {
         id: "workspaces",
         title: "Switch orgs & workspaces",
-        body: (
+        body: isMobile ? (
+          <>
+            Tap the <b>workspace</b> header at the top to switch orgs or create a new one
+            for a different client or project portfolio.
+          </>
+        ) : (
           <>
             Each square is a workspace. Use <b>+</b> to add a new org for a different client or
             project portfolio.
           </>
         ),
-        target: '[data-tour="workspaces-rail"]',
-        placement: "right",
-        onEnter: closeMobileSidebar,
+        target: isMobile
+          ? '[data-tour="workspace-switcher-mobile"]'
+          : '[data-tour="workspaces-rail"]',
+        placement: isMobile ? "auto" : "right",
+        onEnter: goHomeIfMobile,
       },
       {
         id: "agents",
@@ -464,14 +488,21 @@ export function WorkspaceTour({
       {
         id: "brand",
         title: "Personality, roles & brand voice",
-        body: (
+        body: isMobile ? (
+          <>
+            Tap <b>More → Workspace settings</b> to set your brand voice once, plus each
+            agent's role and personality. Channel-level overrides let you fine-tune per room.
+          </>
+        ) : (
           <>
             Open <b>Workspace settings</b> to set your brand voice once, plus each agent's role
             and personality. Channel-level overrides let you fine-tune per room.
           </>
         ),
-        target: '[data-tour="workspace-settings-btn"]',
-        placement: "left",
+        target: isMobile
+          ? '[data-tour="mobile-more-tab"]'
+          : '[data-tour="workspace-settings-btn"]',
+        placement: isMobile ? "top" : "left",
       },
       {
         id: "outro",
@@ -484,7 +515,8 @@ export function WorkspaceTour({
         ),
       },
     ],
-    [openMobileSidebar, closeMobileSidebar],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isMobile, navigateHome],
   );
 
   return (
@@ -496,10 +528,7 @@ export function WorkspaceTour({
       onWantApiKeys={() => {
         navigate({ to: "/profile/connections" });
       }}
-      onSkipApiKeys={() => {
-        // close mobile sidebar if it was opened and focus composer
-        closeMobileSidebar?.();
-      }}
+      onSkipApiKeys={() => {}}
     />
   );
 }
