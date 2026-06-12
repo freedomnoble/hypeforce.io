@@ -407,6 +407,42 @@ function UserDrawer({ user, onClose, onChanged }: { user: any; onClose: () => vo
           </label>
         </Section>
 
+        <Section title="Free trial">
+          <div className="text-xs text-white/60">
+            {trialActive
+              ? `Active · ends ${trialEnds!.toLocaleString()}`
+              : trialEnds
+                ? `Ended ${trialEnds.toLocaleString()}`
+                : "No trial started."}
+            {trialCancelRequested && (
+              <span className="ml-2 text-amber-300">· cancel requested</span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              disabled={busy}
+              onClick={() => wrap("Trial started", () => setTrial({ data: { user_id: user.id, action: "start" } }))}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-sm"
+            >
+              Start 5-day trial
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => wrap("Trial extended", () => setTrial({ data: { user_id: user.id, action: "extend" } }))}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-sm"
+            >
+              Extend +5 days
+            </button>
+            <button
+              disabled={busy || !trialActive}
+              onClick={() => wrap("Trial ended", () => setTrial({ data: { user_id: user.id, action: "end" } }))}
+              className="px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-200 text-sm disabled:opacity-40"
+            >
+              End trial now
+            </button>
+          </div>
+        </Section>
+
         <Section title="Message user (in-app)">
           <textarea
             value={body}
