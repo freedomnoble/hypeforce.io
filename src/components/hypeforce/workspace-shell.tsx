@@ -52,6 +52,8 @@ import { SupportFlyout } from "./support-flyout";
 import { AdminInboxFlyout } from "./admin-inbox-flyout";
 import { useQuery } from "@tanstack/react-query";
 import { getUnreadCount } from "@/lib/inbox.functions";
+import { checkSuperAdmin } from "@/lib/admin.functions";
+import { AdminCubeButton } from "./admin-cube-button";
 import { useTheme, themeHasModes } from "./theme-provider";
 import { UpsellBanner } from "./upsell-banner";
 import { CoffeeUpsellButton } from "./coffee-upsell-button";
@@ -155,6 +157,13 @@ export function WorkspaceShell({
     refetchOnWindowFocus: true,
   });
   const unreadCount = unread?.count ?? 0;
+  const fetchIsAdmin = useServerFn(checkSuperAdmin);
+  const { data: adminData } = useQuery({
+    queryKey: ["is-super-admin"],
+    queryFn: () => fetchIsAdmin(),
+    staleTime: 5 * 60_000,
+  });
+  const isSuperAdmin = !!adminData?.isSuperAdmin;
   const [lastByDm, setLastByDm] = useState<Record<string, LastMessage>>({});
   const [readVersion, setReadVersion] = useState(0); // bump to recompute unread counts
   const [dmQuery, setDmQuery] = useState("");
@@ -451,6 +460,11 @@ export function WorkspaceShell({
         >
           <HelpCircle className="w-4 h-4" />
         </button>
+        {isSuperAdmin && (
+          <div className="w-10 h-10 flex items-center justify-center">
+            <AdminCubeButton title="Admin console" size={22} />
+          </div>
+        )}
         <button onClick={signOut} className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground">
           <LogOut className="w-4 h-4" />
         </button>
@@ -828,12 +842,15 @@ export function WorkspaceShell({
               <AvatarImage src={profile?.avatar_url ?? undefined} />
               <AvatarFallback><UserIcon className="w-5 h-5" /></AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="font-display font-semibold text-base truncate">
                 {profile?.display_name ?? profile?.email ?? "You"}
               </div>
               <div className="text-[10px] font-mono text-mint">● online</div>
             </div>
+            {isSuperAdmin && (
+              <AdminCubeButton title="Admin console" />
+            )}
           </div>
           <div className="flex-1 overflow-y-auto scrollbar-thin py-2">
             {themeHasModes(useTheme().theme) && (

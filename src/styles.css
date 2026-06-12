@@ -791,3 +791,12 @@
     drop-shadow(0 18px 22px oklch(0 0 0 / 0.45))
     drop-shadow(0 4px 6px oklch(0 0 0 / 0.35));
 }
+
+/* Admin rubik's cube spin */
+@keyframes admin-cube-spin {
+  0% { transform: rotateX(-25deg) rotateY(-30deg); }
+  100% { transform: rotateX(-25deg) rotateY(330deg); }
+}
+.admin-cube-spin {
+  animation: admin-cube-spin 1s ease-in-out 1;
+}
