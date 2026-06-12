@@ -34,8 +34,16 @@ function FeaturesStep() {
   const alreadySubscribed = !!(data?.has_active_subscription || data?.is_comped);
   const [intentGiven, setIntentGiven] = useState<boolean>(false);
   const [continuing, setContinuing] = useState(false);
+  const [cancelRequested, setCancelRequested] = useState(false);
   const redeem = useServerFn(redeemInviteToken);
+  const cancelTrial = useServerFn(requestTrialCancellation);
   const { invalidate } = useOnboardingState();
+
+  const trialEndsMs = data?.trial_ends_at ? new Date(data.trial_ends_at).getTime() : 0;
+  const trialActive = !!trialEndsMs && trialEndsMs > Date.now();
+  const hoursLeft = trialActive ? Math.max(0, Math.ceil((trialEndsMs - Date.now()) / 3_600_000)) : 0;
+  const isLastDay = trialActive && hoursLeft <= 24;
+  const alreadyCancelled = !!data?.trial_cancel_requested_at || cancelRequested;
 
   useEffect(() => {
     try {
