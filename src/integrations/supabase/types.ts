@@ -744,6 +744,7 @@ export type Database = {
           created_at: string
           enabled: boolean
           id: string
+          kind: string
           rotated_at: string
           token: string
         }
@@ -751,6 +752,7 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           id?: string
+          kind?: string
           rotated_at?: string
           token: string
         }
@@ -758,6 +760,7 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           id?: string
+          kind?: string
           rotated_at?: string
           token?: string
         }
@@ -1024,6 +1027,9 @@ export type Database = {
           onboarding_step: number
           show_upsell: boolean
           tour_completed_at: string | null
+          trial_cancel_requested_at: string | null
+          trial_ends_at: string | null
+          trial_started_at: string | null
           updated_at: string
           upsell_updated_at: string | null
           verification_token: string | null
@@ -1048,6 +1054,9 @@ export type Database = {
           onboarding_step?: number
           show_upsell?: boolean
           tour_completed_at?: string | null
+          trial_cancel_requested_at?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
           upsell_updated_at?: string | null
           verification_token?: string | null
@@ -1072,6 +1081,9 @@ export type Database = {
           onboarding_step?: number
           show_upsell?: boolean
           tour_completed_at?: string | null
+          trial_cancel_requested_at?: string | null
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
           upsell_updated_at?: string | null
           verification_token?: string | null
@@ -1545,6 +1557,7 @@ export type Database = {
         Returns: boolean
       }
       is_email_verified: { Args: { _user_id: string }; Returns: boolean }
+      is_on_trial: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_workspace_admin: {
         Args: { _user_id: string; _workspace_id: string }
