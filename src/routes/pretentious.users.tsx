@@ -11,7 +11,7 @@ import {
   deleteUser,
   bulkDeleteUsers,
 } from "@/lib/admin.functions";
-import { setUserCompFlags } from "@/lib/invites.functions";
+import { setUserCompFlags, setUserTrial } from "@/lib/invites.functions";
 import { Switch } from "@/components/ui/switch";
 import { GlassPanel } from "@/components/admin/admin-shell";
 import {
