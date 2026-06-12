@@ -58,6 +58,7 @@ function WelcomePage() {
   const navigate = useNavigate();
   const { intent, billing } = Route.useSearch();
   const sendVerification = useServerFn(sendVerificationEmail);
+  const redeem = useServerFn(redeemInviteToken);
   const [stage, setStage] = useState<Stage>("intro");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
