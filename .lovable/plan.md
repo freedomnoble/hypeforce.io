@@ -1,44 +1,29 @@
-## Why the delete is failing
+## Mobile pricing redesign
 
-Auth logs show the actual error returned by `auth.admin.deleteUser`:
+Goal: on small screens, collapse the two pricing cards into one Founder card so the price, benefits, and CTA all fit on screen without the button overlapping the next section. Keep the existing two-card layout untouched on `md+`.
 
-```
-ERROR: new row for relation "messages" violates check constraint "messages_check1" (SQLSTATE 23514)
-500: Database error deleting user
-```
+### Changes — `src/components/hypeforce/landing-page.tsx`, pricing section only
 
-What's happening:
+1. **Hide the "Standard seat" anchor card on mobile.**
+   Add `hidden md:block` to the Standard card wrapper (line 427). The grid stays `grid-cols-1 md:grid-cols-2`, so on mobile only the Founder card renders and centers naturally.
 
-- `public.messages.author_user_id` references `auth.users(id)` with **ON DELETE SET NULL**.
-- `public.messages` also has a CHECK constraint `messages_check1`:
-  `(author_type='user' AND author_user_id IS NOT NULL) OR (author_type='agent' AND author_agent_id IS NOT NULL)`
-- When you delete a user who has posted any message, Postgres tries to set their `author_user_id` to NULL, which violates the CHECK, which aborts the whole `DELETE` — so the user, profile, workspace, etc. all stay.
+2. **Show $9 with $19 crossed out on the Founder card.**
+   In the price block (lines 454–466), when `billing === "monthly"` prepend a strikethrough `$${standardMonthly}` before the `$${monthly}` price (e.g. `$19` muted + line-through, then `$9` large). For `annual`, prepend the strikethrough `$${standardMonthly}` the same way before `$${annualPerMonth}`. Layout: keep the existing `flex items-baseline gap-1.5`, with the strikethrough sized smaller (e.g. `text-3xl`) and `text-muted-foreground line-through` so the $9 stays the visual anchor.
 
-All three failing accounts had posted messages in their starter channels, so all three hit this.
+3. **Highlight founder-exclusive bullets.**
+   In the Founder card bullets (lines 472–478), wrap the founder-only items in an accent style so it's obvious what the first 1,000 get vs. the standard plan:
+   - "Founding Member badge on your profile" — already uses `text-electric font-semibold` on the badge label; extend to the full line.
+   - "$9/mo price locked for life"
+   - "Early access to new agents and features"
+   - "Direct line to the team in #founders"
 
-## Fix
+   "Everything in Standard" stays muted/regular so it reads as the baseline.
 
-Change the FK on `messages.author_user_id` from `ON DELETE SET NULL` to `ON DELETE CASCADE`. When a user is deleted, their authored messages get deleted with them, which keeps the CHECK satisfied. This matches how their workspaces/channels/DMs already cascade.
+   Implementation: pass an optional `highlight` prop to the existing `Bullet` component (or inline a `className` wrapper) that switches the text + check icon color to `text-electric` and weight to `font-medium`. I'll check `Bullet`'s signature first; if it doesn't accept a prop, I'll wrap the children with a `<span className="text-electric font-medium">…</span>` to avoid touching the shared component.
 
-Migration:
+4. **No behavior or copy changes** beyond the strikethrough price addition. CTA, billing toggle, headline, subhead, and FAQ all stay as-is. Desktop renders identically to today.
 
-```sql
-ALTER TABLE public.messages
-  DROP CONSTRAINT messages_author_user_id_fkey;
-
-ALTER TABLE public.messages
-  ADD CONSTRAINT messages_author_user_id_fkey
-  FOREIGN KEY (author_user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-```
-
-After the migration, re-running bulk delete on those three accounts will succeed.
-
-## Small UX improvement (optional, same edit pass)
-
-Right now the toast just says "Deleted 0. 3 failed." with no detail. I'll surface the first failure's error message in the toast and `console.error` the full failure list, so the next time something like this happens you can see the cause without digging through auth logs.
-
-## Other tables checked, no change needed
-
-- `channel_memos` has a similar pair (FK SET NULL + author_type CHECK), but its check only restricts the enum value — it does NOT require `author_user_id` to be non-null. Safe as-is.
-- All other public-schema FKs to `auth.users` are already CASCADE or SET NULL with no conflicting CHECKs.
-- The 1 `storage.objects` row owned by these users has no FK to `auth.users`, so it doesn't block delete (it'll just be orphaned; can be cleaned up separately if you want).
+### Out of scope
+- No changes to `pricing_config` values (already $9 founder / $19 standard per the last migration).
+- No changes to the Standard card on desktop.
+- No changes to FAQ, hero, or footer CTA.
