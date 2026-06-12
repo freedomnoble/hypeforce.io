@@ -1,55 +1,51 @@
-## Goal
+# Fix the first-run tour for channel entry + mobile
 
-A guided "first run" tour inside `/app` that teaches new users the core Hypeforce concepts. Hybrid format: a welcome modal, spotlight coach marks pointing at real UI on desktop and mobile, and an outro that branches on whether they want to bring their own API keys. Replayable from the profile panel.
+## Problems
 
-## Tour steps
+1. After onboarding the user lands on a channel (`/w/:id/c/:id`), not the workspace home. The tour does fire there (the shell is shared) but the targets it spotlights (`channels-section`, `new-channel-btn`, `dms-section`) live in a sidebar that is hidden on mobile when a channel is active. Result: spotlights point at nothing on phones.
+2. Several targets are desktop-only (`hidden sm:flex`): `workspaces-rail` and `workspace-settings-btn`. On mobile they never exist, so those steps spotlight nothing.
+3. The tooltip card overflows the right edge of the phone viewport (visible in the screenshot — "Welcome to your hypef…" is clipped). The centered-modal style doesn't account for narrow screens cleanly, and the docked-tooltip style relies on a target rect that isn't there for step 1.
 
-1. **Welcome** — full-screen modal: "Your hypeforce, in one workspace." Buttons: *Take the 90s tour* / *Skip*.
-2. **Channels list** — spotlight the channels section in the sidebar. "Channels are rooms shared with your team and agents."
-3. **Add a channel** — spotlight the `+` next to Channels. "Create a channel per project, launch, or topic."
-4. **DMs vs channels** — spotlight the DMs section. "DMs are private 1:1 threads with one agent or teammate. Channels are shared."
-5. **Workspace / org switcher** — spotlight the workspace name / switcher at the top of the rail. "Switch between orgs and workspaces here."
-6. **Agents in a channel** — spotlight the channel header members/agents area. "Add or remove agents per channel — each channel has its own roster."
-7. **@mention an agent** — spotlight the composer. "Type `@` to call an agent. `@all` pings every agent in the channel."
-8. **Context & alignment** — spotlight the pinned-context / channel memo panel. "Pin briefs and alignment docs here so every reply stays on-message."
-9. **Personality, roles, brand voice** — spotlight the workspace settings entry (gear). "Set agent personalities, roles, and your brand voice in workspace settings."
-10. **Outro — API keys?** — modal: *Do you want to use your own AI provider keys?*
-    - **No, use Hypeforce credits** → close tour, focus the composer.
-    - **Yes, add my keys** → navigate to `/profile/connections` and end the tour there.
+## Fix
 
-Each step shows: step counter (`3 / 10`), title, one-sentence body, *Back* / *Next* / *Skip tour*. On mobile, the tooltip docks to the bottom of the screen with an arrow pointing to the target; on desktop it floats next to the target.
+### A. Make the tour mobile-aware (`src/components/hypeforce/tour/tour-overlay.tsx`)
 
-## Trigger & persistence
+- In `WorkspaceTour`, detect viewport (`matchMedia("(max-width: 639px)")`).
+- Build the step list reactively based on `isMobile`, so each step points at an element that actually exists on that breakpoint:
 
-- Auto-run once on first visit to `/w/$workspaceId` after onboarding completes.
-- Gate stored on `profiles` as a new boolean column `tour_completed_at timestamptz` (nullable). Set via a tiny server function `markTourSeen` and cleared via `resetTour` for replay.
-- Add a **Take the tour** row in the mobile profile sheet and the desktop profile menu — calls `resetTour` then navigates back to the workspace which re-triggers the tour.
-- A session-storage flag prevents re-running within the same tab if the user dismisses mid-tour.
+| Step | Desktop target | Mobile target / behavior |
+|---|---|---|
+| Welcome | centered modal | centered modal (no target) |
+| Channels | `[data-tour="channels-section"]` | navigate to `/w/:id` first (Home tab) so sidebar shows, then same target |
+| New channel | `[data-tour="new-channel-btn"]` | same, after navigate |
+| DMs vs channels | `[data-tour="dms-section"]` | same |
+| Workspaces / orgs | `[data-tour="workspaces-rail"]` | `[data-tour="workspace-switcher-mobile"]` (new tag on the "WORKSPACE / Testlocal ⌄" header that opens the workspaces sheet) |
+| Agents | no target (concept) | same |
+| @mentions | no target | same |
+| Pinned context | no target | same |
+| Brand voice / settings | `[data-tour="workspace-settings-btn"]` | `[data-tour="mobile-more-tab"]` on the bottom-nav "More" button, with copy adjusted to "open **More → Workspace settings**" |
+| Outro (API keys) | modal | modal |
 
-## Technical design
+- For the "navigate to home" mobile steps, add an `onEnter` that calls `navigate({ to: "/w/$workspaceId", params })` when the current route is a channel. Passed in from `WorkspaceShell` via a new `navigateHome` prop (so the overlay stays route-agnostic).
 
-New files:
-- `src/components/hypeforce/tour/tour-provider.tsx` — context + state machine (current step, next/back/skip, target lookup by `data-tour="<id>"`, position calc with `getBoundingClientRect`, resize/scroll listeners, focus trap on tooltip).
-- `src/components/hypeforce/tour/tour-overlay.tsx` — fixed full-screen overlay with an SVG mask that cuts a rounded rectangle around the target (darkens the rest), plus the tooltip card. Responsive: tooltip floats on `sm+`, docks bottom on mobile. Uses framer-motion for fade/slide.
-- `src/components/hypeforce/tour/steps.ts` — declarative step list (`id`, `target`, `title`, `body`, `placement`, optional `onEnter` to e.g. open the mobile sidebar before highlighting it).
-- `src/components/hypeforce/tour/welcome-modal.tsx` and `outro-modal.tsx` — full-screen step 1 and step 10.
-- `src/lib/tour.functions.ts` — `markTourSeen`, `resetTour` server fns (auth-gated via `requireSupabaseAuth`).
+### B. Tag the mobile-only targets (`src/components/hypeforce/workspace-shell.tsx`)
 
-Touch points (add `data-tour` attributes only, no behavior changes):
-- `workspace-shell.tsx`: workspace switcher, channels header + `+` button, channels list, DMs section, channel header members area, composer, pinned-context panel, workspace settings (gear), profile entry.
-- `_auth.w.$workspaceId.c.$channelId.tsx`: composer + pinned context anchors if they live there.
+- Add `data-tour="workspace-switcher-mobile"` on the mobile sidebar's workspace header row (the one with the chevron at lines ~497-506).
+- Add `data-tour="mobile-more-tab"` on the "More" `MobileTabButton` in the bottom nav (line ~968).
+- Pass `navigateHome={() => navigate({ to: "/w/$workspaceId", params: { workspaceId } })}` to `<WorkspaceTour>`.
 
-Mobile handling:
-- Steps that target sidebar items first call `onEnter` to open the mobile nav sheet, wait one frame, then measure the target. Closing the tour restores prior sheet state.
-- Tooltip never wider than `min(360px, 100vw - 24px)`; safe-area inset respected.
+### C. Fix tooltip layout so it never overflows the viewport (`tour-overlay.tsx`)
 
-Trigger wiring:
-- In `WorkspaceShell`, on mount, read `profiles.tour_completed_at`. If null and `profiles.onboarding_step >= 8`, mount `<TourProvider autoStart />`.
-- "Take the tour" entries in profile panel call `resetTour()` then `tour.start()`.
+In `tooltipStyle`:
+- On mobile, always dock to bottom: `left: 12, right: 12, bottom: 12`, drop the centered/translate branch entirely. Drop the `width` value so the `left`+`right` insets size the card.
+- On the card itself, add `max-w-[calc(100vw-24px)] box-border` and `max-h-[70vh] overflow-y-auto` so long bodies on small screens scroll instead of pushing off-screen.
+- On desktop centered (no rect) case, keep the current centered behavior but add the same `max-w` clamp for safety.
+
+### D. Trigger condition unchanged
+
+The existing auto-start in `workspace-shell.tsx` (gated on `tour_completed_at` + sessionStorage) already runs on both the workspace home route and channel routes because both render `WorkspaceShell`. No change needed — the mobile-aware step list handles the channel-entry case by navigating to home for the sidebar steps.
 
 ## Out of scope
 
-- No new onboarding routes; the existing `/onboarding/*` flow is untouched.
-- No changes to agent/channel/membership logic.
-- No analytics beyond a single `tour_completed_at` timestamp.
-- No copy changes to existing screens beyond adding `data-tour` hooks.
+- No changes to onboarding redirects, tour copy beyond the settings step rewording, the database schema, or `tour.functions.ts`.
+- No new analytics, no replay UI changes.
