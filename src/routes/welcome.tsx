@@ -10,12 +10,13 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { sendVerificationEmail } from "@/lib/email-verification.functions";
-import { redeemInviteToken } from "@/lib/invites.functions";
+import { redeemInviteToken, startTrial } from "@/lib/invites.functions";
 import { PENDING_INVITE_KEY } from "@/routes/join.$token";
 
 const searchSchema = z.object({
   intent: z.enum(["founder"]).optional(),
   billing: z.enum(["monthly", "annual"]).optional(),
+  trial: z.union([z.literal("1"), z.literal(1), z.boolean()]).optional(),
 });
 
 export const Route = createFileRoute("/welcome")({
@@ -54,11 +55,14 @@ function AuthRouteError({ error, reset }: { error: Error; reset: () => void }) {
 
 type Stage = "intro" | "form";
 
+const TRIAL_INTENT_KEY = "hypeforce.trial_intent";
+
 function WelcomePage() {
   const navigate = useNavigate();
-  const { intent, billing } = Route.useSearch();
+  const { intent, billing, trial } = Route.useSearch();
   const sendVerification = useServerFn(sendVerificationEmail);
   const redeem = useServerFn(redeemInviteToken);
+  const startTrialFn = useServerFn(startTrial);
   const [stage, setStage] = useState<Stage>("intro");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -74,7 +78,10 @@ function WelcomePage() {
         );
       } catch {}
     }
-  }, [intent, billing]);
+    if (trial) {
+      try { sessionStorage.setItem(TRIAL_INTENT_KEY, "1"); } catch {}
+    }
+  }, [intent, billing, trial]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +118,7 @@ function WelcomePage() {
         return;
       }
       // Redeem any pending invite token now that we're authenticated, so the
-      // onboarding subscribe step renders "Gifted" instead of "Subscribe".
+      // onboarding subscribe step renders "Gifted" / "Trial" instead of "Subscribe".
       try {
         const pending = sessionStorage.getItem(PENDING_INVITE_KEY);
         if (pending) {
@@ -119,6 +126,11 @@ function WelcomePage() {
           try {
             sessionStorage.removeItem(PENDING_INVITE_KEY);
           } catch {}
+        }
+        const trialIntent = sessionStorage.getItem(TRIAL_INTENT_KEY);
+        if (trialIntent) {
+          await startTrialFn().catch(() => {});
+          try { sessionStorage.removeItem(TRIAL_INTENT_KEY); } catch {}
         }
       } catch {}
       // Brand-new user → go straight to onboarding (skip the /app gateway race).
