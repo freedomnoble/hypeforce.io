@@ -16,12 +16,20 @@ export const getInviteConfig = createServerFn({ method: "GET" })
     const { data, error } = await supabaseAdmin
       .from("invite_links")
       .select("*")
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
-    if (!data) throw new Error("Invite link config missing.");
-    return { id: data.id, token: data.token, enabled: data.enabled, rotated_at: data.rotated_at };
+    const comp = (data ?? []).find((r: any) => (r.kind ?? "comp") === "comp");
+    const trial = (data ?? []).find((r: any) => r.kind === "trial");
+    if (!comp) throw new Error("Invite link config missing.");
+    return {
+      id: comp.id,
+      token: comp.token,
+      enabled: comp.enabled,
+      rotated_at: comp.rotated_at,
+      trial: trial
+        ? { id: trial.id, token: trial.token, enabled: trial.enabled, rotated_at: trial.rotated_at }
+        : null,
+    };
   });
 
 export const setInviteEnabled = createServerFn({ method: "POST" })
