@@ -120,6 +120,17 @@ export function LandingPage({
   const seatsRemaining = pricing?.founder_seats_remaining as number | undefined;
 
   const handleCheckout = async () => {
+    if (freeTrialLanding && !signedIn) {
+      try {
+        sessionStorage.setItem(
+          "hf_onboarding_intent",
+          JSON.stringify({ intent: "founder", billing }),
+        );
+        sessionStorage.setItem("hypeforce.trial_intent", "1");
+      } catch {}
+      navigate({ to: "/welcome", search: { intent: "founder", billing, trial: "1" } as any });
+      return;
+    }
     if (!signedIn) {
       try {
         sessionStorage.setItem(
@@ -141,6 +152,11 @@ export function LandingPage({
       toast.error("Checkout failed to open. Please try again.");
     }
   };
+
+  const primaryCtaLabel = freeTrialLanding
+    ? "Start 5-day free trial"
+    : "Claim my founder spot";
+  const navCtaLabel = freeTrialLanding ? "Start free trial" : "Claim founder spot";
 
   const featureItems = arr<FeatureItem>("features", [
     { icon: "MessageSquare", title: "Slack-style channels", desc: "Pin briefs, thread replies, search everything. The familiar workspace your team already lives in." },
