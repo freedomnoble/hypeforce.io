@@ -171,6 +171,32 @@ function FeaturesStep() {
         Continue
       </Button>
 
+      {isLastDay && !alreadySubscribed && (
+        <div className="text-center mt-2">
+          {alreadyCancelled ? (
+            <span className="text-[11px] text-muted-foreground">
+              Cancellation request received — we'll be in touch.
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await cancelTrial();
+                  setCancelRequested(true);
+                  await invalidate();
+                } catch (e) {
+                  console.error("[trial cancel]", e);
+                }
+              }}
+              className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-4"
+            >
+              Request cancellation
+            </button>
+          )}
+        </div>
+      )}
+
       <p className="text-center text-xs text-muted-foreground mt-3">
         Cancel anytime. Your data is yours, always.
       </p>
