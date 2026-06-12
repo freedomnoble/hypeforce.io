@@ -794,9 +794,11 @@
 
 /* Admin rubik's cube spin */
 @keyframes admin-cube-spin {
-  0% { transform: rotateX(-25deg) rotateY(-30deg); }
-  100% { transform: rotateX(-25deg) rotateY(330deg); }
+  0% { transform: rotate(0deg) scale(1); }
+  40% { transform: rotate(180deg) scale(1.08); }
+  100% { transform: rotate(360deg) scale(1); }
 }
 .admin-cube-spin {
   animation: admin-cube-spin 1s ease-in-out 1;
+  transform-box: fill-box;
 }
