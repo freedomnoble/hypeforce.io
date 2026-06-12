@@ -271,9 +271,16 @@ function UserDrawer({ user, onClose, onChanged }: { user: any; onClose: () => vo
   const msg = useServerFn(messageUser);
   const del = useServerFn(deleteUser);
   const setFlags = useServerFn(setUserCompFlags);
+  const setTrial = useServerFn(setUserTrial);
 
   const [comped, setComped] = useState(!!user.profile_flags?.is_comped);
   const [upsell, setUpsell] = useState(!!user.profile_flags?.show_upsell);
+
+  const trialEnds = user.profile_flags?.trial_ends_at
+    ? new Date(user.profile_flags.trial_ends_at as string)
+    : null;
+  const trialActive = !!trialEnds && trialEnds.getTime() > Date.now();
+  const trialCancelRequested = !!user.profile_flags?.trial_cancel_requested_at;
 
   const [paused, setPaused] = useState(user.usage_limit?.lovable_gateway_paused ?? false);
   const [cap, setCap] = useState<string>(user.usage_limit?.monthly_message_cap?.toString() ?? "");
