@@ -33,6 +33,7 @@ function InvitesPage() {
   // Always share the canonical published origin so previews and OG metadata
   // resolve to the real site, not a Lovable preview URL.
   const url = cfg ? `https://hypeforce.io/join/${cfg.token}` : "";
+  const trialUrl = cfg?.trial ? `https://hypeforce.io/join/${cfg.trial.token}` : "";
 
   const wrap = async (label: string, fn: () => Promise<any>, keys: string[][] = []) => {
     setBusy(true);
