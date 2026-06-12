@@ -8,25 +8,35 @@ interface AdminCubeButtonProps {
 }
 
 /**
- * Small animated rubik's cube icon — admin-only shortcut to /pretentious.
+ * Small 3D rubik's-cube icon — admin-only shortcut to /pretentious.
  * On click: spins for ~1s, then navigates.
  */
-export function AdminCubeButton({ size = 28, className = "", title = "Admin" }: AdminCubeButtonProps) {
+export function AdminCubeButton({
+  size = 24,
+  className = "",
+  title = "Admin",
+}: AdminCubeButtonProps) {
   const navigate = useNavigate();
   const [spinning, setSpinning] = useState(false);
 
   const handleClick = () => {
     if (spinning) return;
     setSpinning(true);
-    window.setTimeout(() => {
-      navigate({ to: "/pretentious" });
-    }, 1000);
+    window.setTimeout(() => navigate({ to: "/pretentious" }), 1000);
   };
 
-  // 3x3 rubik's-cube face colors (top, right, front shown via isometric projection)
-  const top = ["#fde047", "#fde047", "#fde047", "#fde047", "#fde047", "#fde047", "#fde047", "#fde047", "#fde047"];
-  const right = ["#ef4444", "#ef4444", "#ef4444", "#ef4444", "#ef4444", "#ef4444", "#ef4444", "#ef4444", "#ef4444"];
-  const front = ["#3b82f6", "#22c55e", "#ffffff", "#22c55e", "#3b82f6", "#22c55e", "#ffffff", "#3b82f6", "#22c55e"];
+  const half = size / 2;
+  const faceStyle = (transform: string, bg: string): React.CSSProperties => ({
+    position: "absolute",
+    width: size,
+    height: size,
+    transform,
+    background: bg,
+    border: "1px solid rgba(0,0,0,0.6)",
+    backgroundSize: "33.34% 33.34%",
+    backgroundImage:
+      "linear-gradient(to right, rgba(0,0,0,0.55) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.55) 1px, transparent 1px)",
+  });
 
   return (
     <button
@@ -35,43 +45,26 @@ export function AdminCubeButton({ size = 28, className = "", title = "Admin" }: 
       title={title}
       aria-label={title}
       className={`inline-flex items-center justify-center rounded-lg hover:bg-secondary/60 transition-colors ${className}`}
-      style={{ width: size + 8, height: size + 8 }}
+      style={{ width: size + 12, height: size + 12, perspective: 120 }}
     >
-      <div
-        className={spinning ? "cube-spin" : ""}
+      <span
+        className={spinning ? "admin-cube-spin" : ""}
         style={{
+          position: "relative",
           width: size,
           height: size,
-          display: "inline-block",
           transformStyle: "preserve-3d",
+          transform: "rotateX(-25deg) rotateY(-30deg)",
+          display: "inline-block",
         }}
       >
-        <svg viewBox="0 0 100 100" width={size} height={size}>
-          {/* Top face */}
-          <g>
-            {top.map((c, i) => {
-              const col = i % 3;
-              const row = Math.floor(i / 3);
-              const x0 = 12 + col * 12;
-              const y0 = 6 + row * 7;
-              return (
-                <polygon
-                  key={`t${i}`}
-                  points={`${x0},${y0} ${x0 + 12},${y0} ${x0 + 12 - 12},${y0 + 7} ${x0 - 12},${y0 + 7}`}
-                  fill={c}
-                  stroke="#0a0a0a"
-                  strokeWidth="1"
-                  strokeLinejoin="round"
-                  transform={`translate(${col * 0},0)`}
-                />
-              );
-            })}
-          </g>
-          {/* Simpler isometric: draw three rhombus grids */}
-        </svg>
-      </div>
-
-      {/* fallback simpler cube via CSS — actually use this instead of the above SVG attempt */}
+        <span style={faceStyle(`translateZ(${half}px)`, "#3b82f6")} />
+        <span style={faceStyle(`rotateY(180deg) translateZ(${half}px)`, "#22c55e")} />
+        <span style={faceStyle(`rotateY(90deg) translateZ(${half}px)`, "#ef4444")} />
+        <span style={faceStyle(`rotateY(-90deg) translateZ(${half}px)`, "#f97316")} />
+        <span style={faceStyle(`rotateX(90deg) translateZ(${half}px)`, "#fafafa")} />
+        <span style={faceStyle(`rotateX(-90deg) translateZ(${half}px)`, "#facc15")} />
+      </span>
     </button>
   );
 }
