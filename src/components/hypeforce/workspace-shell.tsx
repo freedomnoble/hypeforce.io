@@ -771,6 +771,25 @@ export function WorkspaceShell({
         userId={profile?.id ?? null}
       />
 
+      <WorkspaceTour
+        open={tourOpen}
+        onClose={() => {
+          setTourOpen(false);
+          try { sessionStorage.setItem("hf:tour-dismissed", "1"); } catch {}
+        }}
+        onFinish={async () => {
+          setTourOpen(false);
+          try { await markTourSeenFn(); } catch {}
+          setProfile((p) => (p ? ({ ...p, tour_completed_at: new Date().toISOString() } as any) : p));
+        }}
+        openMobileSidebar={() => {
+          // On mobile, the workspace home view already shows the sidebar
+          // (since there's no active channel). No sheet needs opening.
+        }}
+        closeMobileSidebar={() => {}}
+      />
+
+
       <AlertDialog open={!!pendingAgent} onOpenChange={(o) => !o && setPendingAgent(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
