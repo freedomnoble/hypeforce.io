@@ -1,29 +1,31 @@
-## Mobile pricing redesign
+## Admin shortcut on profile panel
 
-Goal: on small screens, collapse the two pricing cards into one Founder card so the price, benefits, and CTA all fit on screen without the button overlapping the next section. Keep the existing two-card layout untouched on `md+`.
+Add a small rubik's-cube Lottie button in the mobile profile sheet, visible only to super-admins. Tapping it plays the animation for ~1s, then navigates to `/pretentious`.
 
-### Changes — `src/components/hypeforce/landing-page.tsx`, pricing section only
+### Changes
 
-1. **Hide the "Standard seat" anchor card on mobile.**
-   Add `hidden md:block` to the Standard card wrapper (line 427). The grid stays `grid-cols-1 md:grid-cols-2`, so on mobile only the Founder card renders and centers naturally.
+1. **Install lottie player**: `bun add lottie-react`.
 
-2. **Show $9 with $19 crossed out on the Founder card.**
-   In the price block (lines 454–466), when `billing === "monthly"` prepend a strikethrough `$${standardMonthly}` before the `$${monthly}` price (e.g. `$19` muted + line-through, then `$9` large). For `annual`, prepend the strikethrough `$${standardMonthly}` the same way before `$${annualPerMonth}`. Layout: keep the existing `flex items-baseline gap-1.5`, with the strikethrough sized smaller (e.g. `text-3xl`) and `text-muted-foreground line-through` so the $9 stays the visual anchor.
+2. **Source the Lottie JSON**: The iconscout URL (`loading-cube-animation_13044216`) requires a logged-in download and is not directly fetchable. I'll need the JSON file. Two options:
+   - You drop the downloaded `.json` into chat and I'll save it to `src/assets/rubix-cube.lottie.json`.
+   - Or I substitute a similar free CC0 cube-loader Lottie (e.g. from LottieFiles) so I can ship without waiting.
+   I'll default to option 1 — please attach the JSON. If you'd rather I use a substitute, say so and I'll pick one.
 
-3. **Highlight founder-exclusive bullets.**
-   In the Founder card bullets (lines 472–478), wrap the founder-only items in an accent style so it's obvious what the first 1,000 get vs. the standard plan:
-   - "Founding Member badge on your profile" — already uses `text-electric font-semibold` on the badge label; extend to the full line.
-   - "$9/mo price locked for life"
-   - "Early access to new agents and features"
-   - "Direct line to the team in #founders"
+3. **Admin detection on the client**: Reuse the existing `checkSuperAdmin` server fn (`src/lib/admin.functions.ts`). In `workspace-shell.tsx`, add a `useQuery` that calls it once per session and stores `isSuperAdmin`. Gate the new button on this flag (no hardcoded email — uses the same `is_super_admin` RPC the `/pretentious` route uses).
 
-   "Everything in Standard" stays muted/regular so it reads as the baseline.
+4. **New `AdminCubeButton` component** (`src/components/hypeforce/admin-cube-button.tsx`):
+   - Renders a 28–32px `<Lottie>` using the JSON, `autoplay={false}`, `loop={false}`, controlled via a `lottieRef`.
+   - On click: call `lottieRef.current?.goToAndPlay(0)`, then `setTimeout(() => navigate({ to: "/pretentious" }), 1000)`. Disable the button while animating to avoid double-taps.
+   - Styled as a small circular icon button matching the existing profile-sheet row chrome.
 
-   Implementation: pass an optional `highlight` prop to the existing `Bullet` component (or inline a `className` wrapper) that switches the text + check icon color to `text-electric` and weight to `font-medium`. I'll check `Bullet`'s signature first; if it doesn't accept a prop, I'll wrap the children with a `<span className="text-electric font-medium">…</span>` to avoid touching the shared component.
+5. **Mobile profile sheet** (`src/components/hypeforce/workspace-shell.tsx` ~line 826): when `isSuperAdmin` is true, render `<AdminCubeButton />` in the header next to the "● online" / display name block (top-right of the profile card). Keeps it discreet and matches the screenshot's intent (a small icon on the profile panel).
 
-4. **No behavior or copy changes** beyond the strikethrough price addition. CTA, billing toggle, headline, subhead, and FAQ all stay as-is. Desktop renders identically to today.
+6. **Desktop parity (optional, default ON)**: also render the same button in the desktop profile area in `workspace-shell.tsx` (~line 705 / rail bottom region) so it's not mobile-only. Tell me if you want mobile-only instead.
 
 ### Out of scope
-- No changes to `pricing_config` values (already $9 founder / $19 standard per the last migration).
-- No changes to the Standard card on desktop.
-- No changes to FAQ, hero, or footer CTA.
+- No changes to `/pretentious` routing or admin auth checks.
+- No changes to the existing profile sheet rows (Workspace settings, Inbox, Get help, Sign out).
+- No new RLS/migrations.
+
+### Open question
+Please attach the iconscout Lottie JSON, or confirm I can use a substitute cube animation from LottieFiles.
