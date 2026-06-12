@@ -423,8 +423,8 @@ export function LandingPage({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Anchor — regular pricing */}
-            <div className="glass rounded-3xl p-7 relative">
+            {/* Anchor — regular pricing (desktop only) */}
+            <div className="hidden md:block glass rounded-3xl p-7 relative">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 liquid-glass rounded-full px-3 py-1 text-xs uppercase tracking-[0.16em] text-center whitespace-nowrap">
                 After first 1000 users
               </div>
@@ -451,7 +451,8 @@ export function LandingPage({
               </div>
               <p className="hf-eyebrow">Beta · First 1,000</p>
               <h3 className="font-display text-2xl mt-1">Founding Member</h3>
-              <div className="mt-5 flex items-baseline gap-1.5">
+              <div className="mt-5 flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-3xl font-display line-through text-muted-foreground">${standardMonthly}</span>
                 {billing === "monthly" ? (
                   <>
                     <span className="text-6xl font-display text-foreground">${monthly}</span>
@@ -470,11 +471,11 @@ export function LandingPage({
                   : `${discountPct}% off · locked in forever · cancel anytime.`}
               </p>
               <ul className="mt-6 space-y-2.5 text-sm">
-                <Bullet><span className="text-electric font-semibold">Founding Member</span> badge on your profile</Bullet>
-                <Bullet>${monthly}/mo price locked for life</Bullet>
+                <Bullet highlight><span className="font-semibold">Founding Member</span> badge on your profile</Bullet>
+                <Bullet highlight>${monthly}/mo price locked for life</Bullet>
                 <Bullet>Everything in Standard</Bullet>
-                <Bullet>Early access to new agents and features</Bullet>
-                <Bullet>Direct line to the team in #founders</Bullet>
+                <Bullet highlight>Early access to new agents and features</Bullet>
+                <Bullet highlight>Direct line to the team in #founders</Bullet>
               </ul>
               <Button
                 size="lg"
@@ -584,11 +585,11 @@ function StepCard({ n, title, desc }: { n: string; title: string; desc: string }
   );
 }
 
-function Bullet({ children }: { children: React.ReactNode }) {
+function Bullet({ children, highlight = false }: { children: React.ReactNode; highlight?: boolean }) {
   return (
     <li className="flex items-start gap-2.5">
       <Check className="w-4 h-4 mt-0.5 text-electric shrink-0" />
-      <span>{children}</span>
+      <span className={highlight ? "text-electric font-medium" : undefined}>{children}</span>
     </li>
   );
 }
