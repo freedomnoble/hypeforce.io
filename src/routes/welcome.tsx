@@ -10,6 +10,8 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { sendVerificationEmail } from "@/lib/email-verification.functions";
+import { redeemInviteToken } from "@/lib/invites.functions";
+import { PENDING_INVITE_KEY } from "@/routes/join.$token";
 
 const searchSchema = z.object({
   intent: z.enum(["founder"]).optional(),
@@ -56,6 +58,7 @@ function WelcomePage() {
   const navigate = useNavigate();
   const { intent, billing } = Route.useSearch();
   const sendVerification = useServerFn(sendVerificationEmail);
+  const redeem = useServerFn(redeemInviteToken);
   const [stage, setStage] = useState<Stage>("intro");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -107,6 +110,17 @@ function WelcomePage() {
         navigate({ to: "/login", replace: true });
         return;
       }
+      // Redeem any pending invite token now that we're authenticated, so the
+      // onboarding subscribe step renders "Gifted" instead of "Subscribe".
+      try {
+        const pending = sessionStorage.getItem(PENDING_INVITE_KEY);
+        if (pending) {
+          await redeem({ data: { token: pending } }).catch(() => {});
+          try {
+            sessionStorage.removeItem(PENDING_INVITE_KEY);
+          } catch {}
+        }
+      } catch {}
       // Brand-new user → go straight to onboarding (skip the /app gateway race).
       navigate({ to: "/onboarding", replace: true });
     } catch (err: any) {

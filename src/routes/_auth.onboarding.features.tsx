@@ -7,6 +7,8 @@ import { advanceStep } from "@/lib/onboarding.functions";
 import { useOnboardingState } from "@/lib/onboarding-query";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
 import { supabase } from "@/integrations/supabase/client";
+import { redeemInviteToken } from "@/lib/invites.functions";
+import { PENDING_INVITE_KEY } from "@/routes/join.$token";
 import { Users, AtSign, Pin, FileText, MessageCircle, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/onboarding/features")({
@@ -32,6 +34,8 @@ function FeaturesStep() {
   const alreadySubscribed = !!(data?.has_active_subscription || data?.is_comped);
   const [intentGiven, setIntentGiven] = useState<boolean>(false);
   const [continuing, setContinuing] = useState(false);
+  const redeem = useServerFn(redeemInviteToken);
+  const { invalidate } = useOnboardingState();
 
   useEffect(() => {
     try {
@@ -39,7 +43,34 @@ function FeaturesStep() {
     } catch {}
   }, []);
 
+  // Redeem any pending invite token so invited users see "Gifted" here,
+  // not "Subscribe". The /app fallback only fires after onboarding completes.
+  useEffect(() => {
+    if (!data || data.is_comped) return;
+    let token: string | null = null;
+    try {
+      token = sessionStorage.getItem(PENDING_INVITE_KEY);
+    } catch {}
+    if (!token) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await redeem({ data: { token: token! } });
+        try {
+          sessionStorage.removeItem(PENDING_INVITE_KEY);
+        } catch {}
+        if (!cancelled) await invalidate();
+      } catch {
+        // Leave token in place — /app will retry after onboarding.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [data, redeem, invalidate]);
+
   const canContinue = intentGiven || alreadySubscribed;
+
 
   const onSubscribe = async () => {
     setIntentGiven(true);
