@@ -32,6 +32,7 @@ export const Route = createFileRoute("/")({
         themeKey: (row?.theme_key as string | null) ?? null,
         content: (row?.content as Record<string, any> | null) ?? null,
         pricing: (res.pricing as Record<string, any> | null) ?? null,
+        freeTrialLanding: !!res.freeTrialLanding,
       };
     } catch {
       return {
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/")({
         themeKey: null,
         content: null,
         pricing: null,
+        freeTrialLanding: false,
       };
     }
   },
@@ -49,7 +51,7 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
-  const { heroUrl, videoUrl, themeKey, content, pricing } = Route.useLoaderData();
+  const { heroUrl, videoUrl, themeKey, content, pricing, freeTrialLanding } = Route.useLoaderData();
   return (
     <LandingPage
       heroUrl={heroUrl}
@@ -57,6 +59,7 @@ function IndexPage() {
       themeKey={themeKey}
       content={content}
       pricing={pricing}
+      freeTrialLanding={freeTrialLanding}
     />
   );
 }
