@@ -8,8 +8,8 @@ interface AdminCubeButtonProps {
 }
 
 /**
- * Small 3D rubik's-cube icon — admin-only shortcut to /pretentious.
- * On click: spins for ~1s, then navigates.
+ * Black line-art isometric Rubik's cube — admin shortcut to /pretentious.
+ * Spins ~1s on click then navigates.
  */
 export function AdminCubeButton({
   size = 24,
@@ -25,19 +25,6 @@ export function AdminCubeButton({
     window.setTimeout(() => navigate({ to: "/pretentious" }), 1000);
   };
 
-  const half = size / 2;
-  const faceStyle = (transform: string, bg: string): React.CSSProperties => ({
-    position: "absolute",
-    width: size,
-    height: size,
-    transform,
-    background: bg,
-    border: "1px solid rgba(0,0,0,0.6)",
-    backgroundSize: "33.34% 33.34%",
-    backgroundImage:
-      "linear-gradient(to right, rgba(0,0,0,0.55) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.55) 1px, transparent 1px)",
-  });
-
   return (
     <button
       type="button"
@@ -45,26 +32,33 @@ export function AdminCubeButton({
       title={title}
       aria-label={title}
       className={`inline-flex items-center justify-center rounded-lg hover:bg-secondary/60 transition-colors ${className}`}
-      style={{ width: size + 12, height: size + 12, perspective: 120 }}
+      style={{ width: size + 12, height: size + 12 }}
     >
-      <span
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 64 64"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={4}
+        strokeLinejoin="round"
+        strokeLinecap="round"
         className={spinning ? "admin-cube-spin" : ""}
-        style={{
-          position: "relative",
-          width: size,
-          height: size,
-          transformStyle: "preserve-3d",
-          transform: "rotateX(-25deg) rotateY(-30deg)",
-          display: "inline-block",
-        }}
+        style={{ transformOrigin: "50% 55%" }}
       >
-        <span style={faceStyle(`translateZ(${half}px)`, "#3b82f6")} />
-        <span style={faceStyle(`rotateY(180deg) translateZ(${half}px)`, "#22c55e")} />
-        <span style={faceStyle(`rotateY(90deg) translateZ(${half}px)`, "#ef4444")} />
-        <span style={faceStyle(`rotateY(-90deg) translateZ(${half}px)`, "#f97316")} />
-        <span style={faceStyle(`rotateX(90deg) translateZ(${half}px)`, "#fafafa")} />
-        <span style={faceStyle(`rotateX(-90deg) translateZ(${half}px)`, "#facc15")} />
-      </span>
+        {/* Top face (rhombus) */}
+        <path d="M32 6 L58 20 L32 34 L6 20 Z" />
+        <path d="M19 13 L45 27" />
+        <path d="M45 13 L19 27" />
+        {/* Left face */}
+        <path d="M6 20 L6 46 L32 60 L32 34 Z" />
+        <path d="M6 33 L32 47" />
+        <path d="M19 27 L19 53" />
+        {/* Right face */}
+        <path d="M58 20 L58 46 L32 60 L32 34 Z" />
+        <path d="M58 33 L32 47" />
+        <path d="M45 27 L45 53" />
+      </svg>
     </button>
   );
 }

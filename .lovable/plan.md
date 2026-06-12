@@ -1,31 +1,36 @@
-## Admin shortcut on profile panel
+## Changes
 
-Add a small rubik's-cube Lottie button in the mobile profile sheet, visible only to super-admins. Tapping it plays the animation for ~1s, then navigates to `/pretentious`.
+### 1. New Rubik's cube icon (matches the video)
+Replace the colored 3D CSS cube in `src/components/hypeforce/admin-cube-button.tsx` with a black line-art SVG cube modeled on the iconscout reference (isometric 2x2 cube with bold black strokes, `currentColor` so it inherits theme color). On click it animates ~1s (rotate + slight scale "twist") then navigates to `/pretentious`. Keep the same props API (`size`, `title`, `className`).
 
-### Changes
+### 2. Move cube to the bottom of the profile panel
+In `src/components/hypeforce/workspace-shell.tsx`:
+- Remove the `AdminCubeButton` from the mobile profile-sheet **header** (~line 851).
+- Add it to the **bottom** of the profile sheet, as the last row above (or just below) "Sign out" — styled as a `ProfileSheetRow`-like row labeled "Admin console" with the cube as the icon, only rendered when `isSuperAdmin`.
+- Desktop rail placement (~line 463) stays as-is (already near bottom, just above Sign out).
 
-1. **Install lottie player**: `bun add lottie-react`.
+### 3. Mobile-optimize `/pretentious`
+`src/components/admin/admin-shell.tsx` currently renders all 7 nav items inline in a single row, which overflows on phones. Rework the header:
+- Desktop (`sm:` and up): unchanged horizontal nav.
+- Mobile: collapse nav into a hamburger button that opens a `Sheet` (right side) listing all nav items + Sign out + Back to app.
+- Keep the wordmark visible. Reduce padding on small screens.
 
-2. **Source the Lottie JSON**: The iconscout URL (`loading-cube-animation_13044216`) requires a logged-in download and is not directly fetchable. I'll need the JSON file. Two options:
-   - You drop the downloaded `.json` into chat and I'll save it to `src/assets/rubix-cube.lottie.json`.
-   - Or I substitute a similar free CC0 cube-loader Lottie (e.g. from LottieFiles) so I can ship without waiting.
-   I'll default to option 1 — please attach the JSON. If you'd rather I use a substitute, say so and I'll pick one.
+In `src/routes/pretentious.index.tsx`: stat grid is already responsive (`grid-cols-2 md:grid-cols-3 lg:grid-cols-6`) — leave as-is.
 
-3. **Admin detection on the client**: Reuse the existing `checkSuperAdmin` server fn (`src/lib/admin.functions.ts`). In `workspace-shell.tsx`, add a `useQuery` that calls it once per session and stores `isSuperAdmin`. Gate the new button on this flag (no hardcoded email — uses the same `is_super_admin` RPC the `/pretentious` route uses).
+Other `/pretentious/*` route pages are out of scope for this pass unless a specific one is broken; I'll only touch the shell so the chrome works on mobile. If you want every sub-page audited (users table, billing, etc.) say so and I'll do a follow-up.
 
-4. **New `AdminCubeButton` component** (`src/components/hypeforce/admin-cube-button.tsx`):
-   - Renders a 28–32px `<Lottie>` using the JSON, `autoplay={false}`, `loop={false}`, controlled via a `lottieRef`.
-   - On click: call `lottieRef.current?.goToAndPlay(0)`, then `setTimeout(() => navigate({ to: "/pretentious" }), 1000)`. Disable the button while animating to avoid double-taps.
-   - Styled as a small circular icon button matching the existing profile-sheet row chrome.
+### 4. Back to `/app` from `/pretentious`
+Add a "Back to app" link in `admin-shell.tsx`:
+- Desktop: small link/button next to "Sign out" in the top-right of the admin nav, with an `ArrowLeft` icon, navigating to `/app`.
+- Mobile: same action as a row in the mobile nav sheet.
 
-5. **Mobile profile sheet** (`src/components/hypeforce/workspace-shell.tsx` ~line 826): when `isSuperAdmin` is true, render `<AdminCubeButton />` in the header next to the "● online" / display name block (top-right of the profile card). Keeps it discreet and matches the screenshot's intent (a small icon on the profile panel).
-
-6. **Desktop parity (optional, default ON)**: also render the same button in the desktop profile area in `workspace-shell.tsx` (~line 705 / rail bottom region) so it's not mobile-only. Tell me if you want mobile-only instead.
+### Files touched
+- `src/components/hypeforce/admin-cube-button.tsx` — new SVG icon + spin animation
+- `src/components/hypeforce/workspace-shell.tsx` — move cube to bottom of profile sheet
+- `src/components/admin/admin-shell.tsx` — mobile hamburger nav + Back-to-app link
+- `src/styles.css` — replace `admin-cube-spin` keyframes for the new icon spin
 
 ### Out of scope
-- No changes to `/pretentious` routing or admin auth checks.
-- No changes to the existing profile sheet rows (Workspace settings, Inbox, Get help, Sign out).
-- No new RLS/migrations.
-
-### Open question
-Please attach the iconscout Lottie JSON, or confirm I can use a substitute cube animation from LottieFiles.
+- No changes to `/pretentious` sub-page layouts beyond the shell.
+- No changes to `/pretentious` auth gate, RLS, or server functions.
+- No new dependencies (no Lottie); using inline SVG keeps it lightweight and theme-aware.
