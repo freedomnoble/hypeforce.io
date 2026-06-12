@@ -897,6 +897,17 @@ export function WorkspaceShell({
               label="Get help"
               onClick={() => { setProfileSheetOpen(false); setSupportOpen(true); }}
             />
+            <ProfileSheetRow
+              icon={<Sparkles className="w-4 h-4" />}
+              label="Take the tour"
+              onClick={async () => {
+                setProfileSheetOpen(false);
+                try { await resetTourFn(); } catch {}
+                try { sessionStorage.removeItem("hf:tour-dismissed"); } catch {}
+                setTourOpen(true);
+              }}
+            />
+
             <div className="h-px bg-border my-2 mx-5" />
             <ProfileSheetRow
               icon={<LogOut className="w-4 h-4" />}
