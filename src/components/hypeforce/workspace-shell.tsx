@@ -388,7 +388,7 @@ export function WorkspaceShell({
     <div className="flex flex-1 w-full overflow-hidden p-0 sm:p-2 gap-0 sm:gap-2 relative pb-14 sm:pb-2">
       <ClientOnly fallback={null}><InfiniteGridBg /></ClientOnly>
       {/* Far-left rail */}
-      <aside className="hidden sm:flex w-16 flex-col items-center gap-3 py-4 glass rounded-2xl">
+      <aside data-tour="workspaces-rail" className="hidden sm:flex w-16 flex-col items-center gap-3 py-4 glass rounded-2xl">
 
         <Link to="/" className="flex flex-col items-center">
           <img src={appIcon} alt="Hypeforce" className="w-10 h-10 rounded-xl ring-1 ring-border" />
@@ -435,12 +435,14 @@ export function WorkspaceShell({
           </div>
         )}
         <button
+          data-tour="workspace-settings-btn"
           onClick={() => setSettingsOpen(true)}
           className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary"
           title="Workspace settings"
         >
           <Settings className="w-4 h-4" />
         </button>
+
         <button
           onClick={() => setInboxOpen(true)}
           className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary relative"
