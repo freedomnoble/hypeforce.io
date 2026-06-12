@@ -34,13 +34,18 @@ export const getInviteConfig = createServerFn({ method: "GET" })
 
 export const setInviteEnabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: { enabled: boolean }) => z.object({ enabled: z.boolean() }).parse(i))
+  .inputValidator((i: { enabled: boolean; kind?: "comp" | "trial" }) =>
+    z
+      .object({ enabled: z.boolean(), kind: z.enum(["comp", "trial"]).optional().default("comp") })
+      .parse(i),
+  )
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
       .from("invite_links")
       .select("id")
+      .eq("kind", data.kind)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
@@ -55,12 +60,18 @@ export const setInviteEnabled = createServerFn({ method: "POST" })
 
 export const rotateInviteToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((i: { kind?: "comp" | "trial" } | undefined) =>
+    z
+      .object({ kind: z.enum(["comp", "trial"]).optional().default("comp") })
+      .parse(i ?? {}),
+  )
+  .handler(async ({ data, context }) => {
     await assertSuperAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
       .from("invite_links")
       .select("id")
+      .eq("kind", data.kind)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
