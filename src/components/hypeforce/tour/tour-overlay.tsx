@@ -139,25 +139,27 @@ export function TourOverlay({
   const prev = () => setIndex((i) => Math.max(0, i - 1));
 
   const tooltipStyle: React.CSSProperties = useMemo(() => {
-    if (isMobile || !rect) {
-      // Centered on mobile, or when no target rect
+    if (isMobile) {
+      // Always dock to the bottom of the viewport on phones so the card
+      // never overflows horizontally and can't get clipped by a target rect.
       if (!rect) {
-        return {
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%, -50%)",
-          width: `min(${TOOLTIP_W}px, calc(100vw - 24px))`,
-        };
+        return { left: 12, right: 12, bottom: 16 } as React.CSSProperties;
       }
-      // Mobile with rect: dock to bottom (or top if rect is in bottom half)
       const vh = window.innerHeight;
       const dockBottom = rect.top + rect.height / 2 < vh / 2;
       return {
         left: 12,
         right: 12,
         [dockBottom ? "bottom" : "top"]: 12,
-        width: "auto",
       } as React.CSSProperties;
+    }
+    if (!rect) {
+      return {
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+        width: `min(${TOOLTIP_W}px, calc(100vw - 24px))`,
+      };
     }
     // Desktop placement
     const placement = step?.placement ?? "auto";
