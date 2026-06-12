@@ -1,30 +1,44 @@
-## Why
+## Why the delete is failing
 
-Two issues are tangled together:
+Auth logs show the actual error returned by `auth.admin.deleteUser`:
 
-1. **The Paddle error you saw.** Paddle refuses checkouts when the customer email matches your own seller account email. `freedom.jnoble@gmail.com` is your Paddle seller, so any checkout opened with that email fails with a generic "an error occurred". Fix: test with a `+test` alias (e.g. `freedom.jnoble+test@gmail.com`) or any other inbox. No code change needed for this part.
+```
+ERROR: new row for relation "messages" violates check constraint "messages_check1" (SQLSTATE 23514)
+500: Database error deleting user
+```
 
-2. **The wrong-page bug.** The "Subscribe" CTA on `/profile/billing` (and the in-app upsell banner) currently links to `/onboarding/features`. That step reads the user's email and billing choice from onboarding state / sessionStorage, neither of which is populated for an existing user, so it also opens checkout with empty `customData.userId` and a missing email. Even after you switch test emails, that path is brittle.
+What's happening:
 
-## What to build
+- `public.messages.author_user_id` references `auth.users(id)` with **ON DELETE SET NULL**.
+- `public.messages` also has a CHECK constraint `messages_check1`:
+  `(author_type='user' AND author_user_id IS NOT NULL) OR (author_type='agent' AND author_agent_id IS NOT NULL)`
+- When you delete a user who has posted any message, Postgres tries to set their `author_user_id` to NULL, which violates the CHECK, which aborts the whole `DELETE` — so the user, profile, workspace, etc. all stay.
 
-Replace the placeholder Subscribe button on `/profile/billing` with a real subscribe flow that lives on the billing page:
+All three failing accounts had posted messages in their starter channels, so all three hit this.
 
-- When the user has no active subscription, show a "Choose your plan" card with two options:
-  - **Monthly** — $9/mo (`founder_monthly`)
-  - **Annual** — $97/yr (`founder_annual`), labeled "Save ~10%"
-- Clicking either opens the Paddle overlay via the existing `usePaddleCheckout` hook, passing the signed-in user's real email and `customData: { userId }`, with a `successUrl` back to `/profile/billing?checkout=success`.
-- On `checkout.completed`, toast success and refetch the billing query so the active-subscription card appears as soon as the webhook lands.
-- Point the in-app `UpsellBanner`'s Subscribe button at `/profile/billing` (it already does) — no change needed there.
+## Fix
 
-Everything else on the billing page (cancel, reactivate, customer portal, period info) stays as is.
+Change the FK on `messages.author_user_id` from `ON DELETE SET NULL` to `ON DELETE CASCADE`. When a user is deleted, their authored messages get deleted with them, which keeps the CHECK satisfied. This matches how their workspaces/channels/DMs already cascade.
 
-## Files to touch
+Migration:
 
-- `src/routes/_auth.profile.billing.tsx` — add the plan-picker card + `usePaddleCheckout` wiring for the no-subscription state. Remove the `Link to="/onboarding/features"` fallback.
+```sql
+ALTER TABLE public.messages
+  DROP CONSTRAINT messages_author_user_id_fkey;
 
-No backend, schema, or pricing changes. The `founder_monthly` and `founder_annual` prices already exist in the Paddle catalog.
+ALTER TABLE public.messages
+  ADD CONSTRAINT messages_author_user_id_fkey
+  FOREIGN KEY (author_user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+```
 
-## After implementation
+After the migration, re-running bulk delete on those three accounts will succeed.
 
-I'll ask you to retry checkout with a non-seller email (e.g. `freedom.jnoble+test@gmail.com` and test card `4242 4242 4242 4242`) to confirm the overlay opens and the subscription row appears.
+## Small UX improvement (optional, same edit pass)
+
+Right now the toast just says "Deleted 0. 3 failed." with no detail. I'll surface the first failure's error message in the toast and `console.error` the full failure list, so the next time something like this happens you can see the cause without digging through auth logs.
+
+## Other tables checked, no change needed
+
+- `channel_memos` has a similar pair (FK SET NULL + author_type CHECK), but its check only restricts the enum value — it does NOT require `author_user_id` to be non-null. Safe as-is.
+- All other public-schema FKs to `auth.users` are already CASCADE or SET NULL with no conflicting CHECKs.
+- The 1 `storage.objects` row owned by these users has no FK to `auth.users`, so it doesn't block delete (it'll just be orphaned; can be cleaned up separately if you want).
