@@ -883,16 +883,10 @@ export function WorkspaceShell({
             {isSuperAdmin && (
               <>
                 <div className="h-px bg-border my-2 mx-5" />
-                <button
-                  onClick={() => { setProfileSheetOpen(false); navigate({ to: "/pretentious" }); }}
-                  className="w-full flex items-center gap-3 px-5 py-3 hover:bg-secondary/40 transition-colors"
-                  title="Admin console"
-                >
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-secondary/60 text-foreground">
-                    <AdminCubeButton title="Admin console" size={18} className="!w-auto !h-auto hover:bg-transparent" />
-                  </div>
-                  <div className="text-sm">Admin console</div>
-                </button>
+                <div className="flex items-center gap-3 px-5 py-2">
+                  <AdminCubeButton title="Admin console" size={22} />
+                  <div className="text-sm text-muted-foreground">Admin console</div>
+                </div>
               </>
             )}
           </div>
