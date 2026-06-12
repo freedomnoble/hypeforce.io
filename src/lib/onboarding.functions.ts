@@ -14,7 +14,7 @@ export const getOnboardingState = createServerFn({ method: "GET" })
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select(
-        "id, display_name, email, onboarding_step, onboarding_project_name, onboarding_brand_doc_url, onboarding_pending_invites, is_comped",
+        "id, display_name, email, onboarding_step, onboarding_project_name, onboarding_brand_doc_url, onboarding_pending_invites, is_comped, trial_started_at, trial_ends_at, trial_cancel_requested_at",
       )
       .eq("id", userId)
       .maybeSingle();
