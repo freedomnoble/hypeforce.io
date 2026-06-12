@@ -837,11 +837,6 @@ export function WorkspaceShell({
               <AvatarImage src={profile?.avatar_url ?? undefined} />
               <AvatarFallback><UserIcon className="w-5 h-5" /></AvatarFallback>
             </Avatar>
-          <div className="px-5 pt-6 pb-5 border-b border-border flex items-center gap-3">
-            <Avatar className="w-12 h-12">
-              <AvatarImage src={profile?.avatar_url ?? undefined} />
-              <AvatarFallback><UserIcon className="w-5 h-5" /></AvatarFallback>
-            </Avatar>
             <div className="min-w-0 flex-1">
               <div className="font-display font-semibold text-base truncate">
                 {profile?.display_name ?? profile?.email ?? "You"}
