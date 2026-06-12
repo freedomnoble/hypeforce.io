@@ -118,7 +118,7 @@ function WelcomePage() {
         return;
       }
       // Redeem any pending invite token now that we're authenticated, so the
-      // onboarding subscribe step renders "Gifted" instead of "Subscribe".
+      // onboarding subscribe step renders "Gifted" / "Trial" instead of "Subscribe".
       try {
         const pending = sessionStorage.getItem(PENDING_INVITE_KEY);
         if (pending) {
@@ -126,6 +126,11 @@ function WelcomePage() {
           try {
             sessionStorage.removeItem(PENDING_INVITE_KEY);
           } catch {}
+        }
+        const trialIntent = sessionStorage.getItem(TRIAL_INTENT_KEY);
+        if (trialIntent) {
+          await startTrialFn().catch(() => {});
+          try { sessionStorage.removeItem(TRIAL_INTENT_KEY); } catch {}
         }
       } catch {}
       // Brand-new user → go straight to onboarding (skip the /app gateway race).
