@@ -1,36 +1,55 @@
-## Changes
+## Goal
 
-### 1. New Rubik's cube icon (matches the video)
-Replace the colored 3D CSS cube in `src/components/hypeforce/admin-cube-button.tsx` with a black line-art SVG cube modeled on the iconscout reference (isometric 2x2 cube with bold black strokes, `currentColor` so it inherits theme color). On click it animates ~1s (rotate + slight scale "twist") then navigates to `/pretentious`. Keep the same props API (`size`, `title`, `className`).
+A guided "first run" tour inside `/app` that teaches new users the core Hypeforce concepts. Hybrid format: a welcome modal, spotlight coach marks pointing at real UI on desktop and mobile, and an outro that branches on whether they want to bring their own API keys. Replayable from the profile panel.
 
-### 2. Move cube to the bottom of the profile panel
-In `src/components/hypeforce/workspace-shell.tsx`:
-- Remove the `AdminCubeButton` from the mobile profile-sheet **header** (~line 851).
-- Add it to the **bottom** of the profile sheet, as the last row above (or just below) "Sign out" — styled as a `ProfileSheetRow`-like row labeled "Admin console" with the cube as the icon, only rendered when `isSuperAdmin`.
-- Desktop rail placement (~line 463) stays as-is (already near bottom, just above Sign out).
+## Tour steps
 
-### 3. Mobile-optimize `/pretentious`
-`src/components/admin/admin-shell.tsx` currently renders all 7 nav items inline in a single row, which overflows on phones. Rework the header:
-- Desktop (`sm:` and up): unchanged horizontal nav.
-- Mobile: collapse nav into a hamburger button that opens a `Sheet` (right side) listing all nav items + Sign out + Back to app.
-- Keep the wordmark visible. Reduce padding on small screens.
+1. **Welcome** — full-screen modal: "Your hypeforce, in one workspace." Buttons: *Take the 90s tour* / *Skip*.
+2. **Channels list** — spotlight the channels section in the sidebar. "Channels are rooms shared with your team and agents."
+3. **Add a channel** — spotlight the `+` next to Channels. "Create a channel per project, launch, or topic."
+4. **DMs vs channels** — spotlight the DMs section. "DMs are private 1:1 threads with one agent or teammate. Channels are shared."
+5. **Workspace / org switcher** — spotlight the workspace name / switcher at the top of the rail. "Switch between orgs and workspaces here."
+6. **Agents in a channel** — spotlight the channel header members/agents area. "Add or remove agents per channel — each channel has its own roster."
+7. **@mention an agent** — spotlight the composer. "Type `@` to call an agent. `@all` pings every agent in the channel."
+8. **Context & alignment** — spotlight the pinned-context / channel memo panel. "Pin briefs and alignment docs here so every reply stays on-message."
+9. **Personality, roles, brand voice** — spotlight the workspace settings entry (gear). "Set agent personalities, roles, and your brand voice in workspace settings."
+10. **Outro — API keys?** — modal: *Do you want to use your own AI provider keys?*
+    - **No, use Hypeforce credits** → close tour, focus the composer.
+    - **Yes, add my keys** → navigate to `/profile/connections` and end the tour there.
 
-In `src/routes/pretentious.index.tsx`: stat grid is already responsive (`grid-cols-2 md:grid-cols-3 lg:grid-cols-6`) — leave as-is.
+Each step shows: step counter (`3 / 10`), title, one-sentence body, *Back* / *Next* / *Skip tour*. On mobile, the tooltip docks to the bottom of the screen with an arrow pointing to the target; on desktop it floats next to the target.
 
-Other `/pretentious/*` route pages are out of scope for this pass unless a specific one is broken; I'll only touch the shell so the chrome works on mobile. If you want every sub-page audited (users table, billing, etc.) say so and I'll do a follow-up.
+## Trigger & persistence
 
-### 4. Back to `/app` from `/pretentious`
-Add a "Back to app" link in `admin-shell.tsx`:
-- Desktop: small link/button next to "Sign out" in the top-right of the admin nav, with an `ArrowLeft` icon, navigating to `/app`.
-- Mobile: same action as a row in the mobile nav sheet.
+- Auto-run once on first visit to `/w/$workspaceId` after onboarding completes.
+- Gate stored on `profiles` as a new boolean column `tour_completed_at timestamptz` (nullable). Set via a tiny server function `markTourSeen` and cleared via `resetTour` for replay.
+- Add a **Take the tour** row in the mobile profile sheet and the desktop profile menu — calls `resetTour` then navigates back to the workspace which re-triggers the tour.
+- A session-storage flag prevents re-running within the same tab if the user dismisses mid-tour.
 
-### Files touched
-- `src/components/hypeforce/admin-cube-button.tsx` — new SVG icon + spin animation
-- `src/components/hypeforce/workspace-shell.tsx` — move cube to bottom of profile sheet
-- `src/components/admin/admin-shell.tsx` — mobile hamburger nav + Back-to-app link
-- `src/styles.css` — replace `admin-cube-spin` keyframes for the new icon spin
+## Technical design
 
-### Out of scope
-- No changes to `/pretentious` sub-page layouts beyond the shell.
-- No changes to `/pretentious` auth gate, RLS, or server functions.
-- No new dependencies (no Lottie); using inline SVG keeps it lightweight and theme-aware.
+New files:
+- `src/components/hypeforce/tour/tour-provider.tsx` — context + state machine (current step, next/back/skip, target lookup by `data-tour="<id>"`, position calc with `getBoundingClientRect`, resize/scroll listeners, focus trap on tooltip).
+- `src/components/hypeforce/tour/tour-overlay.tsx` — fixed full-screen overlay with an SVG mask that cuts a rounded rectangle around the target (darkens the rest), plus the tooltip card. Responsive: tooltip floats on `sm+`, docks bottom on mobile. Uses framer-motion for fade/slide.
+- `src/components/hypeforce/tour/steps.ts` — declarative step list (`id`, `target`, `title`, `body`, `placement`, optional `onEnter` to e.g. open the mobile sidebar before highlighting it).
+- `src/components/hypeforce/tour/welcome-modal.tsx` and `outro-modal.tsx` — full-screen step 1 and step 10.
+- `src/lib/tour.functions.ts` — `markTourSeen`, `resetTour` server fns (auth-gated via `requireSupabaseAuth`).
+
+Touch points (add `data-tour` attributes only, no behavior changes):
+- `workspace-shell.tsx`: workspace switcher, channels header + `+` button, channels list, DMs section, channel header members area, composer, pinned-context panel, workspace settings (gear), profile entry.
+- `_auth.w.$workspaceId.c.$channelId.tsx`: composer + pinned context anchors if they live there.
+
+Mobile handling:
+- Steps that target sidebar items first call `onEnter` to open the mobile nav sheet, wait one frame, then measure the target. Closing the tour restores prior sheet state.
+- Tooltip never wider than `min(360px, 100vw - 24px)`; safe-area inset respected.
+
+Trigger wiring:
+- In `WorkspaceShell`, on mount, read `profiles.tour_completed_at`. If null and `profiles.onboarding_step >= 8`, mount `<TourProvider autoStart />`.
+- "Take the tour" entries in profile panel call `resetTour()` then `tour.start()`.
+
+## Out of scope
+
+- No new onboarding routes; the existing `/onboarding/*` flow is untouched.
+- No changes to agent/channel/membership logic.
+- No analytics beyond a single `tour_completed_at` timestamp.
+- No copy changes to existing screens beyond adding `data-tour` hooks.

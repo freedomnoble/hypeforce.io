@@ -1023,6 +1023,7 @@ export type Database = {
           onboarding_project_name: string | null
           onboarding_step: number
           show_upsell: boolean
+          tour_completed_at: string | null
           updated_at: string
           upsell_updated_at: string | null
           verification_token: string | null
@@ -1046,6 +1047,7 @@ export type Database = {
           onboarding_project_name?: string | null
           onboarding_step?: number
           show_upsell?: boolean
+          tour_completed_at?: string | null
           updated_at?: string
           upsell_updated_at?: string | null
           verification_token?: string | null
@@ -1069,6 +1071,7 @@ export type Database = {
           onboarding_project_name?: string | null
           onboarding_step?: number
           show_upsell?: boolean
+          tour_completed_at?: string | null
           updated_at?: string
           upsell_updated_at?: string | null
           verification_token?: string | null

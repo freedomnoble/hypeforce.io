@@ -54,7 +54,10 @@ import { useQuery } from "@tanstack/react-query";
 import { getUnreadCount } from "@/lib/inbox.functions";
 import { checkSuperAdmin } from "@/lib/admin.functions";
 import { AdminCubeButton } from "./admin-cube-button";
+import { WorkspaceTour } from "./tour/tour-overlay";
+import { markTourSeen, resetTour } from "@/lib/tour.functions";
 import { useTheme, themeHasModes } from "./theme-provider";
+
 import { UpsellBanner } from "./upsell-banner";
 import { CoffeeUpsellButton } from "./coffee-upsell-button";
 const InfiniteGridBg = lazy(() =>
@@ -172,7 +175,11 @@ export function WorkspaceShell({
   // Mobile-only sheets (off-canvas drawers)
   const [workspacesSheetOpen, setWorkspacesSheetOpen] = useState(false);
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+  const markTourSeenFn = useServerFn(markTourSeen);
+  const resetTourFn = useServerFn(resetTour);
   const meIdRef = useRef<string | null>(null);
+
 
   const hasActive = !!(activeChannelId || activeDmId);
 
@@ -272,6 +279,17 @@ export function WorkspaceShell({
     markRead(activeDmId);
     setReadVersion((v) => v + 1);
   }, [activeDmId, lastByDm]);
+
+  // Auto-start the first-run tour once per user, on the workspace home view.
+  useEffect(() => {
+    if (!profile || hasActive) return;
+    if ((profile as any).tour_completed_at) return;
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("hf:tour-dismissed") === "1") return;
+    const t = setTimeout(() => setTourOpen(true), 600);
+    return () => clearTimeout(t);
+  }, [profile, hasActive]);
+
 
   const dmByAgentId = useMemo(() => {
     const map = new Map<string, DirectMessage>();
@@ -388,7 +406,7 @@ export function WorkspaceShell({
     <div className="flex flex-1 w-full overflow-hidden p-0 sm:p-2 gap-0 sm:gap-2 relative pb-14 sm:pb-2">
       <ClientOnly fallback={null}><InfiniteGridBg /></ClientOnly>
       {/* Far-left rail */}
-      <aside className="hidden sm:flex w-16 flex-col items-center gap-3 py-4 glass rounded-2xl">
+      <aside data-tour="workspaces-rail" className="hidden sm:flex w-16 flex-col items-center gap-3 py-4 glass rounded-2xl">
 
         <Link to="/" className="flex flex-col items-center">
           <img src={appIcon} alt="Hypeforce" className="w-10 h-10 rounded-xl ring-1 ring-border" />
@@ -435,12 +453,14 @@ export function WorkspaceShell({
           </div>
         )}
         <button
+          data-tour="workspace-settings-btn"
           onClick={() => setSettingsOpen(true)}
           className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary"
           title="Workspace settings"
         >
           <Settings className="w-4 h-4" />
         </button>
+
         <button
           onClick={() => setInboxOpen(true)}
           className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary relative"
@@ -487,7 +507,7 @@ export function WorkspaceShell({
 
 
         <div className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-4 space-y-5 pt-3">
-          <Section title="Channels" actionLabel="+ New" onAction={async () => {
+          <Section title="Channels" dataTour="channels-section" actionDataTour="new-channel-btn" actionLabel="+ New" onAction={async () => {
             const name = prompt("Channel name (no spaces)");
             if (!name) return;
             try {
@@ -500,6 +520,7 @@ export function WorkspaceShell({
               toast.error(err?.message ?? "Couldn't create channel");
             }
           }}>
+
             {channels.map((c) => (
               <Link
                 key={c.id}
@@ -518,7 +539,9 @@ export function WorkspaceShell({
 
           <Section
             title="Direct Messages"
+            dataTour="dms-section"
             titleBadge={totalUnread > 0 ? totalUnread : undefined}
+
             actionLabel="+ Group"
             onAction={async () => {
               const handles = prompt(
@@ -748,6 +771,25 @@ export function WorkspaceShell({
         userId={profile?.id ?? null}
       />
 
+      <WorkspaceTour
+        open={tourOpen}
+        onClose={() => {
+          setTourOpen(false);
+          try { sessionStorage.setItem("hf:tour-dismissed", "1"); } catch {}
+        }}
+        onFinish={async () => {
+          setTourOpen(false);
+          try { await markTourSeenFn(); } catch {}
+          setProfile((p) => (p ? ({ ...p, tour_completed_at: new Date().toISOString() } as any) : p));
+        }}
+        openMobileSidebar={() => {
+          // On mobile, the workspace home view already shows the sidebar
+          // (since there's no active channel). No sheet needs opening.
+        }}
+        closeMobileSidebar={() => {}}
+      />
+
+
       <AlertDialog open={!!pendingAgent} onOpenChange={(o) => !o && setPendingAgent(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -874,6 +916,17 @@ export function WorkspaceShell({
               label="Get help"
               onClick={() => { setProfileSheetOpen(false); setSupportOpen(true); }}
             />
+            <ProfileSheetRow
+              icon={<Sparkles className="w-4 h-4" />}
+              label="Take the tour"
+              onClick={async () => {
+                setProfileSheetOpen(false);
+                try { await resetTourFn(); } catch {}
+                try { sessionStorage.removeItem("hf:tour-dismissed"); } catch {}
+                setTourOpen(true);
+              }}
+            />
+
             <div className="h-px bg-border my-2 mx-5" />
             <ProfileSheetRow
               icon={<LogOut className="w-4 h-4" />}
@@ -1049,15 +1102,19 @@ function Section({
   actionLabel,
   onAction,
   children,
+  dataTour,
+  actionDataTour,
 }: {
   title: string;
   titleBadge?: number;
   actionLabel?: string;
   onAction?: () => void;
   children: React.ReactNode;
+  dataTour?: string;
+  actionDataTour?: string;
 }) {
   return (
-    <div>
+    <div data-tour={dataTour}>
       <div className="flex items-center justify-between px-2 mb-1">
         <div className="text-[11px] uppercase tracking-wider font-mono text-muted-foreground flex items-center gap-1.5">
           {title}
@@ -1066,12 +1123,13 @@ function Section({
           ) : null}
         </div>
         {actionLabel && (
-          <button onClick={onAction} className="text-[11px] text-electric hover:underline font-mono">
+          <button data-tour={actionDataTour} onClick={onAction} className="text-[11px] text-electric hover:underline font-mono">
             {actionLabel}
           </button>
         )}
       </div>
       <div className="space-y-0.5">{children}</div>
     </div>
+
   );
 }
