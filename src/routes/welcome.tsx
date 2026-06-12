@@ -110,6 +110,17 @@ function WelcomePage() {
         navigate({ to: "/login", replace: true });
         return;
       }
+      // Redeem any pending invite token now that we're authenticated, so the
+      // onboarding subscribe step renders "Gifted" instead of "Subscribe".
+      try {
+        const pending = sessionStorage.getItem(PENDING_INVITE_KEY);
+        if (pending) {
+          await redeem({ data: { token: pending } }).catch(() => {});
+          try {
+            sessionStorage.removeItem(PENDING_INVITE_KEY);
+          } catch {}
+        }
+      } catch {}
       // Brand-new user → go straight to onboarding (skip the /app gateway race).
       navigate({ to: "/onboarding", replace: true });
     } catch (err: any) {
