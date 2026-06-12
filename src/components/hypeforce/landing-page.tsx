@@ -58,12 +58,14 @@ export function LandingPage({
   themeKey,
   content,
   pricing,
+  freeTrialLanding,
 }: {
   heroUrl?: string | null;
   videoUrl?: string | null;
   themeKey?: string | null;
   content?: Record<string, any> | null;
   pricing?: Record<string, any> | null;
+  freeTrialLanding?: boolean;
 } = {}) {
   const [signedIn, setSignedIn] = useState(false);
   const [userEmail, setUserEmail] = useState<string | undefined>();
