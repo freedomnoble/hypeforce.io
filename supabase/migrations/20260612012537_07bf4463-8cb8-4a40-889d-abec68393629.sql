@@ -1,0 +1,2 @@
+ALTER TABLE public.messages DROP CONSTRAINT messages_author_user_id_fkey;
+ALTER TABLE public.messages ADD CONSTRAINT messages_author_user_id_fkey FOREIGN KEY (author_user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
