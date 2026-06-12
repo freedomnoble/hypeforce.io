@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,11 +9,12 @@ export interface TourStep {
   id: string;
   title: string;
   body: React.ReactNode;
-  // CSS selector of the element to spotlight. Omit for a centered modal step.
+  /** CSS selector(s) of the element to spotlight. Tried in order on each breakpoint. */
   target?: string;
-  // Where to place the tooltip relative to the target on desktop.
+  mobileTarget?: string;
+  /** Where to place the tooltip relative to the target on desktop. */
   placement?: "top" | "bottom" | "left" | "right" | "auto";
-  // Optional side-effect to run when entering the step (e.g. open a sheet).
+  /** Side-effect to run when entering the step (e.g. open a sheet, navigate). */
   onEnter?: () => void | Promise<void>;
 }
 
@@ -22,18 +23,13 @@ interface TourOverlayProps {
   open: boolean;
   onClose: () => void;
   onFinish: (didCompleteToEnd: boolean) => void;
-  // Special final step: ask about API keys. Returning true = go to connections.
   onWantApiKeys?: () => void;
   onSkipApiKeys?: () => void;
 }
 
 const PADDING = 8;
 const TOOLTIP_W = 340;
-
-function getRect(el: Element): DOMRect {
-  const r = el.getBoundingClientRect();
-  return r;
-}
+const MAX_MEASURE_ATTEMPTS = 8;
 
 export function TourOverlay({
   steps,
@@ -45,8 +41,10 @@ export function TourOverlay({
 }: TourOverlayProps) {
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const attemptsRef = useRef(0);
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
@@ -57,41 +55,70 @@ export function TourOverlay({
     return () => mql.removeEventListener("change", onChange);
   }, []);
 
-  // Reset to step 0 every time it opens
   useEffect(() => {
-    if (open) setIndex(0);
+    if (open) {
+      setIndex(0);
+      setRect(null);
+      setNotFound(false);
+    }
   }, [open]);
 
   const step = steps[index];
   const isFirst = index === 0;
   const isLast = index === steps.length - 1;
 
-  // Measure target
+  // Pick the right selector for the current breakpoint
+  const activeSelector = useMemo(() => {
+    if (!step) return undefined;
+    if (isMobile && step.mobileTarget) return step.mobileTarget;
+    return step.target;
+  }, [step, isMobile]);
+
+  // Measurement with retry — if the element isn't in the DOM yet (e.g. a
+  // sheet is animating in, or we just navigated), retry a few times. After
+  // MAX_MEASURE_ATTEMPTS, fall back to a centered, no-spotlight modal so the
+  // tour never gets stuck on a missing element.
   const measure = useCallback(() => {
-    if (!step?.target) {
+    if (!activeSelector) {
       setRect(null);
+      setNotFound(false);
       return;
     }
-    const el = document.querySelector(step.target);
+    const el = document.querySelector(activeSelector) as HTMLElement | null;
     if (!el) {
-      setRect(null);
+      attemptsRef.current += 1;
+      if (attemptsRef.current >= MAX_MEASURE_ATTEMPTS) {
+        setRect(null);
+        setNotFound(true);
+      }
       return;
     }
-    el.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
-    // Wait a frame for any smooth scroll/layout settle, then measure.
+    // Bring the target into view, including inside nested scroll containers.
+    try {
+      el.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
+    } catch {
+      el.scrollIntoView();
+    }
     requestAnimationFrame(() => {
-      const el2 = document.querySelector(step?.target ?? "");
-      if (el2) setRect(getRect(el2));
+      const el2 = document.querySelector(activeSelector) as HTMLElement | null;
+      if (el2) {
+        setRect(el2.getBoundingClientRect());
+        setNotFound(false);
+      }
     });
-  }, [step?.target]);
+  }, [activeSelector]);
 
   useLayoutEffect(() => {
     if (!open || !step) return;
     let cancelled = false;
+    attemptsRef.current = 0;
+    setRect(null);
+    setNotFound(false);
     (async () => {
-      if (step.onEnter) await step.onEnter();
+      if (step.onEnter) {
+        try { await step.onEnter(); } catch {}
+      }
       if (cancelled) return;
-      // give the DOM a tick after any side-effects (opening sheets etc.)
       setTimeout(measure, 80);
     })();
     return () => {
@@ -104,7 +131,7 @@ export function TourOverlay({
     const onResize = () => measure();
     window.addEventListener("resize", onResize);
     window.addEventListener("scroll", onResize, true);
-    const id = window.setInterval(measure, 600); // catch async DOM changes
+    const id = window.setInterval(measure, 500);
     return () => {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("scroll", onResize, true);
@@ -112,48 +139,46 @@ export function TourOverlay({
     };
   }, [open, measure]);
 
-  // Keyboard nav
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      } else if (e.key === "ArrowRight" || e.key === "Enter") {
-        next();
-      } else if (e.key === "ArrowLeft") {
-        prev();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, index]);
-
-  const next = () => {
+  const next = useCallback(() => {
     if (isLast) {
       onFinish(true);
       return;
     }
     setIndex((i) => Math.min(steps.length - 1, i + 1));
-  };
-  const prev = () => setIndex((i) => Math.max(0, i - 1));
+  }, [isLast, onFinish, steps.length]);
+
+  const prev = useCallback(() => setIndex((i) => Math.max(0, i - 1)), []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowRight" || e.key === "Enter") next();
+      else if (e.key === "ArrowLeft") prev();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, next, prev, onClose]);
+
+  // Fallback mode: no target on this step, OR target couldn't be found.
+  const fallbackCentered = !activeSelector || notFound || !rect;
 
   const tooltipStyle: React.CSSProperties = useMemo(() => {
     if (isMobile) {
-      // Always dock to the bottom of the viewport on phones so the card
-      // never overflows horizontally and can't get clipped by a target rect.
-      if (!rect) {
+      // Mobile: if we have a rect, dock to the opposite side of the screen
+      // from the target. Otherwise, dock to the bottom.
+      if (fallbackCentered) {
         return { left: 12, right: 12, bottom: 16 } as React.CSSProperties;
       }
       const vh = window.innerHeight;
-      const dockBottom = rect.top + rect.height / 2 < vh / 2;
+      const dockBottom = rect!.top + rect!.height / 2 < vh / 2;
       return {
         left: 12,
         right: 12,
         [dockBottom ? "bottom" : "top"]: 12,
       } as React.CSSProperties;
     }
-    if (!rect) {
+    if (fallbackCentered) {
       return {
         left: "50%",
         top: "50%",
@@ -161,18 +186,17 @@ export function TourOverlay({
         width: `min(${TOOLTIP_W}px, calc(100vw - 24px))`,
       };
     }
-    // Desktop placement
     const placement = step?.placement ?? "auto";
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const spaceBelow = vh - rect.bottom;
-    const spaceRight = vw - rect.right;
+    const spaceBelow = vh - rect!.bottom;
+    const spaceRight = vw - rect!.right;
     const auto: "bottom" | "top" | "right" | "left" =
       placement !== "auto"
         ? placement
         : spaceBelow > 220
           ? "bottom"
-          : rect.top > 220
+          : rect!.top > 220
             ? "top"
             : spaceRight > TOOLTIP_W + 24
               ? "right"
@@ -180,36 +204,36 @@ export function TourOverlay({
 
     if (auto === "bottom") {
       return {
-        top: rect.bottom + 14,
-        left: Math.max(12, Math.min(vw - TOOLTIP_W - 12, rect.left + rect.width / 2 - TOOLTIP_W / 2)),
+        top: rect!.bottom + 14,
+        left: Math.max(12, Math.min(vw - TOOLTIP_W - 12, rect!.left + rect!.width / 2 - TOOLTIP_W / 2)),
         width: TOOLTIP_W,
       };
     }
     if (auto === "top") {
       return {
-        bottom: vh - rect.top + 14,
-        left: Math.max(12, Math.min(vw - TOOLTIP_W - 12, rect.left + rect.width / 2 - TOOLTIP_W / 2)),
+        bottom: vh - rect!.top + 14,
+        left: Math.max(12, Math.min(vw - TOOLTIP_W - 12, rect!.left + rect!.width / 2 - TOOLTIP_W / 2)),
         width: TOOLTIP_W,
       };
     }
     if (auto === "right") {
       return {
-        left: rect.right + 14,
-        top: Math.max(12, Math.min(vh - 200, rect.top + rect.height / 2 - 90)),
+        left: rect!.right + 14,
+        top: Math.max(12, Math.min(vh - 200, rect!.top + rect!.height / 2 - 90)),
         width: TOOLTIP_W,
       };
     }
     return {
-      right: vw - rect.left + 14,
-      top: Math.max(12, Math.min(vh - 200, rect.top + rect.height / 2 - 90)),
+      right: vw - rect!.left + 14,
+      top: Math.max(12, Math.min(vh - 200, rect!.top + rect!.height / 2 - 90)),
       width: TOOLTIP_W,
     };
-  }, [rect, step?.placement, isMobile]);
+  }, [rect, step?.placement, isMobile, fallbackCentered]);
 
   if (!mounted || !open || !step) return null;
 
-  // Build the spotlight mask: a full-screen dim with a rounded rect cut out around `rect`.
-  const r = rect
+  // Spotlight rect — skip entirely in fallback mode.
+  const r = !fallbackCentered && rect
     ? {
         x: Math.max(0, rect.left - PADDING),
         y: Math.max(0, rect.top - PADDING),
@@ -219,9 +243,11 @@ export function TourOverlay({
       }
     : null;
 
+  const progressPct = ((index + 1) / steps.length) * 100;
+
   return createPortal(
     <div className="fixed inset-0 z-[100]" aria-modal role="dialog">
-      {/* Dim + spotlight via SVG mask */}
+      {/* Dim + spotlight */}
       <svg className="absolute inset-0 w-full h-full pointer-events-auto" onClick={onClose}>
         <defs>
           <mask id="tour-spotlight-mask">
@@ -232,7 +258,7 @@ export function TourOverlay({
         <rect
           width="100%"
           height="100%"
-          fill="rgba(0,0,0,0.62)"
+          fill={fallbackCentered ? "rgba(0,0,0,0.72)" : "rgba(0,0,0,0.62)"}
           mask="url(#tour-spotlight-mask)"
         />
         {r && (
@@ -252,7 +278,6 @@ export function TourOverlay({
         )}
       </svg>
 
-      {/* Tooltip card */}
       <AnimatePresence mode="wait">
         <motion.div
           key={step.id}
@@ -263,89 +288,103 @@ export function TourOverlay({
           className="absolute pointer-events-auto"
           style={tooltipStyle}
         >
-          <div className="glass-strong rounded-2xl ring-1 ring-border shadow-2xl p-5 backdrop-blur-xl box-border max-w-[calc(100vw-24px)] max-h-[75vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-electric">
-                {step.id === "outro" ? "Last step" : `Step ${index + 1} of ${steps.length}`}
-              </div>
-              <button
-                onClick={onClose}
-                className="text-muted-foreground hover:text-foreground"
-                aria-label="Close tour"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <h3 className="font-display text-lg leading-tight mb-1.5">{step.title}</h3>
-            <div className="text-sm text-foreground/80 leading-relaxed">{step.body}</div>
-
-            {/* Progress dots */}
-            <div className="flex items-center gap-1 mt-4 mb-3">
-              {steps.map((_, i) => (
-                <span
-                  key={i}
-                  className={`h-1 rounded-full transition-all ${
-                    i === index ? "w-6 bg-primary" : "w-1.5 bg-foreground/15"
-                  }`}
-                />
-              ))}
-            </div>
-
-            {step.id === "outro" ? (
-              <div className="flex flex-col gap-2 mt-2">
-                <Button
-                  onClick={() => {
-                    onWantApiKeys?.();
-                    onFinish(true);
-                  }}
-                  className="w-full gap-2"
-                >
-                  <KeyRound className="w-4 h-4" />
-                  Yes — add my API keys
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    onSkipApiKeys?.();
-                    onFinish(true);
-                  }}
-                  className="w-full gap-2"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  No — start chatting
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-2 mt-1">
+          <div className="glass-strong rounded-2xl ring-1 ring-border shadow-2xl backdrop-blur-xl box-border max-w-[calc(100vw-24px)] max-h-[80vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="px-5 pt-5 pb-2 shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-electric">
+                  {step.id === "outro" ? "Last step" : `Step ${index + 1} of ${steps.length}`}
+                </div>
                 <button
                   onClick={onClose}
-                  className="text-xs text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label="Close tour"
                 >
-                  Skip tour
+                  <X className="w-4 h-4" />
                 </button>
-                <div className="flex items-center gap-2">
-                  {!isFirst && (
-                    <Button variant="ghost" size="sm" onClick={prev} className="gap-1">
+              </div>
+              {/* Progress bar */}
+              <div className="h-1 w-full rounded-full bg-foreground/10 overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300 ease-out"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Body — scrolls if long */}
+            <div className="px-5 pt-3 overflow-y-auto">
+              <h3 className="font-display text-lg leading-tight mb-1.5">{step.title}</h3>
+              <div className="text-sm text-foreground/80 leading-relaxed">{step.body}</div>
+              {notFound && activeSelector && (
+                <div className="mt-3 text-xs text-muted-foreground italic">
+                  (Tip: this control lives in the sidebar — open the menu to see it in context.)
+                </div>
+              )}
+            </div>
+
+            {/* Sticky footer with Back / Next */}
+            <div className="px-5 py-3 mt-2 border-t border-border/50 shrink-0 bg-background/40">
+              {step.id === "outro" ? (
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={() => {
+                      onWantApiKeys?.();
+                      onFinish(true);
+                    }}
+                    className="w-full gap-2"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                    Yes — add my API keys
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      onSkipApiKeys?.();
+                      onFinish(true);
+                    }}
+                    className="w-full gap-2"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    No — start chatting
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    onClick={onClose}
+                    className="text-xs text-muted-foreground hover:text-foreground shrink-0"
+                  >
+                    Skip
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={prev}
+                      disabled={isFirst}
+                      className="gap-1"
+                    >
                       <ArrowLeft className="w-3.5 h-3.5" />
                       Back
                     </Button>
-                  )}
-                  <Button size="sm" onClick={next} className="gap-1">
-                    {isFirst ? (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Start tour
-                      </>
-                    ) : (
-                      <>
-                        Next
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </>
-                    )}
-                  </Button>
+                    <Button size="sm" onClick={next} className="gap-1">
+                      {isFirst ? (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          Start tour
+                        </>
+                      ) : (
+                        <>
+                          Next
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </motion.div>
       </AnimatePresence>
@@ -355,7 +394,7 @@ export function TourOverlay({
 }
 
 // =================================================================
-// The actual workspace tour: steps + container that wires it up.
+// Workspace tour: mobile-first step definitions.
 // =================================================================
 
 interface WorkspaceTourProps {
@@ -381,9 +420,8 @@ export function WorkspaceTour({
     return () => mql.removeEventListener("change", onChange);
   }, []);
 
-  // On mobile, navigating to the workspace home reveals the sidebar that
-  // hosts the channels / DMs / new-channel targets (it's hidden when a
-  // channel is active). Trigger it on entering any of those steps.
+  // On mobile, the sidebar (channels / DMs / new-channel) is hidden when a
+  // channel is active. Navigate to workspace home first so the sidebar mounts.
   const goHomeIfMobile = () => {
     if (isMobile) navigateHome?.();
   };
@@ -410,7 +448,8 @@ export function WorkspaceTour({
           </>
         ),
         target: '[data-tour="channels-section"]',
-        placement: isMobile ? "auto" : "right",
+        mobileTarget: '[data-tour="channels-section"]',
+        placement: "right",
         onEnter: goHomeIfMobile,
       },
       {
@@ -418,7 +457,8 @@ export function WorkspaceTour({
         title: "Spin up a channel anytime",
         body: <>Tap the <b>+ New</b> button to create a channel for a new project or workstream.</>,
         target: '[data-tour="new-channel-btn"]',
-        placement: isMobile ? "auto" : "right",
+        mobileTarget: '[data-tour="new-channel-btn"]',
+        placement: "right",
         onEnter: goHomeIfMobile,
       },
       {
@@ -431,7 +471,8 @@ export function WorkspaceTour({
           </>
         ),
         target: '[data-tour="dms-section"]',
-        placement: isMobile ? "auto" : "right",
+        mobileTarget: '[data-tour="dms-section"]',
+        placement: "right",
         onEnter: goHomeIfMobile,
       },
       {
@@ -448,10 +489,9 @@ export function WorkspaceTour({
             project portfolio.
           </>
         ),
-        target: isMobile
-          ? '[data-tour="workspace-switcher-mobile"]'
-          : '[data-tour="workspaces-rail"]',
-        placement: isMobile ? "auto" : "right",
+        target: '[data-tour="workspaces-rail"]',
+        mobileTarget: '[data-tour="workspace-switcher-mobile"]',
+        placement: "right",
         onEnter: goHomeIfMobile,
       },
       {
@@ -459,8 +499,8 @@ export function WorkspaceTour({
         title: "Add agents to a channel",
         body: (
           <>
-            Open a channel and tap the details panel on the right to add or remove agents.
-            Each channel has its own roster, so you can keep specialists separate.
+            Open a channel and tap the details panel to add or remove agents. Each channel
+            has its own roster, so you can keep specialists separate.
           </>
         ),
       },
@@ -490,8 +530,8 @@ export function WorkspaceTour({
         title: "Personality, roles & brand voice",
         body: isMobile ? (
           <>
-            Tap <b>More → Workspace settings</b> to set your brand voice once, plus each
-            agent's role and personality. Channel-level overrides let you fine-tune per room.
+            Tap <b>More → Workspace settings</b> to set your brand voice, plus each agent's
+            role and personality.
           </>
         ) : (
           <>
@@ -499,9 +539,8 @@ export function WorkspaceTour({
             and personality. Channel-level overrides let you fine-tune per room.
           </>
         ),
-        target: isMobile
-          ? '[data-tour="mobile-more-tab"]'
-          : '[data-tour="workspace-settings-btn"]',
+        target: '[data-tour="workspace-settings-btn"]',
+        mobileTarget: '[data-tour="mobile-more-tab"]',
         placement: isMobile ? "top" : "left",
       },
       {
