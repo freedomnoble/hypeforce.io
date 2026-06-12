@@ -280,6 +280,17 @@ export function WorkspaceShell({
     setReadVersion((v) => v + 1);
   }, [activeDmId, lastByDm]);
 
+  // Auto-start the first-run tour once per user, on the workspace home view.
+  useEffect(() => {
+    if (!profile || hasActive) return;
+    if ((profile as any).tour_completed_at) return;
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem("hf:tour-dismissed") === "1") return;
+    const t = setTimeout(() => setTourOpen(true), 600);
+    return () => clearTimeout(t);
+  }, [profile, hasActive]);
+
+
   const dmByAgentId = useMemo(() => {
     const map = new Map<string, DirectMessage>();
     for (const d of dms) {
