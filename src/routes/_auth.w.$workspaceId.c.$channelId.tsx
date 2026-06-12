@@ -295,7 +295,7 @@ function ChannelPage() {
       const fe = friendlySendError(e);
       if (fe.paywall) {
         toast.error(fe.message, {
-          action: { label: "Subscribe", onClick: () => navigate({ to: "/profile/billing" }) },
+          action: { label: "Subscribe", onClick: () => { window.location.href = "/profile/billing"; } },
           duration: 10000,
         });
       } else {
