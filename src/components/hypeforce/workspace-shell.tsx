@@ -54,7 +54,10 @@ import { useQuery } from "@tanstack/react-query";
 import { getUnreadCount } from "@/lib/inbox.functions";
 import { checkSuperAdmin } from "@/lib/admin.functions";
 import { AdminCubeButton } from "./admin-cube-button";
+import { WorkspaceTour } from "./tour/tour-overlay";
+import { markTourSeen, resetTour } from "@/lib/tour.functions";
 import { useTheme, themeHasModes } from "./theme-provider";
+
 import { UpsellBanner } from "./upsell-banner";
 import { CoffeeUpsellButton } from "./coffee-upsell-button";
 const InfiniteGridBg = lazy(() =>
@@ -172,7 +175,11 @@ export function WorkspaceShell({
   // Mobile-only sheets (off-canvas drawers)
   const [workspacesSheetOpen, setWorkspacesSheetOpen] = useState(false);
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+  const markTourSeenFn = useServerFn(markTourSeen);
+  const resetTourFn = useServerFn(resetTour);
   const meIdRef = useRef<string | null>(null);
+
 
   const hasActive = !!(activeChannelId || activeDmId);
 
