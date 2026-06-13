@@ -60,6 +60,7 @@ import { useTheme, themeHasModes } from "./theme-provider";
 
 import { UpsellBanner } from "./upsell-banner";
 import { CoffeeUpsellButton } from "./coffee-upsell-button";
+import { getOpenclawFlags } from "@/lib/openclaw.functions";
 const InfiniteGridBg = lazy(() =>
   import("./infinite-grid-bg").then((m) => ({ default: m.InfiniteGridBg })),
 );
