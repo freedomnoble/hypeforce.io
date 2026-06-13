@@ -46,6 +46,7 @@ import { Route as AuthOnboardingChannelRouteImport } from './routes/_auth.onboar
 import { Route as AuthWWorkspaceIdIndexRouteImport } from './routes/_auth.w.$workspaceId.index'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as AuthWWorkspaceIdOpenclawRouteImport } from './routes/_auth.w.$workspaceId.openclaw'
 import { Route as AuthWWorkspaceIdAdminRouteImport } from './routes/_auth.w.$workspaceId.admin'
 import { Route as AuthWWorkspaceIdDDmIdRouteImport } from './routes/_auth.w.$workspaceId.d.$dmId'
 import { Route as AuthWWorkspaceIdCChannelIdRouteImport } from './routes/_auth.w.$workspaceId.c.$channelId'
@@ -236,6 +237,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthWWorkspaceIdOpenclawRoute =
+  AuthWWorkspaceIdOpenclawRouteImport.update({
+    id: '/w/$workspaceId/openclaw',
+    path: '/w/$workspaceId/openclaw',
+    getParentRoute: () => AuthRoute,
+  } as any)
 const AuthWWorkspaceIdAdminRoute = AuthWWorkspaceIdAdminRouteImport.update({
   id: '/w/$workspaceId/admin',
   path: '/w/$workspaceId/admin',
@@ -288,6 +295,7 @@ export interface FileRoutesByFullPath {
   '/onboarding/': typeof AuthOnboardingIndexRoute
   '/profile/': typeof AuthProfileIndexRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
+  '/w/$workspaceId/openclaw': typeof AuthWWorkspaceIdOpenclawRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
@@ -326,6 +334,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthOnboardingIndexRoute
   '/profile': typeof AuthProfileIndexRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
+  '/w/$workspaceId/openclaw': typeof AuthWWorkspaceIdOpenclawRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/w/$workspaceId': typeof AuthWWorkspaceIdIndexRoute
@@ -369,6 +378,7 @@ export interface FileRoutesById {
   '/_auth/onboarding/': typeof AuthOnboardingIndexRoute
   '/_auth/profile/': typeof AuthProfileIndexRoute
   '/_auth/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
+  '/_auth/w/$workspaceId/openclaw': typeof AuthWWorkspaceIdOpenclawRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/_auth/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
@@ -412,6 +422,7 @@ export interface FileRouteTypes {
     | '/onboarding/'
     | '/profile/'
     | '/w/$workspaceId/admin'
+    | '/w/$workspaceId/openclaw'
     | '/api/public/payments/webhook'
     | '/lovable/email/queue/process'
     | '/w/$workspaceId/'
@@ -450,6 +461,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile'
     | '/w/$workspaceId/admin'
+    | '/w/$workspaceId/openclaw'
     | '/api/public/payments/webhook'
     | '/lovable/email/queue/process'
     | '/w/$workspaceId'
@@ -492,6 +504,7 @@ export interface FileRouteTypes {
     | '/_auth/onboarding/'
     | '/_auth/profile/'
     | '/_auth/w/$workspaceId/admin'
+    | '/_auth/w/$workspaceId/openclaw'
     | '/api/public/payments/webhook'
     | '/lovable/email/queue/process'
     | '/_auth/w/$workspaceId/'
@@ -776,6 +789,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_auth/w/$workspaceId/openclaw': {
+      id: '/_auth/w/$workspaceId/openclaw'
+      path: '/w/$workspaceId/openclaw'
+      fullPath: '/w/$workspaceId/openclaw'
+      preLoaderRoute: typeof AuthWWorkspaceIdOpenclawRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/w/$workspaceId/admin': {
       id: '/_auth/w/$workspaceId/admin'
       path: '/w/$workspaceId/admin'
@@ -846,6 +866,7 @@ interface AuthRouteChildren {
   AuthOnboardingRoute: typeof AuthOnboardingRouteWithChildren
   AuthProfileRoute: typeof AuthProfileRouteWithChildren
   AuthWWorkspaceIdAdminRoute: typeof AuthWWorkspaceIdAdminRoute
+  AuthWWorkspaceIdOpenclawRoute: typeof AuthWWorkspaceIdOpenclawRoute
   AuthWWorkspaceIdIndexRoute: typeof AuthWWorkspaceIdIndexRoute
   AuthWWorkspaceIdCChannelIdRoute: typeof AuthWWorkspaceIdCChannelIdRoute
   AuthWWorkspaceIdDDmIdRoute: typeof AuthWWorkspaceIdDDmIdRoute
@@ -855,6 +876,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthOnboardingRoute: AuthOnboardingRouteWithChildren,
   AuthProfileRoute: AuthProfileRouteWithChildren,
   AuthWWorkspaceIdAdminRoute: AuthWWorkspaceIdAdminRoute,
+  AuthWWorkspaceIdOpenclawRoute: AuthWWorkspaceIdOpenclawRoute,
   AuthWWorkspaceIdIndexRoute: AuthWWorkspaceIdIndexRoute,
   AuthWWorkspaceIdCChannelIdRoute: AuthWWorkspaceIdCChannelIdRoute,
   AuthWWorkspaceIdDDmIdRoute: AuthWWorkspaceIdDDmIdRoute,
@@ -918,13 +940,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -1,103 +1,138 @@
-# Free Trial Plan
+## Goal
 
-A 5-day comp window stored on the profile. Two ways in: a feature-flagged landing CTA, and a separate trial invite link (always works, independent of the flag).
+Add an in-product "OpenClaw agent" builder to Hypeforce so non-technical users can create, configure, and chat with their own OpenClaw assistant — without ever touching GitHub, a terminal, or a config file. OpenClaw is positioned as a **gated upsell**: visible to everyone, blocked at the "Create" step for non-paying users, and capped at **$4/month COGS** per paying user, after which they upgrade or buy credits.
 
-## 1. Data model
+Channel scope (v1 AND v2): **Hypeforce internal web chat only.** No Slack, no WhatsApp, no iMessage.
 
-Migration adds three columns to `profiles`:
-- `trial_started_at timestamptz`
-- `trial_ends_at timestamptz`
-- `trial_cancel_requested_at timestamptz`
+## Feature flags (two-flag gate)
 
-New row in `feature_flags`:
-- key `free_trial_landing`, default `false`, description "Show 5-day free trial CTA on landing page".
+Two flags in the admin Feature Flags console:
 
-New row in `invite_links` table (extend the existing single-row table or add a `kind` column — we'll add `kind text not null default 'comp' check (kind in ('comp','trial'))` plus a second seed row with `kind='trial'`, its own random token, its own `enabled` flag). Existing redeem path stays comp-only.
+1. **`openclaw_studio`** — *default OFF.* Master kill switch. When OFF, the OpenClaw entry is hidden from the sidebar everywhere. (Already in the original plan.)
+2. **`openclaw_enabled`** — *default OFF.* "Is the build actually shippable yet?" When OFF (but `openclaw_studio` ON), the OpenClaw sidebar entry IS visible — clicking it opens a **"OpenClaw — coming soon"** placeholder page instead of the wizard. No provisioning, no Fly Machine calls, no paywall. This lets us tease the feature on the sidebar and collect interest before the backend is live. When ON, the full wizard / chat / paywall flow described below activates.
 
-`has_active_subscription`/onboarding state already treats `is_comped` as access. Trial gives access via `trial_ends_at > now()` — we'll teach the few read sites (`onboarding.functions.ts`, `upsell-banner.tsx`, `useSubscription`/billing page, message-send gate) to also accept an active trial.
+Both flags ship as rows in `feature_flags` set to `false` by default, manageable from `/pretentious/flags`.
 
-Helper SQL function `is_on_trial(uid uuid) returns boolean` — used by the message-send gate and any server-side check. (Pure SQL, SECURITY DEFINER, reads profiles.)
+The "coming soon" page is a simple branded panel with copy ("Your own AI agent, built in. Coming soon.") and an optional "Notify me" button that writes to a small `openclaw_waitlist` table (one row per user, unique on user_id).
 
-## 2. Trial invite link
+## Architecture (confirmed)
 
-`/join/<trial-token>` — same route handles both kinds. `redeemInviteToken` is updated to look up the row, branch on `kind`:
-- `comp` → set `is_comped = true` (existing behavior).
-- `trial` → set `trial_started_at = now()`, `trial_ends_at = now() + interval '5 days'` (only if not already on/past a trial; re-redemption is a no-op).
+- **One OpenClaw gateway per Hypeforce user** running on a **Fly Machine** (auto-stop when idle, ~1–2s cold start, billed per-second).
+- **Hypeforce DB is source of truth** for the agent's persona, skills, and tool allowlist. The Fly Machine's filesystem is ephemeral — on boot, a small script downloads the user's workspace bundle (signed URL from Hypeforce) and writes `~/.openclaw/workspace/` from it.
+- **`agents.defaults.sandbox.mode: "all"`** with the Docker backend so every non-main session runs in a sandbox.
+- **WebChat channel** built into OpenClaw is the only enabled channel. Hypeforce's chat UI proxies messages over OpenClaw's WS RPC through a Hypeforce-side server route (the Fly Machine never accepts public internet traffic directly).
 
-`pretentious.invites.tsx` gains a second card: "Free trial link" with rotate / enable toggle / copy URL, mirroring the existing comp link UI.
+```text
+Hypeforce UI ──► server fn ──► Fly Machines API ──► per-user OpenClaw gateway
+                                                        ▲
+                              signed bundle URL ────────┘ (boot pulls workspace)
+```
 
-## 3. Landing page CTA (feature flag)
+## What the user sees
 
-`landing-page.tsx` reads `free_trial_landing` flag (anon-safe read via existing pattern). When ON:
-- Primary CTA copy switches to "Start 5-day free trial" and links to `/welcome?trial=1`.
-- `/welcome` reads `?trial=1`, stashes `sessionStorage.hypeforce.trial_intent = '1'`, and after account creation calls `startTrial` server fn (new, in `invites.functions.ts`) which stamps the same trial columns. No token needed — flag is the gate.
+### Visibility matrix
 
-When flag is OFF, landing CTA is unchanged. Trial token link still works regardless of the flag.
+| `openclaw_studio` | `openclaw_enabled` | What user sees |
+| --- | --- | --- |
+| OFF | (any) | No OpenClaw sidebar entry, no routes registered |
+| ON | OFF | Sidebar entry visible → "Coming soon" placeholder + Notify-me |
+| ON | ON | Full wizard / chat / paywall (described below) |
 
-## 4. Onboarding / Subscribe screen
+### When fully enabled
 
-`_auth.onboarding.features.tsx`:
-- After existing comp-redeem effect, run a parallel "trial redeem" check: if `sessionStorage` has the trial token *or* `trial_intent` flag and the user has no active trial, call `startTrial`/`redeemInviteToken` and refetch.
-- Button rendering logic:
-  - `is_comped` → "Gifted" (unchanged)
-  - active trial (`trial_ends_at > now()`) → button greyed/disabled labeled "5-day free trial". Continue button enabled by default (no need to click subscribe).
-  - day 5 of trial (`trial_ends_at - now() < 24h`) → under Subscribe button render a tiny "Request cancellation" link → opens confirm dialog → calls `requestTrialCancellation` server fn (stamps `trial_cancel_requested_at`, emails admin via existing email infra, sets `subscriptions`-equivalent UI state to "cancellation requested"). Same control surfaces on `/profile/billing` while trial is in cancel-requested state.
+- "OpenClaw" appears in the workspace sidebar for **everyone** (including free-trial, gifted, free-preview).
+- They can open the index page, see what OpenClaw is, browse skill templates, and step through the create wizard end-to-end.
+- The **final "Create my agent" button** is the paywall. Non-paying users (no active sub, no comp) see an inline upgrade modal: "OpenClaw agents are included with any paid plan." with CTAs to subscribe (existing `/profile/billing`).
+- Comped users get straight through (they already bypass `can_send_message()`).
 
-`getOnboardingState` returns `trial_started_at`, `trial_ends_at`, `trial_cancel_requested_at` so the client can render the right state.
+### Wizard (5 steps, visible to everyone)
+1. Name + avatar
+2. Persona — display name, role, voice/tone (reuses fields from `AgentIdentityEditor`)
+3. What is this agent good at? — multi-select from 6–8 seeded skill templates ("Research assistant," "Daily standup writer," "Email triage drafter," "Code reviewer," "Meeting note summarizer," "Competitor watcher," "Inbox zero coach," "Plain-English explainer") + free-text "anything else?"
+4. Model — defaults to Lovable AI Gateway; BYOK users can pick from connected providers
+5. Review + the gated "Create my agent" button
 
-## 5. In-app banner (day 4)
+### Provisioning screen
+"Setting up your private agent (about 30 seconds)…" with a determinate bar (machine create → boot → workspace pull → gateway ready).
 
-`upsell-banner.tsx` already gates on `is_comped`. Extend it:
-- If user has an active trial, banner is suppressed on days 1–3.
-- On day ≥ 4 (i.e. `trial_ends_at - now() <= 48h`), show a trial-specific variant: "Your free trial ends in N hours — claim your founder seat for $9/mo" with Subscribe button. Not dismissable on day 5.
-- After `trial_ends_at` passes with no subscription, banner becomes the hard expiry banner (see §6).
+### Chat surface (`/_auth/w/$workspaceId/openclaw/$agentId`)
+- Renders inside `WorkspaceShell`, looks like a channel.
+- AI SDK `useChat` keyed by `agentId`, messages persisted in Hypeforce DB.
+- Streamed tool activity via `message.parts`.
+- **COGS-limit state**: when the $4/mo cap hits, the composer is replaced by a non-dismissible upgrade panel with two CTAs:
+  - Upgrade to $19/mo tier (if on $9 founder or lower)
+  - Buy Agent Credits (pay-as-you-go top-up, reuses `CreditsTopupDialog`)
+  - Past messages remain readable.
 
-## 6. Day-5 / expired message gate
+### Edit-agent panel
+Same wizard reused for edits, plus Knowledge tab (reuses existing KB upload flow), Tools tab (plain-English toggles → OpenClaw sandbox allowlist), Danger Zone (delete agent → tears down Fly Machine).
 
-In `invokeAgentRouter` (the only user-message entry point), before composing the user message:
-- Load profile trial columns + active-sub check.
-- If `is_comped` or `has_active_subscription` → proceed.
-- If `is_on_trial(uid)` → proceed.
-- Else if user previously had a trial (`trial_started_at not null` and `trial_ends_at <= now()`) and no sub → throw a typed error `TRIAL_EXPIRED`.
+### Skill Studio (Phase 3)
+"Describe a skill in plain English" textbox → `generateSkillFromPrompt` server fn (Lovable AI, structured output → `{ name, description, triggers, steps, tools_used }`) → preview the rendered `SKILL.md` → save → workspace re-render → hot-reload over RPC.
 
-Client (channel + DM pages + share dialog) catches `TRIAL_EXPIRED` and opens a subscribe modal pinned to the $9 founder price (reuse `usePaddleCheckout` with `founder_monthly`). The modal blocks send until they subscribe or close.
+## COGS tracking and $4/mo cap
 
-No retroactive cleanup needed — trial messages stay in history.
+### Data model (Phase 1 migration)
+- `openclaw_agents` — `user_id`, `workspace_id`, `display_name`, `persona jsonb`, `model_id`, `tool_allowlist text[]`, `skill_definitions jsonb`, `fly_machine_id`, `fly_app`, `gateway_url`, `gateway_status` (`provisioning|running|stopped|error|destroyed`), `last_active_at`. RLS scopes to owner.
+- `openclaw_cogs_ledger` — append-only: `user_id`, `agent_id`, `kind` (`compute_seconds|model_usage`), `amount_micros_usd bigint`, `period_start`, `period_end`, `source` (`fly|model_router`), `external_id`. Index on `(user_id, created_at)`.
+- `openclaw_waitlist` — `user_id` (unique), `created_at`. For the "coming soon" Notify-me button.
+- RPC `get_openclaw_cogs_cents(uid uuid, period_start timestamptz)` → cents this billing period.
+- RPC `openclaw_can_use(uid uuid)` → `{ allowed, reason: 'no_subscription'|'cogs_capped'|'ok', cogs_cents, cap_cents }`.
+- Existing `can_send_message()` is NOT modified — OpenClaw has its own gate so a capped OpenClaw user can still use normal Hypeforce channels.
 
-## 7. Cancellation request
+### Data sources
+- **Fly compute**: daily HMAC-protected sweep at `/api/public/openclaw/sweep` (pg_cron) pulls per-machine seconds from the Fly Machines API and writes `compute_seconds` rows.
+- **Model usage**: the gateway routes through Lovable AI Gateway (default) so token usage flows through `credit_usage`. Rows tagged with an OpenClaw `agent_id` are mirrored to `openclaw_cogs_ledger` at USD-equivalent micros.
+- BYOK users: only their Fly compute counts toward the cap.
 
-New server fn `requestTrialCancellation` (auth required):
-- Stamps `trial_cancel_requested_at = now()`.
-- Sends one email to the admin inbox (reuse existing transactional email infra / `support_tickets` insert — pick whichever the project already uses for admin notifications; we'll use a `support_tickets` row with subject "Trial cancellation request" so it shows in `/pretentious/support`).
-- Idempotent (no-op if already stamped).
+### Enforcement
+- Send-time: message-proxy server fn calls `openclaw_can_use(uid)` first. If `cogs_capped`, returns a typed error the chat surface catches.
+- Read-side: `useQuery` on `openclaw_can_use`, polled every 30s while the chat is open + invalidated on send.
+- Idle-stop: Fly auto-stop after 5 min; on next message the proxy starts the machine and waits for `gateway_status: running`.
+- Hard kill at 1.5× cap ($6/mo) regardless of payment state, with email notice.
 
-Once stamped, the Subscribe screen + banner show "Cancellation requested — we'll be in touch" instead of subscribe CTA, and the day-5 message gate is replaced by a friendly "your trial has ended" notice (no upsell). Admin can still toggle `is_comped` or extend trial from `/pretentious/users`.
+### Cap value
+Stored in a small `openclaw_settings` row so it's tunable without a deploy. Default $4.00 (400 cents).
 
-## 8. Admin (`/pretentious/users`)
+## Implementation phases
 
-Add to the per-user row:
-- Read-only trial state (started / ends / cancel requested).
-- Buttons: "Start 5-day trial", "Extend trial +5 days", "End trial now".
-Wires to a new `setUserTrial` server fn (super-admin only) in `invites.functions.ts`.
+### Phase 1 — Foundations + flags + "coming soon" surface
+- Migration: `openclaw_agents`, `openclaw_cogs_ledger`, `openclaw_waitlist`, `get_openclaw_cogs_cents`, `openclaw_can_use`, settings row, two feature-flag rows (`openclaw_studio` + `openclaw_enabled`, both `false`).
+- Sidebar entry in `workspace-shell.tsx` gated on `openclaw_studio`.
+- Route `/_auth/w/$workspaceId/openclaw` that reads `openclaw_enabled`:
+  - **OFF →** "Coming soon" panel + Notify-me button (writes to `openclaw_waitlist`).
+  - **ON →** wizard/list (built in Phase 2).
+- Fly Machines token secret + base Fly image + bundle endpoint scaffolded but inert while `openclaw_enabled` is OFF.
 
-## Files touched
+### Phase 2 — Wizard + chat surface (only reachable when `openclaw_enabled` is ON)
+- `/_auth/w/$workspaceId/openclaw` — landing/list visible to everyone, "Create" CTA opens wizard.
+- `/_auth/w/$workspaceId/openclaw/new` — 5-step wizard. Step-5 "Create" calls `createOpenclawAgent` which re-checks subscription/comp and returns `{ paywall: true }` for non-payers; UI shows upgrade modal instead of provisioning.
+- `/_auth/w/$workspaceId/openclaw/$agentId` — chat surface with COGS-capped UI state.
+- Send-message server fn proxying to the gateway with typed `cogs_capped` error.
 
-- **Migration**: new columns on `profiles`, `kind` column + seed row on `invite_links`, `is_on_trial` SQL fn, new feature flag row.
-- `src/lib/invites.functions.ts` — branch `redeemInviteToken` on kind; add `startTrial`, `requestTrialCancellation`, `setUserTrial`.
-- `src/lib/onboarding.functions.ts` — return trial fields.
-- `src/lib/agent-router.functions.ts` — trial gate + `TRIAL_EXPIRED` throw.
-- `src/components/hypeforce/landing-page.tsx` — flag-driven CTA copy + link.
-- `src/routes/welcome.tsx` — handle `?trial=1` + redeem trial token.
-- `src/routes/join.$token.tsx` — unchanged (server fn handles kind).
-- `src/routes/_auth.onboarding.features.tsx` — trial button state, day-5 cancel link, trial redeem effect.
-- `src/components/hypeforce/upsell-banner.tsx` — trial-aware variants.
-- `src/routes/_auth.w.$workspaceId.c.$channelId.tsx`, `.d.$dmId.tsx`, `share-message-dialog.tsx` — catch `TRIAL_EXPIRED`, open subscribe modal.
-- `src/routes/_auth.profile.billing.tsx` — trial state + cancellation control.
-- `src/routes/pretentious.invites.tsx` — second card for trial link.
-- `src/routes/pretentious.users.tsx` — trial admin controls.
+### Phase 3 — Skill Studio
+- `/_auth/w/$workspaceId/openclaw/$agentId/skills` — list/create/edit as structured forms.
+- `generateSkillFromPrompt` server fn (Lovable AI structured output).
+- Workspace re-render + RPC reload on save.
+- 6–8 starter skills seeded.
 
-## Open items I'll default unless you say otherwise
+### Phase 4 — Admin + safety
+- `/pretentious/openclaw` super-admin page: agents table with `user`, `machine_state`, `last_active_at`, **`cogs_this_period_cents`** (sortable, red ≥ cap, amber ≥ 80%), per-row Stop / Destroy / Rebuild / Reset COGS (audited).
+- Waitlist viewer (export CSV) so we can notify users when we flip `openclaw_enabled` on.
+- Email notices at 80% / 100% / 150% of cap.
+- Hard quotas: 3 agents per user, 25 skills per agent, 10 `generateSkillFromPrompt` calls/hour.
 
-- Banner copy day 4: "Your trial ends in ~2 days. Lock in your $9 founder seat." Day 5: "Last day of your trial — subscribe to keep your workspace."
-- Cancellation email goes to support_tickets (already monitored in `/pretentious/support`). If you'd rather have a direct email, swap to Mailgun/Resend.
-- Trial messages are NOT deleted on expiry — they remain visible read-only.
+### Phase 5 — deferred
+Pooled gateway tier, ClawHub publish, BYO-device installer.
+
+## Explicitly not in v1 or v2
+
+Slack, WhatsApp, Telegram, Signal, iMessage, Discord, Teams, macOS Voice Wake, Live Canvas, iOS/Android nodes, ClawHub publish, hand-editing `openclaw.json`.
+
+## Open implementation questions
+
+1. **Cap math anchor** — calendar month vs each user's Paddle billing period? Recommend: **billing-period anchored** for paying users, calendar month for comped users.
+2. **Pay-as-you-go credits** — new SKU vs reuse existing Hypeforce credits with a published USD→credit rate? Recommend: **reuse existing credits** (already have `CreditsTopupDialog`).
+3. **Past-due users** — allow OpenClaw access (Paddle dunning will resolve) or block? Recommend: **allow**, same posture as `has_active_subscription`.
+
+Confirm 1–3 (or "your recommendations are fine") and I'll execute Phase 1 first — that ships the two flags, the sidebar entry, and the "coming soon" page with both flags OFF by default.
