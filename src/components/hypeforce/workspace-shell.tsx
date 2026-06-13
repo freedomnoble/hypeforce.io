@@ -168,6 +168,13 @@ export function WorkspaceShell({
     staleTime: 5 * 60_000,
   });
   const isSuperAdmin = !!adminData?.isSuperAdmin;
+  const fetchOpenclawFlags = useServerFn(getOpenclawFlags);
+  const { data: openclawFlags } = useQuery({
+    queryKey: ["openclaw-flags"],
+    queryFn: () => fetchOpenclawFlags(),
+    staleTime: 5 * 60_000,
+  });
+  const openclawStudioOn = !!openclawFlags?.studio;
   const [lastByDm, setLastByDm] = useState<Record<string, LastMessage>>({});
   const [readVersion, setReadVersion] = useState(0); // bump to recompute unread counts
   const [dmQuery, setDmQuery] = useState("");
