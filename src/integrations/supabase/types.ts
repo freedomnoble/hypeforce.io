@@ -945,6 +945,151 @@ export type Database = {
         }
         Relationships: []
       }
+      openclaw_agents: {
+        Row: {
+          created_at: string
+          display_name: string
+          fly_app: string | null
+          fly_machine_id: string | null
+          gateway_status: string
+          gateway_url: string | null
+          id: string
+          last_active_at: string | null
+          model_id: string | null
+          persona: Json
+          skill_definitions: Json
+          tool_allowlist: string[]
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          fly_app?: string | null
+          fly_machine_id?: string | null
+          gateway_status?: string
+          gateway_url?: string | null
+          id?: string
+          last_active_at?: string | null
+          model_id?: string | null
+          persona?: Json
+          skill_definitions?: Json
+          tool_allowlist?: string[]
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          fly_app?: string | null
+          fly_machine_id?: string | null
+          gateway_status?: string
+          gateway_url?: string | null
+          id?: string
+          last_active_at?: string | null
+          model_id?: string | null
+          persona?: Json
+          skill_definitions?: Json
+          tool_allowlist?: string[]
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "openclaw_agents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      openclaw_cogs_ledger: {
+        Row: {
+          agent_id: string | null
+          amount_micros_usd: number
+          created_at: string
+          external_id: string | null
+          id: number
+          kind: string
+          period_end: string
+          period_start: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          amount_micros_usd: number
+          created_at?: string
+          external_id?: string | null
+          id?: number
+          kind: string
+          period_end: string
+          period_start: string
+          source: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          amount_micros_usd?: number
+          created_at?: string
+          external_id?: string | null
+          id?: number
+          kind?: string
+          period_end?: string
+          period_start?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "openclaw_cogs_ledger_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "openclaw_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      openclaw_settings: {
+        Row: {
+          cap_cents: number
+          hard_kill_multiplier: number
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          cap_cents?: number
+          hard_kill_multiplier?: number
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          cap_cents?: number
+          hard_kill_multiplier?: number
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      openclaw_waitlist: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plan_credit_allowances: {
         Row: {
           monthly_credits: number
@@ -1540,6 +1685,10 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_openclaw_cogs_cents: {
+        Args: { period_start: string; uid: string }
+        Returns: number
+      }
       get_user_credit_balance: { Args: { uid: string }; Returns: number }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
@@ -1577,6 +1726,7 @@ export type Database = {
         }
         Returns: number
       }
+      openclaw_can_use: { Args: { uid: string }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
