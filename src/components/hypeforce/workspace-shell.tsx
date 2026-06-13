@@ -515,6 +515,19 @@ export function WorkspaceShell({
 
 
         <div className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-4 space-y-5 pt-3">
+          {openclawStudioOn && (
+            <Link
+              to="/w/$workspaceId/openclaw"
+              params={{ workspaceId }}
+              className="flex items-center gap-2 px-3 py-2 mx-1 rounded-lg text-sm transition-colors bg-primary/5 hover:bg-primary/10 text-foreground border border-primary/20"
+            >
+              <Bot className="w-4 h-4 text-primary" />
+              <span className="font-medium">OpenClaw</span>
+              <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground font-mono">
+                new
+              </span>
+            </Link>
+          )}
           <Section title="Channels" dataTour="channels-section" actionDataTour="new-channel-btn" actionLabel="+ New" onAction={async () => {
             const name = prompt("Channel name (no spaces)");
             if (!name) return;
