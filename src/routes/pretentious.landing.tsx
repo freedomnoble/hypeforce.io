@@ -10,6 +10,7 @@ import {
   createLandingUploadUrl,
 } from "@/lib/admin.functions";
 import { GlassPanel } from "@/components/admin/admin-shell";
+import { THEMES as APP_THEMES } from "@/components/hypeforce/theme-provider";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/pretentious/landing")({
