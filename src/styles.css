@@ -961,9 +961,6 @@
   backdrop-filter: blur(36px) saturate(190%);
   color: oklch(0.18 0.005 60);
 }
-:root[data-theme="newsprint"].dark .glass-strong :is(h1, h2, h3, h4, h5, h6, p, span, label, div, button, a) {
-  color: inherit;
-}
 :root[data-theme="newsprint"].dark .glass-strong .text-muted-foreground {
   color: oklch(0.38 0.008 60);
 }
