@@ -52,7 +52,7 @@ const LIST_FIELDS: { key: string; label: string; hint: string }[] = [
   { key: "footer_links", label: "Footer links (JSON array)", hint: '[{"label":"Features","href":"#features"}]' },
 ];
 
-const THEMES = ["default", "spider-noir", "hail-mary", "miles-morales", "gwen-stacy", "cyberpunk"];
+const THEMES = APP_THEMES.map((t) => ({ id: t.id, name: t.name }));
 
 function LandingCMS() {
   const getFn = useServerFn(getLandingContentAdmin);
