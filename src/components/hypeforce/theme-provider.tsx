@@ -224,7 +224,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyCustomTokens(null);
     root.dataset.theme = effectiveTheme;
     if (themeHasModes(effectiveTheme)) {
-      const stored = (localStorage.getItem("hf-arachna-mode") as "dark" | "light" | null) ?? "dark";
+      const defaultMode = effectiveTheme === "newsprint" ? "light" : "dark";
+      const stored =
+        (localStorage.getItem("hf-arachna-mode") as "dark" | "light" | null) ?? defaultMode;
       root.classList.toggle("dark", stored === "dark");
     } else {
       root.classList.remove("dark");
