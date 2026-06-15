@@ -43,9 +43,15 @@ export const THEMES: { id: string; name: string; description: string; swatch: st
     description: "Living comic book — halftone dots, neon ink, and chromatic glitches.",
     swatch: ["#fff8d6", "#ff2a6d", "#05d9e8", "#0a0a0a"],
   },
+  {
+    id: "newsprint",
+    name: "Newsprint",
+    description: "Paper-textured monochrome — premium black ink on white, charcoal at night.",
+    swatch: ["#f5f1e8", "#1a1a1a", "#2a2a2a", "#e8e2d4"],
+  },
 ];
 
-export const THEMES_WITH_MODES: string[] = ["arachna-verse"];
+export const THEMES_WITH_MODES: string[] = ["arachna-verse", "newsprint"];
 
 export function themeHasModes(t: string) {
   return THEMES_WITH_MODES.includes(t);
