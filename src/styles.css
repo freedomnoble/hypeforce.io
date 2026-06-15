@@ -917,22 +917,22 @@
     linear-gradient(180deg, oklch(0.20 0.003 60), oklch(0.16 0.003 60));
   background-attachment: fixed;
 }
-/* Paper-textured panels on charcoal */
+/* Frosted paper panels on charcoal */
 :root[data-theme="newsprint"].dark .glass,
 :root[data-theme="newsprint"].dark .glass-strong {
-  background-color: oklch(0.94 0.012 85);
-  background-image: var(--paper-texture);
-  background-blend-mode: multiply;
+  background-color: oklch(0.94 0.012 85 / 0.50);
+  background-image: none;
+  backdrop-filter: blur(20px) saturate(130%);
   color: oklch(0.16 0.005 60);
   border: 1px solid oklch(0 0 0 / 0.18);
   box-shadow:
-    0 1px 0 oklch(1 0 0 / 0.6) inset,
+    0 1px 0 oklch(1 0 0 / 0.35) inset,
     0 1px 2px oklch(0 0 0 / 0.35),
     0 14px 32px -10px oklch(0 0 0 / 0.55),
     0 32px 72px -28px oklch(0 0 0 / 0.7);
 }
 :root[data-theme="newsprint"].dark .glass-strong {
-  background-color: oklch(0.96 0.01 85);
+  background-color: oklch(0.96 0.01 85 / 0.55);
 }
 /* Paper-textured buttons */
 :root[data-theme="newsprint"].dark button:not([data-no-paper]),
