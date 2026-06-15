@@ -10,6 +10,7 @@ import {
   createLandingUploadUrl,
 } from "@/lib/admin.functions";
 import { GlassPanel } from "@/components/admin/admin-shell";
+import { THEMES as APP_THEMES } from "@/components/hypeforce/theme-provider";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/pretentious/landing")({
@@ -51,7 +52,7 @@ const LIST_FIELDS: { key: string; label: string; hint: string }[] = [
   { key: "footer_links", label: "Footer links (JSON array)", hint: '[{"label":"Features","href":"#features"}]' },
 ];
 
-const THEMES = ["default", "spider-noir", "hail-mary", "miles-morales", "gwen-stacy", "cyberpunk"];
+const THEMES = APP_THEMES.map((t) => ({ id: t.id, name: t.name }));
 
 function LandingCMS() {
   const getFn = useServerFn(getLandingContentAdmin);
@@ -163,7 +164,7 @@ function LandingCMS() {
         <h3 className="font-display text-lg">Theme</h3>
         <div className="flex flex-wrap gap-2">
           {THEMES.map((t) => (
-            <button key={t} onClick={() => setTheme(t)} className={`px-3 py-1.5 rounded-lg text-sm capitalize ${theme === t ? "bg-white/15 border border-white/20" : "bg-white/5 border border-white/10 text-white/60"}`}>{t.replace("-", " ")}</button>
+            <button key={t.id} onClick={() => setTheme(t.id)} className={`px-3 py-1.5 rounded-lg text-sm ${theme === t.id ? "bg-white/15 border border-white/20" : "bg-white/5 border border-white/10 text-white/60"}`}>{t.name}</button>
           ))}
         </div>
       </GlassPanel>
