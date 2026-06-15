@@ -917,22 +917,48 @@
     linear-gradient(180deg, oklch(0.20 0.003 60), oklch(0.16 0.003 60));
   background-attachment: fixed;
 }
-/* Frosted paper panels on charcoal */
+/* Liquid-glass panels on charcoal — iOS-style glossy translucency */
 :root[data-theme="newsprint"].dark .glass,
 :root[data-theme="newsprint"].dark .glass-strong {
-  background-color: oklch(0.94 0.012 85 / 0.50);
-  background-image: none;
-  backdrop-filter: blur(20px) saturate(130%);
-  color: oklch(0.16 0.005 60);
-  border: 1px solid oklch(0 0 0 / 0.18);
+  position: relative;
+  background-color: oklch(0.96 0.008 85 / 0.18);
+  background-image:
+    linear-gradient(
+      135deg,
+      oklch(1 0 0 / 0.22) 0%,
+      oklch(1 0 0 / 0.06) 38%,
+      oklch(1 0 0 / 0.02) 62%,
+      oklch(1 0 0 / 0.12) 100%
+    );
+  backdrop-filter: blur(28px) saturate(180%);
+  color: oklch(0.97 0.008 85);
+  border: 1px solid oklch(1 0 0 / 0.18);
   box-shadow:
-    0 1px 0 oklch(1 0 0 / 0.35) inset,
-    0 1px 2px oklch(0 0 0 / 0.35),
-    0 14px 32px -10px oklch(0 0 0 / 0.55),
-    0 32px 72px -28px oklch(0 0 0 / 0.7);
+    0 1px 0 oklch(1 0 0 / 0.45) inset,
+    0 -1px 0 oklch(1 0 0 / 0.08) inset,
+    0 0 0 1px oklch(0 0 0 / 0.25),
+    0 8px 24px -8px oklch(0 0 0 / 0.45),
+    0 24px 60px -20px oklch(0 0 0 / 0.6);
+}
+:root[data-theme="newsprint"].dark .glass::before,
+:root[data-theme="newsprint"].dark .glass-strong::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    oklch(1 0 0 / 0.28) 0%,
+    oklch(1 0 0 / 0.04) 30%,
+    transparent 55%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.7;
 }
 :root[data-theme="newsprint"].dark .glass-strong {
-  background-color: oklch(0.96 0.01 85 / 0.55);
+  background-color: oklch(0.96 0.008 85 / 0.24);
+  backdrop-filter: blur(36px) saturate(190%);
 }
 /* Paper-textured buttons */
 :root[data-theme="newsprint"].dark button:not([data-no-paper]),
