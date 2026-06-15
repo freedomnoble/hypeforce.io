@@ -802,3 +802,141 @@
   animation: admin-cube-spin 1s ease-in-out 1;
   transform-box: fill-box;
 }
+
+/* ---------- NEWSPRINT — paper-textured monochrome (light + dark) ----------
+   Light: warm paper white background, black ink buttons/accents, soft drop
+   shadows for premium depth. Dark: charcoal background with paper-feeling
+   buttons, panels, and accents. Paper texture is an inline SVG fractal-noise
+   data URI so it ships with the CSS bundle. */
+:root[data-theme="newsprint"] {
+  /* Reusable paper texture — soft turbulent grain, low alpha. */
+  --paper-texture: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.07  0 0 0 0 0.06  0 0 0 0 0.05  0 0 0 0.08 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  --paper-fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.012 0.9' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0.05  0 0 0 0 0.04  0 0 0 0 0.03  0 0 0 0.07 0'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>");
+}
+
+/* ===== LIGHT MODE ===== */
+:root[data-theme="newsprint"]:not(.dark) {
+  --background: oklch(0.97 0.008 85);
+  --foreground: oklch(0.16 0.005 60);
+  --card: oklch(0.985 0.006 85);
+  --card-foreground: oklch(0.16 0.005 60);
+  --popover: oklch(0.99 0.005 85);
+  --popover-foreground: oklch(0.14 0.005 60);
+  --primary: oklch(0.18 0.005 60);
+  --primary-foreground: oklch(0.97 0.008 85);
+  --secondary: oklch(0.93 0.01 85);
+  --secondary-foreground: oklch(0.18 0.005 60);
+  --muted: oklch(0.92 0.012 85);
+  --muted-foreground: oklch(0.42 0.008 60);
+  --accent: oklch(0.20 0.005 60);
+  --accent-foreground: oklch(0.97 0.008 85);
+  --destructive: oklch(0.45 0.18 28);
+  --destructive-foreground: oklch(0.98 0.005 85);
+  --border: oklch(0.18 0.005 60 / 0.14);
+  --input: oklch(0.18 0.005 60 / 0.08);
+  --ring: oklch(0.18 0.005 60 / 0.45);
+  --electric: oklch(0.18 0.005 60);
+  --violet: oklch(0.28 0.01 60);
+  --mint: oklch(0.50 0.04 150);
+  --rail: oklch(0.95 0.01 85);
+  --rail-foreground: oklch(0.18 0.005 60);
+  --panel: oklch(0.985 0.006 85);
+  --panel-foreground: oklch(0.16 0.005 60);
+  --sidebar: oklch(0.96 0.01 85);
+  --sidebar-foreground: oklch(0.18 0.005 60);
+}
+:root[data-theme="newsprint"]:not(.dark) body {
+  background-color: oklch(0.97 0.008 85);
+  background-image:
+    var(--paper-fiber),
+    var(--paper-texture),
+    radial-gradient(ellipse at 12% 0%, oklch(0.99 0.012 85 / 0.9), transparent 55%),
+    radial-gradient(ellipse at 100% 100%, oklch(0.93 0.015 80 / 0.7), transparent 55%);
+  background-attachment: fixed, fixed, fixed, fixed;
+}
+:root[data-theme="newsprint"]:not(.dark) .glass,
+:root[data-theme="newsprint"]:not(.dark) .glass-strong {
+  background-color: oklch(0.99 0.006 85 / 0.96);
+  background-image: var(--paper-texture);
+  background-blend-mode: multiply;
+  border: 1px solid oklch(0.18 0.005 60 / 0.10);
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.95) inset,
+    0 0 0 1px oklch(0.18 0.005 60 / 0.04),
+    0 1px 2px oklch(0.18 0.005 60 / 0.06),
+    0 8px 24px -10px oklch(0.18 0.005 60 / 0.18),
+    0 24px 60px -28px oklch(0.18 0.005 60 / 0.28);
+}
+:root[data-theme="newsprint"]:not(.dark) .glass-strong {
+  background-color: oklch(0.995 0.004 85 / 0.98);
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.95) inset,
+    0 0 0 1px oklch(0.18 0.005 60 / 0.06),
+    0 2px 4px oklch(0.18 0.005 60 / 0.08),
+    0 14px 32px -12px oklch(0.18 0.005 60 / 0.22),
+    0 36px 80px -36px oklch(0.18 0.005 60 / 0.35);
+}
+
+/* ===== DARK MODE ===== */
+:root[data-theme="newsprint"].dark {
+  --background: oklch(0.18 0.003 60);
+  --foreground: oklch(0.95 0.008 85);
+  --card: oklch(0.93 0.012 85);             /* paper card on charcoal */
+  --card-foreground: oklch(0.16 0.005 60);
+  --popover: oklch(0.95 0.01 85);
+  --popover-foreground: oklch(0.14 0.005 60);
+  --primary: oklch(0.94 0.012 85);          /* paper buttons */
+  --primary-foreground: oklch(0.14 0.005 60);
+  --secondary: oklch(0.26 0.004 60);
+  --secondary-foreground: oklch(0.94 0.012 85);
+  --muted: oklch(0.24 0.004 60);
+  --muted-foreground: oklch(0.72 0.008 80);
+  --accent: oklch(0.92 0.012 85);
+  --accent-foreground: oklch(0.14 0.005 60);
+  --destructive: oklch(0.58 0.20 28);
+  --destructive-foreground: oklch(0.98 0.005 85);
+  --border: oklch(0.94 0.012 85 / 0.14);
+  --input: oklch(0.94 0.012 85 / 0.08);
+  --ring: oklch(0.94 0.012 85 / 0.45);
+  --electric: oklch(0.94 0.012 85);
+  --violet: oklch(0.86 0.015 85);
+  --mint: oklch(0.78 0.06 150);
+  --rail: oklch(0.20 0.004 60);
+  --rail-foreground: oklch(0.92 0.012 85);
+  --panel: oklch(0.22 0.004 60);
+  --panel-foreground: oklch(0.94 0.012 85);
+  --sidebar: oklch(0.20 0.004 60);
+  --sidebar-foreground: oklch(0.92 0.012 85);
+}
+:root[data-theme="newsprint"].dark body {
+  background-color: oklch(0.18 0.003 60);
+  background-image:
+    radial-gradient(ellipse at 12% 0%, oklch(0.24 0.004 60 / 0.7), transparent 55%),
+    radial-gradient(ellipse at 100% 100%, oklch(0.14 0.003 60 / 0.7), transparent 55%),
+    linear-gradient(180deg, oklch(0.20 0.003 60), oklch(0.16 0.003 60));
+  background-attachment: fixed;
+}
+/* Paper-textured panels on charcoal */
+:root[data-theme="newsprint"].dark .glass,
+:root[data-theme="newsprint"].dark .glass-strong {
+  background-color: oklch(0.94 0.012 85);
+  background-image: var(--paper-texture);
+  background-blend-mode: multiply;
+  color: oklch(0.16 0.005 60);
+  border: 1px solid oklch(0 0 0 / 0.18);
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.6) inset,
+    0 1px 2px oklch(0 0 0 / 0.35),
+    0 14px 32px -10px oklch(0 0 0 / 0.55),
+    0 32px 72px -28px oklch(0 0 0 / 0.7);
+}
+:root[data-theme="newsprint"].dark .glass-strong {
+  background-color: oklch(0.96 0.01 85);
+}
+/* Paper-textured buttons */
+:root[data-theme="newsprint"].dark button:not([data-no-paper]),
+:root[data-theme="newsprint"].dark .btn-paper,
+:root[data-theme="newsprint"]:not(.dark) .btn-paper {
+  background-image: var(--paper-texture);
+  background-blend-mode: multiply;
+}
