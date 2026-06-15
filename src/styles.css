@@ -856,21 +856,22 @@
 }
 :root[data-theme="newsprint"]:not(.dark) .glass,
 :root[data-theme="newsprint"]:not(.dark) .glass-strong {
-  background-color: oklch(0.99 0.006 85 / 0.96);
-  background-image: var(--paper-texture);
-  background-blend-mode: multiply;
+  background-color: oklch(0.99 0.006 85 / 0.60);
+  background-image: none;
+  backdrop-filter: blur(20px) saturate(140%);
+  color: oklch(0.18 0.005 60);
   border: 1px solid oklch(0.18 0.005 60 / 0.10);
   box-shadow:
-    0 1px 0 oklch(1 0 0 / 0.95) inset,
+    0 1px 0 oklch(1 0 0 / 0.65) inset,
     0 0 0 1px oklch(0.18 0.005 60 / 0.04),
     0 1px 2px oklch(0.18 0.005 60 / 0.06),
     0 8px 24px -10px oklch(0.18 0.005 60 / 0.18),
     0 24px 60px -28px oklch(0.18 0.005 60 / 0.28);
 }
 :root[data-theme="newsprint"]:not(.dark) .glass-strong {
-  background-color: oklch(0.995 0.004 85 / 0.98);
+  background-color: oklch(0.99 0.006 85 / 0.70);
   box-shadow:
-    0 1px 0 oklch(1 0 0 / 0.95) inset,
+    0 1px 0 oklch(1 0 0 / 0.75) inset,
     0 0 0 1px oklch(0.18 0.005 60 / 0.06),
     0 2px 4px oklch(0.18 0.005 60 / 0.08),
     0 14px 32px -12px oklch(0.18 0.005 60 / 0.22),
