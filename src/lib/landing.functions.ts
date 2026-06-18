@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 
 export const getPublicLandingContent = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -17,3 +18,28 @@ export const getPublicLandingContent = createServerFn({ method: "GET" }).handler
     freeTrialLanding: !!flag?.enabled,
   };
 });
+
+export const subscribeNewsletter = createServerFn({ method: "POST" })
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        email: z.string().trim().toLowerCase().email().max(255),
+        source: z.string().trim().max(80).optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("newsletter_subscribers")
+      .upsert(
+        { email: data.email, source: data.source ?? "landing" },
+        { onConflict: "email", ignoreDuplicates: true },
+      );
+    // Don't leak whether the address was already on file.
+    if (error && !/duplicate|conflict/i.test(error.message)) {
+      // Log internally; return success to caller.
+      console.error("[subscribeNewsletter]", error.message);
+    }
+    return { ok: true };
+  });
