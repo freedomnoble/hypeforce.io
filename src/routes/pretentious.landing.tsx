@@ -102,6 +102,21 @@ function LandingCMS() {
     }
   };
 
+  const handleProviderUpload = async (file: File, provider: string) => {
+    setBusy(true);
+    try {
+      const { signedUrl, publicUrl } = await uploadUrl({ data: { filename: file.name, kind: "provider" } });
+      const res = await fetch(signedUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      if (!res.ok) throw new Error("Upload failed");
+      setProviderAvatars((prev) => ({ ...prev, [provider]: publicUrl }));
+      toast.success(`${provider} avatar uploaded`);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const save = async () => {
     setBusy(true);
     try {
@@ -124,12 +139,18 @@ function LandingCMS() {
           }
         }
       }
+      // Strip blank avatar entries so we never overwrite with "".
+      const cleanedAvatars: Record<string, string> = {};
+      for (const [k, v] of Object.entries(providerAvatars)) {
+        if (typeof v === "string" && v.trim()) cleanedAvatars[k] = v.trim();
+      }
       await saveFn({
         data: {
           content: parsed,
           theme_key: theme === "default" ? null : theme,
           hero_image_url: hero || null,
           demo_video_url: video || null,
+          provider_avatars: cleanedAvatars,
         },
       });
       toast.success("Landing saved");
