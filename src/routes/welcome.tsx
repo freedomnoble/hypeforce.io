@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import appIcon from "@/assets/app-icon.png";
@@ -21,6 +21,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/welcome")({
+  ssr: "data-only",
   loader: async () => {
     try {
       return await getPublicLandingTheme();
@@ -30,10 +31,6 @@ export const Route = createFileRoute("/welcome")({
   },
   head: () => ({ meta: [{ title: "Welcome to Hypeforce" }] }),
   validateSearch: searchSchema,
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getSession();
-    if (data.session) throw redirect({ to: "/app", replace: true });
-  },
   component: WelcomePage,
   errorComponent: AuthRouteError,
 });
@@ -75,6 +72,12 @@ function WelcomePage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate({ to: "/app", replace: true });
+    });
+  }, [navigate]);
 
   useEffect(() => {
     if (intent) {
