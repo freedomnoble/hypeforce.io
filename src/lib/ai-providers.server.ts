@@ -66,9 +66,7 @@ export async function callProvider(
     case "google":
       return callGoogle(apiKey, model, system, history);
     case "manus":
-      // Manus public chat-completions contract isn't wired yet — return a clear marker
-      // so the router can fall back to the gateway if desired.
-      throw new Error("Manus direct API not yet implemented");
+      return callManus(apiKey, model, system, history);
   }
 }
 
