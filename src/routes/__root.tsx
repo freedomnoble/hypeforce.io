@@ -12,7 +12,7 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { createAuthInvalidationHandler } from "@/lib/auth-invalidation";
-import { ThemeProvider, THEMES, themeHasModes } from "@/components/hypeforce/theme-provider";
+import { ThemeProvider, THEMES, themeHasModes, readBrowserAppliedTheme } from "@/components/hypeforce/theme-provider";
 import { SpiderverseGlitch } from "@/components/hypeforce/spiderverse-glitch";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 
@@ -127,6 +127,7 @@ if(saved==='default'){try{localStorage.removeItem('hf-theme');}catch(e){} saved=
 if(!known(saved)) saved=null;
 var landing=ck('hf-landing-theme');
 if(!known(landing)) landing=null;
+try{if(!landing){landing=sessionStorage.getItem('hf-landing-theme');if(!known(landing)) landing=null;}}catch(e){}
 var theme;
 if(path==='/'){
   theme=root.dataset.theme||landing||'default';
@@ -157,9 +158,16 @@ else if(KNOWN.indexOf(theme)>=0){
 function RootShell({ children }: { children: React.ReactNode }) {
   const matches = useMatches();
   const landingMatch = matches.find((m) => m.routeId === "/");
-  const themeKey = (landingMatch?.loaderData as { themeKey?: string | null } | undefined)?.themeKey ?? null;
+  const routeThemeMatch = matches.find((m) => {
+    const data = m.loaderData as { themeKey?: string | null } | undefined;
+    return !!data?.themeKey;
+  });
+  const themeKey =
+    (landingMatch?.loaderData as { themeKey?: string | null } | undefined)?.themeKey ??
+    (routeThemeMatch?.loaderData as { themeKey?: string | null } | undefined)?.themeKey ??
+    null;
   const isKnownTheme = !!themeKey && THEMES.some((t) => t.id === themeKey);
-  const dataTheme = isKnownTheme ? (themeKey as string) : "default";
+  const dataTheme = isKnownTheme ? (themeKey as string) : readBrowserAppliedTheme();
   const isDark = isKnownTheme && themeHasModes(dataTheme) && dataTheme !== "newsprint";
   return (
     <html lang="en" data-theme={dataTheme} className={isDark ? "dark" : ""} suppressHydrationWarning>
