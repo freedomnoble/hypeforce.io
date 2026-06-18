@@ -114,7 +114,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>("default");
   const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
   const [preview, setPreview] = useState<ThemeTokens | null>(null);
-  const [landingOverride, setLandingOverride] = useState<ThemeId | null>(null);
+  const [landingOverride, setLandingOverride] = useState<ThemeId | null>(() => {
+    if (typeof document === "undefined") return null;
+    if (typeof window !== "undefined" && window.location.pathname !== "/") return null;
+    const ssrTheme = document.documentElement.dataset.theme;
+    if (ssrTheme && ssrTheme !== "default" && THEMES.some((t) => t.id === ssrTheme)) {
+      return ssrTheme;
+    }
+    return null;
+  });
   const [themesEnabled, setThemesEnabled] = useState(true);
   const [customThemesEnabled, setCustomThemesEnabled] = useState(true);
 
