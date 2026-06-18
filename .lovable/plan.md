@@ -1,36 +1,41 @@
-# Fix: Annual discount showing as -0%
+## Problem
+
+When a user clicks "Start 5-day free trial" on `/` and lands on `/welcome` → `/onboarding`, the theme snaps back to **Blueprint (default)** even though the landing page is showing e.g. **Hail Mary**.
+
+Onboarding isn't hardcoded — `OnboardingLayout` uses semantic tokens and `SafeBg`, so it already respects whatever `data-theme` is on `<html>`. The bug is in the theme provider.
 
 ## Root cause
 
-The discount logic in `landing-page.tsx` is correct, but the live data isn't. Your `pricing_config` row has `discount_percent = 0`:
+`ThemeProvider` initializes `theme` state once at app mount via `readInitialTheme()`. For a first-time visitor:
 
-```
-founder_price_monthly: 900 ($9/mo)
-discount_percent: 0          ← should be 10
-```
+1. App mounts → no `localStorage["hf-theme"]`, no `hf-landing-theme` cookie yet → `theme = "default"`.
+2. Landing page mounts → calls `setLandingThemeOverride("hail-mary")` → writes the cookie and sets `landingOverride` state.
+3. While on `/`, `activeLandingOverride` wins → page renders Hail Mary correctly.
+4. User navigates to `/welcome` → `isLandingRoute = false` → `activeLandingOverride` is ignored → falls back to `theme` state, which is still `"default"`. Flash to Blueprint.
 
-So the math runs as $9 × 12 × (1 − 0%) = **$108/yr** with a **−0%** badge — exactly what your screenshot shows. The `?? 10` fallback in code only kicks in when the column is `null`, not when it's `0`.
+The pre-hydration boot script in `__root.tsx` reads the same cookie correctly on a hard reload — but SPA navigation never re-runs it, so the in-memory `theme` state stays stale.
 
 ## Fix
 
-One data update — no schema change, no code change:
+In `src/components/hypeforce/theme-provider.tsx`, treat the landing-theme cookie as the *default* effective theme for any user who hasn't explicitly chosen one:
 
-```sql
-UPDATE public.pricing_config SET discount_percent = 10 WHERE id = 1;
-```
+1. In `setLandingThemeOverride(t)`, after writing the cookie, also seed `theme` state to `t` **only if** `localStorage["hf-theme"]` is unset (i.e. the user has never made an explicit choice). Do **not** write `localStorage` — keep this an inheritable default, not a saved preference.
+2. Clearing the override (`setLandingThemeOverride(null)`) must not clear the cookie or the seeded theme — onboarding/login/auth should keep the look.
+3. Leave `setTheme()` behavior unchanged: any explicit user pick in-app still writes `localStorage` + cookie and wins over the landing default forever.
 
-After that, with $9/mo monthly:
-- Annual badge: **−10%**
-- Annual price card: **$8.10/mo · billed $97/yr** (rounded)
-- Subhead: *"10% off · locked in forever · cancel anytime."*
+Result for the reported flow:
+- Admin sets landing to Hail Mary → first-time visitor sees Hail Mary on `/`, `/welcome`, `/onboarding`, and the app until they change it.
+- Existing users with a saved `hf-theme` are unaffected — their pick still wins.
+- No flash: the boot script already handles hard loads; the seeding handles SPA nav from `/` → `/welcome`.
 
-## Paddle side (already correct, just confirming)
+## Files to edit
 
-- `founder_monthly` = $9.00/mo ✅
-- `founder_annual` = $97.00/yr (≈ $9 × 12 × 0.9) ✅
+- `src/components/hypeforce/theme-provider.tsx` — adjust `setLandingThemeOverride` to seed `theme` state when no explicit user choice exists.
 
-Checkout already routes to `founder_annual` when Annual is selected, so customers will be charged the discounted $97/yr immediately after this fix — no Paddle changes needed.
+No changes needed to `OnboardingLayout`, `welcome.tsx`, or `SafeBg` — they already follow `data-theme` tokens.
 
-## Optional follow-up (not in this change)
+## Verification
 
-The displayed annual total ($97) is rounded from the actual $97.20 (9 × 12 × 0.9). The Paddle price is $97 flat, so what the customer is charged matches the card. If you ever want them to line up exactly, we can either set `founder_annual` to $97.20 in Paddle or keep displaying $97 and adjust the rounding — say the word and I'll wire it.
+- Hard reload `/` with Hail Mary CMS theme → onboarding screens show Hail Mary background + glow.
+- In `/app`, pick Blueprint → reload `/` then go to `/welcome` → stays Blueprint (user choice wins).
+- Log out → `/welcome` still shows whichever theme the user last saw (no jarring snap).

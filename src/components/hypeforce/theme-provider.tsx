@@ -282,6 +282,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setLandingOverride(t);
     if (t && THEMES.some((x) => x.id === t)) {
       writeCookie(LANDING_THEME_COOKIE, t);
+      // Seed the user's effective theme so non-landing routes (welcome,
+      // onboarding, login, app) inherit the CMS landing theme — but only
+      // if they haven't explicitly chosen one yet. Don't write localStorage:
+      // this is an inheritable default, not a saved preference.
+      try {
+        const explicit = localStorage.getItem("hf-theme");
+        if (!explicit) {
+          setThemeState((prev) => (prev === "default" ? t : prev));
+        }
+      } catch {
+        setThemeState((prev) => (prev === "default" ? t : prev));
+      }
     }
   }, []);
 
