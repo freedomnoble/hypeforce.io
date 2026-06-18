@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { setResponseHeader } from "@tanstack/react-start/server";
 import { LandingPage } from "@/components/hypeforce/landing-page";
 import { getPublicLandingContent } from "@/lib/landing.functions";
 
@@ -11,6 +10,21 @@ const KNOWN_THEME_KEYS = new Set([
   "arachna-verse",
   "newsprint",
 ]);
+
+async function writeLandingThemeCookieSSR(themeKey: string) {
+  if (typeof window !== "undefined") return;
+  try {
+    const mod = await import("@tanstack/react-start/server");
+    mod.setResponseHeader(
+      "set-cookie",
+      `hf-landing-theme=${encodeURIComponent(themeKey)}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`,
+    );
+  } catch {
+    // No-op: the client-side landing useEffect still writes the cookie.
+  }
+}
+
+
 
 
 export const Route = createFileRoute("/")({
