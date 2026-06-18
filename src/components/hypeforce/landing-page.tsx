@@ -255,6 +255,15 @@ export function LandingPage({
             {t("hero_eyebrow", "Beta is open — first 1,000 users only")}
           </a>
 
+          <div className="relative mb-10 sm:mb-14 max-w-2xl mx-auto">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-bold tracking-tight text-foreground">
+              {t("hero_headline", "Your AI workforce, your context, total alignment.")}
+            </h1>
+            <p className="mt-4 text-base sm:text-lg text-muted-foreground">
+              {t("hero_subhead", "Humans and Agents working together in channels - no technical knowledge required. Have your own agents/models? Bring them.")}
+            </p>
+          </div>
+
           <div className="relative mx-auto w-full max-w-[1100px]">
             <img
               src={heroUrl || heroAsset.url}
@@ -265,13 +274,7 @@ export function LandingPage({
           </div>
 
           <div className="relative mt-10 sm:mt-14 max-w-2xl mx-auto">
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-display font-bold tracking-tight text-foreground">
-              {t("hero_headline", "Your AI workforce, your context, total alignment.")}
-            </h2>
-            <p className="mt-4 text-base sm:text-lg text-muted-foreground">
-              {t("hero_subhead", "Humans and Agents working together in channels - no technical knowledge required. Have your own agents/models? Bring them.")}
-            </p>
-            <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg" variant="liquid" className="text-base h-12 px-6">
                 <a href="#pricing">
                   {t("hero_cta_primary", `Get founder access — $${monthly}/mo`)}
