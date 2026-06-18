@@ -441,11 +441,14 @@ export const invokeAgentRouter = createServerFn({ method: "POST" })
 
 
 
-    // Load the calling user's connected BYOK providers (we only need the
-    // encrypted key for those we may actually route through).
-    const { data: byokRows } = await supabase
+    // Load the calling user's connected BYOK providers. The encrypted_key
+    // column is NOT readable by the `authenticated` role (see migration
+    // 20260618 — column-level GRANT excludes it). Use the admin client,
+    // explicitly scoped to the authenticated userId.
+    const { data: byokRows } = await supabaseAdmin
       .from("user_ai_connections")
       .select("provider,encrypted_key,status")
+      .eq("user_id", context.userId)
       .eq("status", "active");
     const byok = new Map<ProviderId, string>();
     for (const row of byokRows ?? []) {

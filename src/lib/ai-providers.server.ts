@@ -66,9 +66,7 @@ export async function callProvider(
     case "google":
       return callGoogle(apiKey, model, system, history);
     case "manus":
-      // Manus public chat-completions contract isn't wired yet — return a clear marker
-      // so the router can fall back to the gateway if desired.
-      throw new Error("Manus direct API not yet implemented");
+      return callManus(apiKey, model, system, history);
   }
 }
 
@@ -130,4 +128,68 @@ async function callGoogle(apiKey: string, model: string, system: string, history
   if (!r.ok) throw new Error(`Google ${r.status}: ${(await r.text()).slice(0, 200)}`);
   const j = await r.json();
   return j.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") ?? "";
+}
+
+// Manus v2 API integration.
+// Conversational use: create a task on first turn, then sendMessage for
+// follow-ups. We don't persist task IDs yet, so each invocation creates a
+// fresh task seeded with the system prompt + full history, then reads the
+// assistant's first reply. When durable threads land, swap to task.sendMessage
+// keyed on a stored task_id.
+//
+// Docs: https://api.manus.im/docs/v2/task.create
+async function callManus(apiKey: string, _model: string, system: string, history: ChatTurn[]) {
+  const base = "https://api.manus.im/v2";
+  // Compose the seed prompt: prepend system, then the conversation turns.
+  const transcript = history
+    .map((m) => `${m.role === "assistant" ? "Assistant" : "User"}: ${m.content}`)
+    .join("\n\n");
+  const prompt = `${system}\n\n${transcript}`.trim().slice(0, 32000);
+
+  const createRes = await fetch(`${base}/task.create`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      prompt,
+      // Run synchronously where supported so we get the reply in one round-trip.
+      mode: "chat",
+    }),
+  });
+  if (!createRes.ok) {
+    throw new Error(`Manus ${createRes.status}: ${(await createRes.text()).slice(0, 200)}`);
+  }
+  const created: any = await createRes.json();
+  // Try the common response shapes Manus has shipped across revisions.
+  const direct =
+    created?.output ??
+    created?.reply ??
+    created?.message?.content ??
+    created?.data?.output ??
+    created?.data?.reply;
+  if (typeof direct === "string" && direct.trim().length > 0) return direct;
+
+  const taskId = created?.task_id ?? created?.id ?? created?.data?.task_id;
+  if (!taskId) {
+    throw new Error("Manus task.create returned no task_id or reply");
+  }
+  // Poll task.get for up to ~30s waiting on the assistant's first message.
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 1000));
+    const getRes = await fetch(`${base}/task.get?task_id=${encodeURIComponent(taskId)}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!getRes.ok) continue;
+    const j: any = await getRes.json();
+    const messages: any[] = j?.messages ?? j?.data?.messages ?? [];
+    const assistant = messages.find((m) => m?.role === "assistant" && m?.content);
+    if (assistant) return String(assistant.content);
+    const status = j?.status ?? j?.data?.status;
+    if (status === "failed" || status === "error") {
+      throw new Error(`Manus task failed: ${j?.error ?? "unknown"}`);
+    }
+  }
+  throw new Error("Manus task timed out waiting for assistant reply");
 }
