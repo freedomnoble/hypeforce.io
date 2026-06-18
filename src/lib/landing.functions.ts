@@ -46,6 +46,11 @@ export const getPublicLandingTheme = createServerFn({ method: "GET" }).handler(a
       );
     } catch {}
   }
+  if (typeof sessionStorage !== "undefined" && themeKey) {
+    try {
+      sessionStorage.setItem("hf-landing-theme", themeKey);
+    } catch {}
+  }
   return { themeKey };
 });
 

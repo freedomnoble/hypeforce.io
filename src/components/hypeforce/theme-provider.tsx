@@ -354,6 +354,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setLandingOverride(t);
     if (t && isKnownTheme(t)) {
       writeCookie(LANDING_THEME_COOKIE, t);
+      try {
+        sessionStorage.setItem(LANDING_THEME_COOKIE, t);
+      } catch {}
       setCookieLandingTheme(t);
     }
   }, []);
