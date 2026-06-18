@@ -133,6 +133,10 @@ function readUserTheme(): ThemeId | null {
   if (typeof window === "undefined") return null;
   try {
     const stored = localStorage.getItem(USER_THEME_KEY);
+    if (stored === "default") {
+      localStorage.removeItem(USER_THEME_KEY);
+      return null;
+    }
     if (stored && isKnownTheme(stored)) return stored;
   } catch {}
   return null;

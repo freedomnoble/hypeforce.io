@@ -123,6 +123,7 @@ var root=document.documentElement;
 var path=location.pathname;
 function ck(n){var m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));return m?decodeURIComponent(m[1]):null;}
 var saved=null;try{saved=localStorage.getItem('hf-theme');}catch(e){}
+if(saved==='default'){try{localStorage.removeItem('hf-theme');}catch(e){} saved=null;}
 if(!known(saved)) saved=null;
 var landing=ck('hf-landing-theme');
 if(!known(landing)) landing=null;
