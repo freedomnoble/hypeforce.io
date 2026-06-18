@@ -37,10 +37,26 @@ export const Route = createFileRoute("/")({
     try {
       const res = await getPublicLandingContent();
       const row: any = res.content ?? null;
+      const themeKey = (row?.theme_key as string | null) ?? null;
+      // Mirror the CMS landing theme into a cookie at SSR time so brand-new
+      // visitors who hard-navigate to /welcome, /login, or /app from the
+      // landing page have the right theme applied by the pre-hydration boot
+      // script — no client mount required.
+      if (themeKey && KNOWN_THEME_KEYS.has(themeKey)) {
+        try {
+          setResponseHeader(
+            "set-cookie",
+            `hf-landing-theme=${encodeURIComponent(themeKey)}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`,
+          );
+        } catch {
+          // setResponseHeader may not be available in some runtimes; the
+          // client-side landing-page useEffect still writes the cookie.
+        }
+      }
       return {
         heroUrl: (row?.hero_image_url as string | null) ?? null,
         videoUrl: (row?.demo_video_url as string | null) ?? null,
-        themeKey: (row?.theme_key as string | null) ?? null,
+        themeKey,
         content: (row?.content as Record<string, any> | null) ?? null,
         providerAvatars: (row?.provider_avatars as Record<string, string> | null) ?? null,
         pricing: (res.pricing as Record<string, any> | null) ?? null,
@@ -58,6 +74,7 @@ export const Route = createFileRoute("/")({
       };
     }
   },
+
   component: IndexPage,
   errorComponent: () => <LandingPage />,
   notFoundComponent: () => <LandingPage />,
