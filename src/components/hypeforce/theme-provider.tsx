@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { TOKEN_KEYS, type ThemeTokens } from "@/lib/custom-theme.functions";
@@ -67,14 +67,17 @@ export function tokensToCss(tokens: ThemeTokens): string {
 }
 
 type Ctx = {
+  /** The user's explicit pick (or null if none) — what the picker should show as selected. */
   theme: ThemeId;
+  /** What's actually rendered on screen — used by the picker so it can never desync. */
+  appliedTheme: ThemeId;
   setTheme: (t: ThemeId) => void;
   customThemes: CustomTheme[];
   refreshCustomThemes: () => Promise<void>;
   previewTokens: (tokens: ThemeTokens | null) => void;
   saveCustomTheme: (name: string, prompt: string, tokens: ThemeTokens) => Promise<CustomTheme | null>;
   deleteCustomTheme: (id: string) => Promise<void>;
-  /** Apply a built-in theme override on the public landing route only. Pass null to clear. Not persisted. */
+  /** Apply a built-in theme override on the public landing route only. Pass null to clear. */
   setLandingThemeOverride: (t: ThemeId | null) => void;
   themesEnabled: boolean;
   customThemesEnabled: boolean;
@@ -82,6 +85,7 @@ type Ctx = {
 
 const ThemeCtx = createContext<Ctx>({
   theme: "default",
+  appliedTheme: "default",
   setTheme: () => {},
   customThemes: [],
   refreshCustomThemes: async () => {},
@@ -94,8 +98,16 @@ const ThemeCtx = createContext<Ctx>({
 });
 
 const STYLE_TAG_ID = "hf-custom-theme-style";
-const THEME_COOKIE = "hf-theme";
+const USER_THEME_KEY = "hf-theme";
 const LANDING_THEME_COOKIE = "hf-landing-theme";
+
+const KNOWN_THEME_IDS = new Set(THEMES.map((t) => t.id));
+
+function isKnownTheme(t: string | null | undefined): t is ThemeId {
+  if (!t) return false;
+  if (t.startsWith("custom:")) return true;
+  return KNOWN_THEME_IDS.has(t);
+}
 
 function readCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
@@ -113,15 +125,45 @@ function writeCookie(name: string, value: string | null) {
   }
 }
 
-function readInitialTheme(): ThemeId {
-  if (typeof window === "undefined") return "default";
+/**
+ * Read the user's *explicit* theme pick. Returns null if the user has never
+ * picked one — in that case the CMS landing theme should cascade through.
+ */
+function readUserTheme(): ThemeId | null {
+  if (typeof window === "undefined") return null;
   try {
-    const stored = localStorage.getItem("hf-theme");
-    if (stored) return stored;
+    const stored = localStorage.getItem(USER_THEME_KEY);
+    if (stored && isKnownTheme(stored)) return stored;
   } catch {}
-  const landing = readCookie(LANDING_THEME_COOKIE);
-  if (landing && THEMES.some((t) => t.id === landing)) return landing;
-  return "default";
+  return null;
+}
+
+function readLandingCookieTheme(): ThemeId | null {
+  const v = readCookie(LANDING_THEME_COOKIE);
+  return v && isKnownTheme(v) ? v : null;
+}
+
+/**
+ * Single resolver — mirrored by the boot script in __root.tsx. Precedence:
+ *   1. preview tokens (live custom-theme preview)            → "custom"
+ *   2. on landing route                                       → CMS landing theme
+ *   3. user's explicit pick (localStorage["hf-theme"])
+ *   4. CMS landing theme cookie (hf-landing-theme)
+ *   5. "default"
+ */
+function resolveAppliedTheme(args: {
+  isLandingRoute: boolean;
+  landingOverride: ThemeId | null;
+  userTheme: ThemeId | null;
+  cookieLandingTheme: ThemeId | null;
+  hasPreview: boolean;
+}): ThemeId {
+  const { isLandingRoute, landingOverride, userTheme, cookieLandingTheme, hasPreview } = args;
+  if (hasPreview) return "custom";
+  if (isLandingRoute) {
+    return landingOverride ?? cookieLandingTheme ?? "default";
+  }
+  return userTheme ?? cookieLandingTheme ?? "default";
 }
 
 function applyCustomTokens(tokens: ThemeTokens | null) {
@@ -140,22 +182,29 @@ function applyCustomTokens(tokens: ThemeTokens | null) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Lazy-init from localStorage (or landing-theme cookie) so the very first
-  // render of any non-landing route already uses the user's saved theme.
-  // Matches what the pre-hydration boot script in __root.tsx applied to
-  // <html data-theme>, so React hydration doesn't flicker back to default.
-  const [theme, setThemeState] = useState<ThemeId>(() => readInitialTheme());
-  const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
-  const [preview, setPreview] = useState<ThemeTokens | null>(null);
+  // `theme` = the user's explicit pick (what the picker shows as "their" theme).
+  // null/"default" means "no explicit pick yet — let the CMS theme cascade."
+  const [theme, setThemeState] = useState<ThemeId>(() => readUserTheme() ?? "default");
+
+  // `cookieLandingTheme` is read once at mount and kept in state so SPA
+  // navigations re-render with the latest value. The SSR Set-Cookie + the
+  // landing page's setLandingThemeOverride keep this in sync.
+  const [cookieLandingTheme, setCookieLandingTheme] = useState<ThemeId | null>(() =>
+    readLandingCookieTheme(),
+  );
+
   const [landingOverride, setLandingOverride] = useState<ThemeId | null>(() => {
     if (typeof document === "undefined") return null;
     if (typeof window !== "undefined" && window.location.pathname !== "/") return null;
     const ssrTheme = document.documentElement.dataset.theme;
-    if (ssrTheme && ssrTheme !== "default" && THEMES.some((t) => t.id === ssrTheme)) {
+    if (ssrTheme && isKnownTheme(ssrTheme) && ssrTheme !== "default") {
       return ssrTheme;
     }
     return null;
   });
+
+  const [customThemes, setCustomThemes] = useState<CustomTheme[]>([]);
+  const [preview, setPreview] = useState<ThemeTokens | null>(null);
   const [themesEnabled, setThemesEnabled] = useState(true);
   const [customThemesEnabled, setCustomThemesEnabled] = useState(true);
 
@@ -197,29 +246,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [refreshCustomThemes]);
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  // The landing route ("/") is the only place where the CMS-configured
-  // landing theme wins. Everywhere else (login, onboarding, app, admin,
-  // 404, etc) the user's saved theme is applied — and persists across
-  // sign-out because it lives in localStorage + cookie, not in their
-  // session.
   const isLandingRoute = pathname === "/";
-  const activeLandingOverride =
-    themesEnabled && isLandingRoute && landingOverride && THEMES.some((t) => t.id === landingOverride)
-      ? landingOverride
-      : null;
 
-  // Decide which tokens are active and apply
+  // The user's explicit pick (what the picker should highlight). When they
+  // haven't picked yet but a CMS landing theme exists, the picker still shows
+  // "default" — but `appliedTheme` (below) reflects what's actually rendered.
+  const userTheme: ThemeId | null = theme && theme !== "default" ? theme : readUserTheme();
+
+  const appliedTheme = useMemo<ThemeId>(() => {
+    if (!themesEnabled) return "default";
+    return resolveAppliedTheme({
+      isLandingRoute,
+      landingOverride,
+      userTheme,
+      cookieLandingTheme,
+      hasPreview: !!preview,
+    });
+  }, [themesEnabled, isLandingRoute, landingOverride, userTheme, cookieLandingTheme, preview]);
+
+  // Apply the resolved theme to <html>.
   useEffect(() => {
     if (typeof document === "undefined") return;
     const root = document.documentElement;
-
-    // Themes feature flag off → force default everywhere.
-    if (!themesEnabled) {
-      applyCustomTokens(null);
-      root.dataset.theme = "default";
-      root.classList.remove("dark");
-      return;
-    }
 
     if (preview) {
       root.dataset.theme = "custom";
@@ -228,17 +276,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // On landing, the CMS theme wins regardless of the user's saved theme.
-    const effectiveTheme = activeLandingOverride ?? theme;
+    const effective = appliedTheme;
 
-    if (effectiveTheme.startsWith("custom:")) {
+    if (effective.startsWith("custom:")) {
       if (!customThemesEnabled) {
         applyCustomTokens(null);
         root.dataset.theme = "default";
         root.classList.remove("dark");
         return;
       }
-      const id = effectiveTheme.slice("custom:".length);
+      const id = effective.slice("custom:".length);
       const found = customThemes.find((c) => c.id === id);
       if (found) {
         root.dataset.theme = "custom";
@@ -246,57 +293,50 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         applyCustomTokens(found.tokens);
         return;
       }
-      // Custom theme not loaded yet — leave whatever was applied (boot script
-      // or previous render) in place; refresh will re-run this effect.
+      // Custom theme not loaded yet — leave the boot-script state in place.
       return;
     }
 
     applyCustomTokens(null);
-    root.dataset.theme = effectiveTheme;
-    if (themeHasModes(effectiveTheme)) {
-      const defaultMode = effectiveTheme === "newsprint" ? "light" : "dark";
-      const stored =
-        (localStorage.getItem("hf-arachna-mode") as "dark" | "light" | null) ?? defaultMode;
-      root.classList.toggle("dark", stored === "dark");
+    root.dataset.theme = effective;
+    if (themeHasModes(effective)) {
+      const defaultMode = effective === "newsprint" ? "light" : "dark";
+      let stored: string | null = null;
+      try {
+        stored = localStorage.getItem("hf-arachna-mode");
+      } catch {}
+      const mode = stored ?? defaultMode;
+      root.classList.toggle("dark", mode === "dark");
     } else {
       root.classList.remove("dark");
     }
-  }, [theme, preview, customThemes, activeLandingOverride, themesEnabled, customThemesEnabled]);
+  }, [appliedTheme, preview, customThemes, customThemesEnabled]);
 
-  const setTheme = (t: ThemeId) => {
+  const setTheme = useCallback((t: ThemeId) => {
     setPreview(null);
     setThemeState(t);
     try {
-      localStorage.setItem("hf-theme", t);
-    } catch {}
-    // Mirror to a cookie so the SSR shell + pre-hydration boot script can
-    // apply the same theme on the next hard load without a flash.
-    writeCookie(THEME_COOKIE, t);
-  };
-
-  // Wrap setLandingOverride so we also persist the CMS landing theme into
-  // a cookie. First-time visitors who land on "/" and then navigate to
-  // /auth, /onboarding, or the app will get this theme as their default
-  // until they pick their own.
-  const setLandingThemeOverride = useCallback((t: ThemeId | null) => {
-    setLandingOverride(t);
-    if (t && THEMES.some((x) => x.id === t)) {
-      writeCookie(LANDING_THEME_COOKIE, t);
-      // Seed the user's effective theme so non-landing routes (welcome,
-      // onboarding, login, app) inherit the CMS landing theme — but only
-      // if they haven't explicitly chosen one yet. Don't write localStorage:
-      // this is an inheritable default, not a saved preference.
-      try {
-        const explicit = localStorage.getItem("hf-theme");
-        if (!explicit) {
-          setThemeState((prev) => (prev === "default" ? t : prev));
-        }
-      } catch {
-        setThemeState((prev) => (prev === "default" ? t : prev));
+      // "default" means "no explicit pick" — remove the key so the CMS theme
+      // can cascade again later if the user wants to clear their preference.
+      if (t === "default") {
+        localStorage.removeItem(USER_THEME_KEY);
+      } else {
+        localStorage.setItem(USER_THEME_KEY, t);
       }
-    }
+    } catch {}
   }, []);
 
+  // Called by the landing page when the CMS theme resolves. Updates the
+  // landing-only override AND persists the CMS theme into a cookie so every
+  // non-landing route inherits it via the resolver above. Never touches
+  // localStorage — that key belongs to the user's explicit pick only.
+  const setLandingThemeOverride = useCallback((t: ThemeId | null) => {
+    setLandingOverride(t);
+    if (t && isKnownTheme(t)) {
+      writeCookie(LANDING_THEME_COOKIE, t);
+      setCookieLandingTheme(t);
+    }
+  }, []);
 
   const previewTokens = (tokens: ThemeTokens | null) => {
     setPreview(tokens);
@@ -326,6 +366,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     <ThemeCtx.Provider
       value={{
         theme,
+        appliedTheme,
         setTheme,
         customThemes,
         refreshCustomThemes,

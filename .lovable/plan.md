@@ -1,41 +1,73 @@
-## Problem
+# Fix theme desync between landing, onboarding, and `/app`
 
-When a user clicks "Start 5-day free trial" on `/` and lands on `/welcome` → `/onboarding`, the theme snaps back to **Blueprint (default)** even though the landing page is showing e.g. **Hail Mary**.
+## What's actually broken
 
-Onboarding isn't hardcoded — `OnboardingLayout` uses semantic tokens and `SafeBg`, so it already respects whatever `data-theme` is on `<html>`. The bug is in the theme provider.
+**Bug 1 — `/app` shows default while Hail Mary is "selected" in the picker.**
+The picker marks a theme active via `t.id === theme` (React state), but the effect can apply something different than `theme` (e.g. `default` when `themesEnabled` is false, or whatever the boot script wrote at load if React state diverges from cookie/localStorage). There's no single source of truth: the boot script, SSR `RootShell`, `readInitialTheme`, and `setLandingThemeOverride` each have slightly different precedence rules. The picker should show "selected" for **what is actually applied**, not for the raw state.
 
-## Root cause
+**Bug 2 — Onboarding/welcome shows default blue instead of the CMS landing theme.**
+The CMS landing theme is only written to a cookie + seeded into React state inside the landing page's `useEffect`. Two failure modes:
+1. The seed is gated by `if (!localStorage.hf-theme) setThemeState(prev => prev === "default" ? t : prev)`. If a user has ever had **any** value in `localStorage["hf-theme"]` (including a stale `"default"` from an older session), the CMS landing theme is silently ignored.
+2. On a hard navigation directly to `/welcome` before ever visiting `/`, the cookie isn't set yet, so the boot script falls back to `default`.
 
-`ThemeProvider` initializes `theme` state once at app mount via `readInitialTheme()`. For a first-time visitor:
+## Plan
 
-1. App mounts → no `localStorage["hf-theme"]`, no `hf-landing-theme` cookie yet → `theme = "default"`.
-2. Landing page mounts → calls `setLandingThemeOverride("hail-mary")` → writes the cookie and sets `landingOverride` state.
-3. While on `/`, `activeLandingOverride` wins → page renders Hail Mary correctly.
-4. User navigates to `/welcome` → `isLandingRoute = false` → `activeLandingOverride` is ignored → falls back to `theme` state, which is still `"default"`. Flash to Blueprint.
+### 1. One resolver, used everywhere
 
-The pre-hydration boot script in `__root.tsx` reads the same cookie correctly on a hard reload — but SPA navigation never re-runs it, so the in-memory `theme` state stays stale.
+Add a single precedence rule, mirrored in the boot script, `RootShell`, and `ThemeProvider`:
 
-## Fix
+```
+applied = (preview tokens)
+        ? "custom"
+        : (on landing route)
+            ? CMS landing theme (from loader / cookie / default)
+            : userTheme ?? cmsLandingTheme ?? "default"
+```
 
-In `src/components/hypeforce/theme-provider.tsx`, treat the landing-theme cookie as the *default* effective theme for any user who hasn't explicitly chosen one:
+Where:
+- `userTheme` = `localStorage["hf-theme"]` (only set by an explicit user pick).
+- `cmsLandingTheme` = cookie `hf-landing-theme` (written by landing page **and** by SSR `RootShell` for any visitor whose loader resolved a CMS theme).
 
-1. In `setLandingThemeOverride(t)`, after writing the cookie, also seed `theme` state to `t` **only if** `localStorage["hf-theme"]` is unset (i.e. the user has never made an explicit choice). Do **not** write `localStorage` — keep this an inheritable default, not a saved preference.
-2. Clearing the override (`setLandingThemeOverride(null)`) must not clear the cookie or the seeded theme — onboarding/login/auth should keep the look.
-3. Leave `setTheme()` behavior unchanged: any explicit user pick in-app still writes `localStorage` + cookie and wins over the landing default forever.
+Side-effect: stop writing `"default"` to `localStorage["hf-theme"]`. Treat the absence of that key as "user has not chosen", so the CMS theme can always cascade through.
 
-Result for the reported flow:
-- Admin sets landing to Hail Mary → first-time visitor sees Hail Mary on `/`, `/welcome`, `/onboarding`, and the app until they change it.
-- Existing users with a saved `hf-theme` are unaffected — their pick still wins.
-- No flash: the boot script already handles hard loads; the seeding handles SPA nav from `/` → `/welcome`.
+### 2. `setLandingThemeOverride` simplification
+
+Drop the "only seed if prev was default" guard. The new rule:
+- Always update the `landingOverride` state (used only on `/`).
+- Always write the `hf-landing-theme` cookie when given a known theme.
+- Never write `localStorage["hf-theme"]` — that key is reserved for explicit user picks.
+
+The resolver in step 1 then handles non-landing routes correctly without any in-memory seeding trick.
+
+### 3. SSR `RootShell` writes the cookie too
+
+When the landing loader returns `themeKey`, emit a `Set-Cookie: hf-landing-theme=<key>; Max-Age=1y; SameSite=Lax; Path=/` via TanStack's response headers so the very first navigation to `/welcome` (or any other route) on a brand-new device already has the cookie before the boot script runs. Implemented inside the landing route's loader using `setResponseHeader`.
+
+### 4. Picker reflects what's applied
+
+In `ThemesPanel`, derive `appliedTheme` from the provider (expose it from context). Compute `active = t.id === appliedTheme` instead of `t.id === theme`. Add a small inline warning when `themesEnabled` is false. This makes the "selected but not applied" desync impossible.
+
+Provider change: add `appliedTheme: ThemeId` to the context, computed with the same resolver in step 1.
+
+### 5. Boot-script + provider parity
+
+Rewrite the inline boot script in `src/routes/__root.tsx` to use the resolver from step 1 — including the rule that for non-landing routes `localStorage["hf-theme"]` wins over the cookie, and for `/` the SSR-rendered `data-theme` wins. Same logic in `readInitialTheme` and the provider's apply-theme effect.
 
 ## Files to edit
 
-- `src/components/hypeforce/theme-provider.tsx` — adjust `setLandingThemeOverride` to seed `theme` state when no explicit user choice exists.
-
-No changes needed to `OnboardingLayout`, `welcome.tsx`, or `SafeBg` — they already follow `data-theme` tokens.
+- `src/components/hypeforce/theme-provider.tsx` — add resolver, expose `appliedTheme`, simplify `setLandingThemeOverride`, stop writing `"default"` to localStorage, fix `readInitialTheme` to match the resolver.
+- `src/routes/__root.tsx` — rewrite boot script to call the same resolver inline; no behavior change for `/`.
+- `src/routes/index.tsx` (landing loader) — `setResponseHeader('Set-Cookie', ...)` when a CMS theme is resolved.
+- `src/components/hypeforce/landing-page.tsx` — no behavior change needed beyond keeping the existing `setLandingThemeOverride(themeKey)` call (which still writes the cookie client-side as a fallback).
+- `src/components/hypeforce/workspace-settings-sheet.tsx` — use `appliedTheme` for the `active` check; show a "Theming is disabled by feature flag" notice if `themesEnabled === false` while a non-default theme is selected.
 
 ## Verification
 
-- Hard reload `/` with Hail Mary CMS theme → onboarding screens show Hail Mary background + glow.
-- In `/app`, pick Blueprint → reload `/` then go to `/welcome` → stays Blueprint (user choice wins).
-- Log out → `/welcome` still shows whichever theme the user last saw (no jarring snap).
+1. Hard-reload `/` with CMS = Hail Mary → renders Hail Mary, no flash.
+2. Click "Start 5-day free trial" → `/welcome` renders Hail Mary (no flash, no blue).
+3. Sign up → onboarding screens render Hail Mary.
+4. In `/app`, open Themes — Hail Mary is shown selected **and** the app actually looks Hail Mary.
+5. Pick Blueprint in `/app` → reload `/` → still Hail Mary (CMS wins on landing). Navigate to `/welcome` or `/app` → Blueprint (explicit user pick wins).
+6. Log out → `/welcome` still shows Blueprint (explicit pick survives sign-out).
+7. Clear site data, hard-load `/app` directly with no prior `/` visit (and no cookies) → renders `default` (correct: no CMS preference known yet).
+8. Repeat #7 after one visit to `/` → now `/app` renders the CMS theme until the user explicitly picks another.

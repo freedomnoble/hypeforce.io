@@ -2,6 +2,31 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LandingPage } from "@/components/hypeforce/landing-page";
 import { getPublicLandingContent } from "@/lib/landing.functions";
 
+const KNOWN_THEME_KEYS = new Set([
+  "default",
+  "tool-time",
+  "hail-mary",
+  "coffee",
+  "arachna-verse",
+  "newsprint",
+]);
+
+async function writeLandingThemeCookieSSR(themeKey: string) {
+  if (typeof window !== "undefined") return;
+  try {
+    const mod = await import("@tanstack/react-start/server");
+    mod.setResponseHeader(
+      "set-cookie",
+      `hf-landing-theme=${encodeURIComponent(themeKey)}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`,
+    );
+  } catch {
+    // No-op: the client-side landing useEffect still writes the cookie.
+  }
+}
+
+
+
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -26,10 +51,19 @@ export const Route = createFileRoute("/")({
     try {
       const res = await getPublicLandingContent();
       const row: any = res.content ?? null;
+      const themeKey = (row?.theme_key as string | null) ?? null;
+      // Mirror the CMS landing theme into a cookie at SSR time so brand-new
+      // visitors who hard-navigate to /welcome, /login, or /app from the
+      // landing page have the right theme applied by the pre-hydration boot
+      // script — no client mount required.
+      if (themeKey && KNOWN_THEME_KEYS.has(themeKey)) {
+        await writeLandingThemeCookieSSR(themeKey);
+      }
+
       return {
         heroUrl: (row?.hero_image_url as string | null) ?? null,
         videoUrl: (row?.demo_video_url as string | null) ?? null,
-        themeKey: (row?.theme_key as string | null) ?? null,
+        themeKey,
         content: (row?.content as Record<string, any> | null) ?? null,
         providerAvatars: (row?.provider_avatars as Record<string, string> | null) ?? null,
         pricing: (res.pricing as Record<string, any> | null) ?? null,
@@ -47,6 +81,7 @@ export const Route = createFileRoute("/")({
       };
     }
   },
+
   component: IndexPage,
   errorComponent: () => <LandingPage />,
   notFoundComponent: () => <LandingPage />,

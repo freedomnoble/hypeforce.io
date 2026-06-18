@@ -950,7 +950,12 @@ function BrandPanel({ workspaceId, initial }: { workspaceId: string; initial: st
 
 /* ============== THEMES ============== */
 function ThemesPanel() {
-  const { theme, setTheme, customThemes, deleteCustomTheme, themesEnabled, customThemesEnabled } = useTheme();
+  const { theme, appliedTheme, setTheme, customThemes, deleteCustomTheme, themesEnabled, customThemesEnabled } = useTheme();
+  // Highlight whatever is *actually rendered* so the picker can never desync
+  // from the page (e.g. when the user is on a route that inherits the CMS
+  // landing theme and hasn't picked their own yet).
+  const selectedThemeId = appliedTheme;
+
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const share = async (id: string, name: string, tokens: any) => {
@@ -990,7 +995,7 @@ function ThemesPanel() {
       </header>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {THEMES.map((t) => {
-          const active = t.id === theme;
+          const active = t.id === selectedThemeId;
           return (
             <button
               key={t.id}
@@ -1021,7 +1026,7 @@ function ThemesPanel() {
 
         {customThemesEnabled && customThemes.map((c) => {
           const id = `custom:${c.id}`;
-          const active = id === theme;
+          const active = id === selectedThemeId;
           const swatchKeys = ["background", "panel", "primary", "accent"] as const;
           return (
             <div
