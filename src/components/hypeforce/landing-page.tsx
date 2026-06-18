@@ -185,12 +185,27 @@ export function LandingPage({
   ]);
 
   const playsWithItems = arr<PlaysWithItem>("plays_with", [
-    { label: "ChatGPT", logo_url: "/avatars/chatgpt.png" },
-    { label: "Claude", logo_url: "/avatars/claude.png" },
-    { label: "Gemini", logo_url: "/avatars/gemini.png" },
-    { label: "Manus", logo_url: "/avatars/manus.png" },
+    { label: "ChatGPT" },
+    { label: "Claude" },
+    { label: "Gemini" },
+    { label: "Manus" },
     { label: "+ your own keys" },
   ]);
+
+  const labelToProvider = (label: string): string | null => {
+    const s = label.toLowerCase();
+    if (s.includes("chatgpt") || s.includes("openai") || s.includes("gpt")) return "openai";
+    if (s.includes("claude") || s.includes("anthropic")) return "anthropic";
+    if (s.includes("gemini") || s.includes("google")) return "google";
+    if (s.includes("manus")) return "manus";
+    if (s.includes("lovable")) return "lovable";
+    return null;
+  };
+  const resolveLogo = (item: PlaysWithItem): string | undefined => {
+    if (item.logo_url) return item.logo_url;
+    const p = labelToProvider(item.label);
+    return p ? providerAvatars?.[p] ?? undefined : undefined;
+  };
 
   const footerLinks = arr<FooterLink>("footer_links", [
     { label: "Features", href: "#features" },
