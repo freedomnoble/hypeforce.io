@@ -108,6 +108,41 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Bangers&family=Archivo+Black&family=Bowlby+One&family=Pacifico&display=swap",
       },
     ],
+    scripts: [
+      {
+        // Pre-hydration theme boot: applies the user's saved theme (or the
+        // CMS landing theme as a first-time fallback) BEFORE first paint, so
+        // there's no flash from default → user's theme on any route. The
+        // landing route ("/") is driven by SSR loader data and we leave its
+        // SSR-rendered data-theme alone here.
+        children: `(function(){try{
+var KNOWN=["default","tool-time","hail-mary","coffee","arachna-verse","newsprint"];
+var WITH_MODES={"arachna-verse":"dark","newsprint":"light"};
+var root=document.documentElement;
+var path=location.pathname;
+function ck(n){var m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));return m?decodeURIComponent(m[1]):null;}
+var saved=null;try{saved=localStorage.getItem('hf-theme');}catch(e){}
+var landing=ck('hf-landing-theme');
+var theme;
+if(path==='/'){theme=root.dataset.theme||'default';}
+else{
+  if(saved && (saved.indexOf('custom:')===0 || KNOWN.indexOf(saved)>=0)) theme=saved;
+  else if(landing && KNOWN.indexOf(landing)>=0) theme=landing;
+  else theme='default';
+}
+if(theme.indexOf('custom:')===0){root.dataset.theme='custom';root.classList.remove('dark');}
+else if(KNOWN.indexOf(theme)>=0){
+  root.dataset.theme=theme;
+  if(WITH_MODES[theme]){
+    var modeDefault=WITH_MODES[theme];
+    var stored=null;try{stored=localStorage.getItem('hf-arachna-mode');}catch(e){}
+    var mode=stored||modeDefault;
+    root.classList.toggle('dark',mode==='dark');
+  } else { root.classList.remove('dark'); }
+}
+}catch(e){}})();`,
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
