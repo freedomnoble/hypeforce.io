@@ -203,26 +203,59 @@ export function AgentWizard({
           )}
 
           {step === 2 && (
-            <div className="space-y-2">
-              <Label>Model</Label>
+            <div className="space-y-4">
               <div className="space-y-2">
-                {AVAILABLE_MODELS.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setForm({ ...form, modelId: m.id })}
-                    className={`w-full text-left p-3 rounded-xl border ${
-                      form.modelId === m.id
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-foreground/30"
-                    }`}
-                  >
-                    <div className="font-medium text-sm">{m.label}</div>
-                    <div className="text-xs text-muted-foreground font-mono">{m.id}</div>
-                  </button>
-                ))}
+                <Label>Lovable Gateway</Label>
+                <div className="space-y-2">
+                  {gatewayModels.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setForm({ ...form, modelId: m.id })}
+                      className={`w-full text-left p-3 rounded-xl border ${
+                        form.modelId === m.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-foreground/30"
+                      }`}
+                    >
+                      <div className="font-medium text-sm">{m.label}</div>
+                      <div className="text-xs text-muted-foreground font-mono">{m.id}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {byokModels.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Your connected providers</Label>
+                  <div className="space-y-2">
+                    {byokModels.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setForm({ ...form, modelId: m.id })}
+                        className={`w-full text-left p-3 rounded-xl border ${
+                          form.modelId === m.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-foreground/30"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="font-medium text-sm">{m.label}</div>
+                          {m.badge && (
+                            <span className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                              {m.badge}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-mono">{m.id}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+
           )}
 
           {step === 3 && (
