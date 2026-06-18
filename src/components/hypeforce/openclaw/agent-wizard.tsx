@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import {
   AVAILABLE_MODELS,
   AVAILABLE_TOOLS,
   createOpenclawAgent,
+  listAvailableModels,
+  type AvailableModel,
   type OpenclawSkill,
   type OpenclawPersona,
 } from "@/lib/openclaw.functions";
@@ -35,6 +37,7 @@ const EMPTY: Form = {
   skills: [],
   tools: ["web_search"],
 };
+
 
 export function AgentWizard({
   open,
