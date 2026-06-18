@@ -42,6 +42,11 @@ const FIELDS: { key: string; label: string; multiline?: boolean }[] = [
   { key: "faq_headline", label: "FAQ — headline" },
   { key: "footer_cta_headline", label: "Footer CTA — headline" },
   { key: "footer_cta_subhead", label: "Footer CTA — subhead", multiline: true },
+  { key: "newsletter_eyebrow", label: "Newsletter — eyebrow" },
+  { key: "newsletter_headline", label: "Newsletter — headline", multiline: true },
+  { key: "newsletter_subhead", label: "Newsletter — subhead", multiline: true },
+  { key: "newsletter_cta", label: "Newsletter — CTA label" },
+  { key: "newsletter_success", label: "Newsletter — success message", multiline: true },
 ];
 
 const LIST_FIELDS: { key: string; label: string; hint: string }[] = [

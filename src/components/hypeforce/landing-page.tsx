@@ -769,3 +769,79 @@ function Faq({ q, children }: { q: string; children: React.ReactNode }) {
     </details>
   );
 }
+
+function NewsletterSignup({
+  ctaLabel,
+  successLabel,
+}: {
+  ctaLabel: string;
+  successLabel: string;
+}) {
+  const subscribe = useServerFn(subscribeNewsletter);
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [errMsg, setErrMsg] = useState<string | null>(null);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setStatus("loading");
+    setErrMsg(null);
+    try {
+      await subscribe({ data: { email: email.trim(), source: "landing" } });
+      setStatus("done");
+      setEmail("");
+    } catch (err: any) {
+      setStatus("error");
+      setErrMsg(err?.message ?? "Couldn't sign you up. Try again.");
+    }
+  };
+
+  if (status === "done") {
+    return (
+      <div className="glass rounded-2xl p-6 text-center">
+        <p className="font-display text-lg">{successLabel}</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          No spam. Unsubscribe anytime.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="glass rounded-2xl p-5 space-y-3">
+      <label htmlFor="newsletter-email" className="block text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        Your work email
+      </label>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <input
+          id="newsletter-email"
+          type="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@company.com"
+          className="flex-1 h-12 rounded-xl bg-background/50 border border-white/10 px-4 text-base outline-none focus:border-electric/60 transition-colors"
+        />
+        <Button
+          type="submit"
+          size="lg"
+          variant="liquid"
+          className="h-12 px-6"
+          disabled={status === "loading"}
+        >
+          {status === "loading" ? "Signing you up…" : ctaLabel}
+          <ArrowRight className="w-4 h-4" />
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Weekly tips on building your AI workforce. No spam, unsubscribe anytime.
+      </p>
+      {status === "error" && errMsg && (
+        <p className="text-xs text-red-400">{errMsg}</p>
+      )}
+    </form>
+  );
+}
+
