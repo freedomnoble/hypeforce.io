@@ -950,7 +950,12 @@ function BrandPanel({ workspaceId, initial }: { workspaceId: string; initial: st
 
 /* ============== THEMES ============== */
 function ThemesPanel() {
-  const { theme, setTheme, customThemes, deleteCustomTheme, themesEnabled, customThemesEnabled } = useTheme();
+  const { theme, appliedTheme, setTheme, customThemes, deleteCustomTheme, themesEnabled, customThemesEnabled } = useTheme();
+  // Highlight whatever is *actually rendered* so the picker can never desync
+  // from the page (e.g. when the user is on a route that inherits the CMS
+  // landing theme and hasn't picked their own yet).
+  const selectedThemeId = appliedTheme;
+
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const share = async (id: string, name: string, tokens: any) => {
