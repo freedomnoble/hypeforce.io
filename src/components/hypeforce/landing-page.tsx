@@ -1,5 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useEffect, useState } from "react";
+import { subscribeNewsletter } from "@/lib/landing.functions";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
@@ -586,6 +588,32 @@ export function LandingPage({
         </section>
       )}
 
+      {/* Newsletter signup */}
+      <section id="newsletter" className="relative z-10 mx-auto max-w-5xl px-5 lg:px-8 py-20">
+        <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8 lg:p-12 shadow-2xl">
+          <div className="grid lg:grid-cols-[1.1fr_1fr] gap-8 lg:gap-12 items-center">
+            <div>
+              <p className="hf-eyebrow">{t("newsletter_eyebrow", "WEEKLY DROP")}</p>
+              <h2 className="hf-h2 mt-2">
+                {t("newsletter_headline", "Not ready yet? Build your own AI workforce.")}
+              </h2>
+              <p className="mt-4 text-muted-foreground text-base lg:text-lg">
+                {t(
+                  "newsletter_subhead",
+                  "Get a weekly breakdown of how teams are wiring ChatGPT, Claude, Gemini and Manus into real work — popular stacks, prompts that ship, and the playbooks behind Hypeforce. We don't gatekeep. Just hype up your workforce.",
+                )}
+              </p>
+            </div>
+            <NewsletterSignup
+              ctaLabel={t("newsletter_cta", "Get the playbook")}
+              successLabel={t(
+                "newsletter_success",
+                "You're in. Check your inbox for the first drop.",
+              )}
+            />
+          </div>
+        </div>
+      </section>
 
       {/* FAQ */}
       <section id="faq" className="relative z-10 mx-auto max-w-3xl px-5 lg:px-8 py-20">
@@ -741,3 +769,79 @@ function Faq({ q, children }: { q: string; children: React.ReactNode }) {
     </details>
   );
 }
+
+function NewsletterSignup({
+  ctaLabel,
+  successLabel,
+}: {
+  ctaLabel: string;
+  successLabel: string;
+}) {
+  const subscribe = useServerFn(subscribeNewsletter);
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [errMsg, setErrMsg] = useState<string | null>(null);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setStatus("loading");
+    setErrMsg(null);
+    try {
+      await subscribe({ data: { email: email.trim(), source: "landing" } });
+      setStatus("done");
+      setEmail("");
+    } catch (err: any) {
+      setStatus("error");
+      setErrMsg(err?.message ?? "Couldn't sign you up. Try again.");
+    }
+  };
+
+  if (status === "done") {
+    return (
+      <div className="glass rounded-2xl p-6 text-center">
+        <p className="font-display text-lg">{successLabel}</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          No spam. Unsubscribe anytime.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="glass rounded-2xl p-5 space-y-3">
+      <label htmlFor="newsletter-email" className="block text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        Your work email
+      </label>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <input
+          id="newsletter-email"
+          type="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@company.com"
+          className="flex-1 h-12 rounded-xl bg-background/50 border border-white/10 px-4 text-base outline-none focus:border-electric/60 transition-colors"
+        />
+        <Button
+          type="submit"
+          size="lg"
+          variant="liquid"
+          className="h-12 px-6"
+          disabled={status === "loading"}
+        >
+          {status === "loading" ? "Signing you up…" : ctaLabel}
+          <ArrowRight className="w-4 h-4" />
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Weekly tips on building your AI workforce. No spam, unsubscribe anytime.
+      </p>
+      {status === "error" && errMsg && (
+        <p className="text-xs text-red-400">{errMsg}</p>
+      )}
+    </form>
+  );
+}
+
