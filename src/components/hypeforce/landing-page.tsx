@@ -306,7 +306,14 @@ export function LandingPage({
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-3">
             {playsWithItems.map((p, i) =>
               p.logo_url ? (
-                <img key={i} src={p.logo_url} alt={p.label} className="h-6 w-auto opacity-90" />
+                <span key={i} className="inline-flex items-center gap-2">
+                  <img
+                    src={p.logo_url}
+                    alt={p.label}
+                    className="h-7 w-7 rounded-full object-cover ring-1 ring-foreground/15 bg-background/40"
+                  />
+                  <span className="font-display text-foreground/90">{p.label}</span>
+                </span>
               ) : (
                 <span key={i} className="font-display text-foreground/90">{p.label}</span>
               ),
