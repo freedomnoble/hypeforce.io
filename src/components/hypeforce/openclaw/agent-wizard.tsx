@@ -53,6 +53,20 @@ export function AgentWizard({
   const navigate = useNavigate();
   const qc = useQueryClient();
   const createFn = useServerFn(createOpenclawAgent);
+  const listModelsFn = useServerFn(listAvailableModels);
+  const { data: models } = useQuery<AvailableModel[]>({
+    queryKey: ["available-models"],
+    queryFn: () => listModelsFn(),
+    staleTime: 60_000,
+    initialData: AVAILABLE_MODELS.map((m) => ({
+      id: m.id,
+      label: m.label,
+      group: "gateway" as const,
+    })),
+  });
+  const gatewayModels = models.filter((m) => m.group === "gateway");
+  const byokModels = models.filter((m) => m.group === "byok");
+
 
   const reset = () => {
     setStep(0);
