@@ -358,6 +358,7 @@ export function LandingPage({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <TeamAgentCard
             initial="G"
+            avatarUrl={providerAvatars?.google}
             name="Gemini 3 Flash"
             tag="Google · gateway"
             tint="oklch(0.72 0.16 250)"
@@ -365,6 +366,7 @@ export function LandingPage({
           />
           <TeamAgentCard
             initial="◎"
+            avatarUrl={providerAvatars?.openai}
             name="GPT-5 mini"
             tag="OpenAI · gateway"
             tint="oklch(0.72 0.16 155)"
@@ -372,6 +374,7 @@ export function LandingPage({
           />
           <TeamAgentCard
             initial="C"
+            avatarUrl={providerAvatars?.anthropic}
             name="Claude Haiku 4.5"
             tag="Anthropic · gateway"
             tint="oklch(0.76 0.15 35)"
