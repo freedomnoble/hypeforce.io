@@ -320,7 +320,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         previewTokens,
         saveCustomTheme,
         deleteCustomTheme,
-        setLandingThemeOverride: setLandingOverride,
+        setLandingThemeOverride,
         themesEnabled,
         customThemesEnabled,
       }}
