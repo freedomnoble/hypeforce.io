@@ -820,6 +820,7 @@ export type Database = {
           demo_video_url: string | null
           hero_image_url: string | null
           id: number
+          provider_avatars: Json
           theme_key: string | null
           updated_at: string
           updated_by: string | null
@@ -829,6 +830,7 @@ export type Database = {
           demo_video_url?: string | null
           hero_image_url?: string | null
           id?: number
+          provider_avatars?: Json
           theme_key?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -838,6 +840,7 @@ export type Database = {
           demo_video_url?: string | null
           hero_image_url?: string | null
           id?: number
+          provider_avatars?: Json
           theme_key?: string | null
           updated_at?: string
           updated_by?: string | null
