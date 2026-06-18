@@ -1685,6 +1685,16 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_agent_router_context: {
+        Args: {
+          p_agent_ids: string[]
+          p_channel_id: string
+          p_dm_id: string
+          p_user_id: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       get_openclaw_cogs_cents: {
         Args: { period_start: string; uid: string }
         Returns: number
