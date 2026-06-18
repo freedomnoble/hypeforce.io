@@ -482,17 +482,16 @@ export const updatePricingConfig = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Admin asset upload — returns signed PUT url for landing hero/video
+// Admin asset upload — returns signed PUT url for landing hero/video/provider-avatar
 export const createLandingUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: any) => z.object({
     filename: z.string().min(1).max(200),
-    kind: z.enum(["hero", "video"]),
+    kind: z.enum(["hero", "video", "provider"]),
   }).parse(i))
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Reuse avatars bucket (public) for landing assets so public URL works
     const path = `landing/${data.kind}-${Date.now()}-${data.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const { data: signed, error } = await supabaseAdmin.storage
       .from("avatars")
