@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import appIcon from "@/assets/app-icon.png";
+import wordmarkAsset from "@/assets/hypeforce-wordmark-v2.png.asset.json";
 import { SafeBg } from "@/components/hypeforce/safe-bg";
 
 export function OnboardingLayout({
@@ -19,8 +19,7 @@ export function OnboardingLayout({
       <div className="w-full max-w-[440px] relative z-10">
         <header className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <img src={appIcon} alt="Hypeforce" className="w-8 h-8 rounded-lg" />
-            <span className="font-display font-semibold text-sm">Hypeforce</span>
+            <img src={wordmarkAsset.url} alt="Hypeforce" className="h-5 w-auto" />
           </div>
           <div className="flex gap-1.5">
             {Array.from({ length: total }).map((_, i) => (

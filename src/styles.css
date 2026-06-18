@@ -113,6 +113,7 @@
   --sidebar-accent-foreground: oklch(0.98 0.01 250);
   --sidebar-border: oklch(1 0 0 / 0.16);
   --sidebar-ring: oklch(0.78 0.18 245);
+  --shadow-glow: 0 0 0 1px oklch(0.7 0.18 250 / 0.35), 0 8px 32px -8px oklch(0.6 0.22 260 / 0.55);
 }
 
 .dark {
@@ -351,6 +352,7 @@
   --panel: oklch(1 0 0 / 0.04);
   --sidebar: oklch(0.25 0.005 260 / 0.55);
   --sidebar-foreground: oklch(0.95 0.01 250);
+  --shadow-glow: 0 0 0 1px oklch(0.78 0.16 60 / 0.48), 0 0 28px -10px oklch(0.66 0.22 295 / 0.62), 0 14px 42px -18px oklch(0.82 0.18 160 / 0.40);
 }
 :root[data-theme="hail-mary"] body {
   background-image:

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import appIcon from "@/assets/app-icon.png";
+import wordmarkAsset from "@/assets/hypeforce-wordmark-v2.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -148,11 +148,9 @@ function WelcomePage() {
 
 
       <div className="w-full max-w-[440px] relative z-10 text-center">
-        <img
-          src={appIcon}
-          alt="Hypeforce"
-          className="w-24 h-24 mx-auto rounded-3xl ring-1 ring-border shadow-2xl mb-6"
-        />
+        <div className="glass mx-auto mb-8 flex h-[54px] w-[214px] items-center justify-center rounded-2xl px-6">
+          <img src={wordmarkAsset.url} alt="Hypeforce" className="h-6 w-auto" />
+        </div>
 
         {stage === "intro" ? (
           <>
