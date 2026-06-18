@@ -57,6 +57,7 @@ export function LandingPage({
   videoUrl,
   themeKey,
   content,
+  providerAvatars,
   pricing,
   freeTrialLanding,
 }: {
@@ -64,6 +65,7 @@ export function LandingPage({
   videoUrl?: string | null;
   themeKey?: string | null;
   content?: Record<string, any> | null;
+  providerAvatars?: Record<string, string> | null;
   pricing?: Record<string, any> | null;
   freeTrialLanding?: boolean;
 } = {}) {
