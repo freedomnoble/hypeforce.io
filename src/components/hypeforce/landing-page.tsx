@@ -183,10 +183,10 @@ export function LandingPage({
   ]);
 
   const playsWithItems = arr<PlaysWithItem>("plays_with", [
-    { label: "ChatGPT" },
-    { label: "Claude" },
-    { label: "Gemini" },
-    { label: "Manus" },
+    { label: "ChatGPT", logo_url: "/avatars/chatgpt.png" },
+    { label: "Claude", logo_url: "/avatars/claude.png" },
+    { label: "Gemini", logo_url: "/avatars/gemini.png" },
+    { label: "Manus", logo_url: "/avatars/manus.png" },
     { label: "+ your own keys" },
   ]);
 
@@ -255,6 +255,15 @@ export function LandingPage({
             {t("hero_eyebrow", "Beta is open — first 1,000 users only")}
           </a>
 
+          <div className="relative mb-10 sm:mb-14 max-w-2xl mx-auto">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-bold tracking-tight text-foreground">
+              {t("hero_headline", "Your AI workforce, your context, total alignment.")}
+            </h1>
+            <p className="mt-4 text-base sm:text-lg text-muted-foreground">
+              {t("hero_subhead", "Humans and Agents working together in channels - no technical knowledge required. Have your own agents/models? Bring them.")}
+            </p>
+          </div>
+
           <div className="relative mx-auto w-full max-w-[1100px]">
             <img
               src={heroUrl || heroAsset.url}
@@ -265,13 +274,7 @@ export function LandingPage({
           </div>
 
           <div className="relative mt-10 sm:mt-14 max-w-2xl mx-auto">
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-display font-bold tracking-tight text-foreground">
-              {t("hero_headline", "Your AI workforce, your context, total alignment.")}
-            </h2>
-            <p className="mt-4 text-base sm:text-lg text-muted-foreground">
-              {t("hero_subhead", "Humans and Agents working together in channels - no technical knowledge required. Have your own agents/models? Bring them.")}
-            </p>
-            <div className="mt-7 flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg" variant="liquid" className="text-base h-12 px-6">
                 <a href="#pricing">
                   {t("hero_cta_primary", `Get founder access — $${monthly}/mo`)}
@@ -303,7 +306,14 @@ export function LandingPage({
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-3">
             {playsWithItems.map((p, i) =>
               p.logo_url ? (
-                <img key={i} src={p.logo_url} alt={p.label} className="h-6 w-auto opacity-90" />
+                <span key={i} className="inline-flex items-center gap-2">
+                  <img
+                    src={p.logo_url}
+                    alt={p.label}
+                    className="h-7 w-7 rounded-full object-cover ring-1 ring-foreground/15 bg-background/40"
+                  />
+                  <span className="font-display text-foreground/90">{p.label}</span>
+                </span>
               ) : (
                 <span key={i} className="font-display text-foreground/90">{p.label}</span>
               ),
