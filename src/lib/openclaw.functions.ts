@@ -199,9 +199,23 @@ export const createOpenclawAgent = createServerFn({ method: "POST" })
   .inputValidator((d: CreateAgentInput) => d)
   .handler(async ({ data, context }): Promise<{ agent: OpenclawAgent }> => {
     if (!data.displayName?.trim()) throw new Error("Display name is required.");
-    if (!AVAILABLE_MODELS.find((m) => m.id === data.modelId)) {
+    const byokMatch = data.modelId.match(/^byok:(openai|anthropic|google|manus)$/);
+    if (byokMatch) {
+      const { data: conn } = await context.supabase
+        .from("user_ai_connections")
+        .select("status")
+        .eq("user_id", context.userId)
+        .eq("provider", byokMatch[1])
+        .maybeSingle();
+      if (!conn || conn.status !== "active") {
+        throw new Error(
+          `Connect an active ${byokMatch[1]} key in Profile → AI Connections first.`,
+        );
+      }
+    } else if (!AVAILABLE_MODELS.find((m) => m.id === data.modelId)) {
       throw new Error("Unknown model.");
     }
+
     await assertCanUse(context.supabase, context.userId);
 
     const { data: inserted, error } = await context.supabase
