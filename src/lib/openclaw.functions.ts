@@ -230,7 +230,7 @@ export const updateOpenclawAgent = createServerFn({ method: "POST" })
     if (data.tools !== undefined) patch.tool_allowlist = data.tools;
     const { data: row, error } = await context.supabase
       .from("openclaw_agents")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.agentId)
       .eq("user_id", context.userId)
       .select("*")
