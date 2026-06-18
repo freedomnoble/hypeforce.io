@@ -82,6 +82,54 @@ export const AVAILABLE_MODELS = [
   { id: "anthropic/claude-haiku-4-5", label: "Claude Haiku 4.5" },
 ] as const;
 
+export type AvailableModel = {
+  id: string;
+  label: string;
+  group: "gateway" | "byok";
+  provider?: string;
+  badge?: string;
+};
+
+const BYOK_PROVIDER_LABEL: Record<string, string> = {
+  openai: "Your OpenAI key",
+  anthropic: "Your Anthropic key",
+  google: "Your Google key",
+  manus: "Your Manus key",
+};
+
+/**
+ * Returns the model list shown in the AgentWizard: the canonical gateway
+ * models, plus one entry per provider the caller has connected via BYOK.
+ * Only reads provider + status from `user_ai_connections` — never the
+ * encrypted key.
+ */
+export const listAvailableModels = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AvailableModel[]> => {
+    const gateway: AvailableModel[] = AVAILABLE_MODELS.map((m) => ({
+      id: m.id,
+      label: m.label,
+      group: "gateway",
+    }));
+
+    const { data: conns } = await context.supabase
+      .from("user_ai_connections")
+      .select("provider,status")
+      .eq("user_id", context.userId)
+      .eq("status", "active");
+
+    const byok: AvailableModel[] = (conns ?? []).map((c: any) => ({
+      id: `byok:${c.provider}`,
+      label: BYOK_PROVIDER_LABEL[c.provider] ?? `Your ${c.provider} key`,
+      group: "byok",
+      provider: c.provider,
+      badge: "BYOK",
+    }));
+
+    return [...gateway, ...byok];
+  });
+
+
 export const AVAILABLE_TOOLS = [
   { id: "web_search", label: "Web search" },
   { id: "code_exec", label: "Code execution" },
@@ -151,9 +199,23 @@ export const createOpenclawAgent = createServerFn({ method: "POST" })
   .inputValidator((d: CreateAgentInput) => d)
   .handler(async ({ data, context }): Promise<{ agent: OpenclawAgent }> => {
     if (!data.displayName?.trim()) throw new Error("Display name is required.");
-    if (!AVAILABLE_MODELS.find((m) => m.id === data.modelId)) {
+    const byokMatch = data.modelId.match(/^byok:(openai|anthropic|google|manus)$/);
+    if (byokMatch) {
+      const { data: conn } = await context.supabase
+        .from("user_ai_connections")
+        .select("status")
+        .eq("user_id", context.userId)
+        .eq("provider", byokMatch[1] as "openai" | "anthropic" | "google" | "manus")
+        .maybeSingle();
+      if (!conn || conn.status !== "active") {
+        throw new Error(
+          `Connect an active ${byokMatch[1]} key in Profile → AI Connections first.`,
+        );
+      }
+    } else if (!AVAILABLE_MODELS.find((m) => m.id === data.modelId)) {
       throw new Error("Unknown model.");
     }
+
     await assertCanUse(context.supabase, context.userId);
 
     const { data: inserted, error } = await context.supabase
