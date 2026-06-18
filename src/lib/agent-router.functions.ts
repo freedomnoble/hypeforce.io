@@ -2,12 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { loadRouterContext } from "./agent-router/context.server";
 import {
   assertCanSpend,
   chargeCredits,
   CreditsExhaustedError,
   type CreditsUsage,
 } from "./credits.server";
+
 
 type ProviderId = "openai" | "anthropic" | "google" | "manus";
 
