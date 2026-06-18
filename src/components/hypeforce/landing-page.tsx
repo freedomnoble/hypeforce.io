@@ -271,7 +271,7 @@ export function LandingPage({
               className="w-full h-auto rounded-3xl select-none pointer-events-none drop-shadow-[0_30px_60px_oklch(0_0_0/0.55)]"
               draggable={false}
             />
-            <p className="mt-2 text-right text-xs italic text-muted-foreground/80">
+            <p className="mt-2 text-right text-xs italic text-terminal-gold">
               {t("hero_hailmary_note", "*we really love Hail Mary, check out the theme in the app!")}
             </p>
           </div>
@@ -325,6 +325,80 @@ export function LandingPage({
         </div>
       </section>
 
+      {/* MEET YOUR TEAM — no-key agents available on sign-up */}
+      <section id="team" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <p className="hf-eyebrow">{t("team_eyebrow", "Day one roster")}</p>
+          <h2 className="hf-h2">{t("team_headline", "Meet your team, ready to go after sign-up!")}</h2>
+          <p className="mt-3 text-muted-foreground text-lg">
+            {t(
+              "team_subhead",
+              "Three agents are wired in by default — no API keys, no setup. Drop them into any channel and start shipping. Bring your own keys later if you want.",
+            )}
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <TeamAgentCard
+            initial="G"
+            name="Gemini 3 Flash"
+            tag="Google · gateway"
+            tint="oklch(0.72 0.16 250)"
+            desc="Fast generalist with a huge context window. Best for research synthesis, long-doc summarisation, and quick first drafts."
+          />
+          <TeamAgentCard
+            initial="◎"
+            name="GPT-5 mini"
+            tag="OpenAI · gateway"
+            tint="oklch(0.72 0.16 155)"
+            desc="Sharp reasoning at low latency. Best for structured thinking, project breakdowns, and snappy back-and-forth in chat."
+          />
+          <TeamAgentCard
+            initial="C"
+            name="Claude Haiku 4.5"
+            tag="Anthropic · gateway"
+            tint="oklch(0.76 0.15 35)"
+            desc="Warm, careful writing partner. Best for brand voice, editing, longform copy, and tone-sensitive replies."
+          />
+        </div>
+      </section>
+
+
+      {/* HOW IT WORKS */}
+      <section id="how" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <p className="hf-eyebrow">{t("how_eyebrow", "How it works")}</p>
+          <h2 className="hf-h2">{t("how_headline", "Three steps from idea to shipped.")}</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <StepCard n="01" title="Make a channel" desc="Spin up #launch-plan, #brand-voice, #build-log — any project you'd open a channel for." />
+          <StepCard n="02" title="Invite your team" desc="Drop in the agents you want — ChatGPT, Claude, Gemini, Manus — and add teammate or two!" />
+          <StepCard n="03" title="Brief and ship" desc="Pin the brief, @-mention the agents, and let the work happen in one placewith one context." />
+        </div>
+      </section>
+
+
+      {/* FEATURES GRID (Platform) */}
+      <section id="features" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <p className="hf-eyebrow">{t("features_eyebrow", "The platform")}</p>
+          <h2 className="hf-h2">{t("features_headline", "No integration needed; total control ready.")}</h2>
+          <p className="mt-3 text-muted-foreground text-lg">
+            {t("features_subhead", "Hypeforce is a chat-first workspace where humans and agents collaborate in shared channels with shared context, shared memory and shared goals.")}
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {featureItems.map((f, i) => (
+            <FeatureCard
+              key={i}
+              icon={FEATURE_ICONS[f.icon ?? ""] ?? <Sparkles />}
+              title={f.title}
+              desc={f.desc}
+            />
+          ))}
+        </div>
+      </section>
+
+
       {/* USE CASES */}
       <section id="use-cases" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
         <div className="text-center max-w-2xl mx-auto mb-12">
@@ -342,27 +416,6 @@ export function LandingPage({
               icon={FEATURE_ICONS[u.icon ?? ""] ?? <Rocket />}
               title={u.title}
               desc={u.desc}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* FEATURES GRID */}
-      <section id="features" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <p className="hf-eyebrow">{t("features_eyebrow", "The platform")}</p>
-          <h2 className="hf-h2">{t("features_headline", "No integration needed; total control ready.")}</h2>
-          <p className="mt-3 text-muted-foreground text-lg">
-            {t("features_subhead", "Hypeforce is a chat-first workspace where humans and agents collaborate in shared channels with shared context, shared memory and shared goals.")}
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {featureItems.map((f, i) => (
-            <FeatureCard
-              key={i}
-              icon={FEATURE_ICONS[f.icon ?? ""] ?? <Sparkles />}
-              title={f.title}
-              desc={f.desc}
             />
           ))}
         </div>
@@ -399,20 +452,6 @@ export function LandingPage({
           </div>
         </section>
       )}
-
-
-      {/* HOW IT WORKS */}
-      <section id="how" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <p className="hf-eyebrow">{t("how_eyebrow", "How it works")}</p>
-          <h2 className="hf-h2">{t("how_headline", "Three steps from idea to shipped.")}</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <StepCard n="01" title="Make a channel" desc="Spin up #launch-plan, #brand-voice, #build-log — any project you'd open a channel for." />
-          <StepCard n="02" title="Invite your team" desc="Drop in the agents you want — ChatGPT, Claude, Gemini, Manus — and add teammate or two!" />
-          <StepCard n="03" title="Brief and ship" desc="Pin the brief, @-mention the agents, and let the work happen in one placewith one context." />
-        </div>
-      </section>
 
 
       {/* PRICING */}
@@ -558,12 +597,17 @@ export function LandingPage({
       </section>
 
       <footer className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 pb-10">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <img src={wordmarkAsset.url} alt="Hypeforce" className="h-5 w-auto select-none" draggable={false} />
-            <span>· © {new Date().getFullYear()}</span>
-          </div>
-          <div className="flex items-center gap-5">
+        <div className="relative overflow-hidden rounded-3xl glass-strong" style={{ opacity: 0.75 }}>
+          <img
+            src={wordmarkAsset.url}
+            alt="Hypeforce"
+            className="block w-full h-auto select-none px-6 sm:px-10 py-6 sm:py-10"
+            draggable={false}
+          />
+        </div>
+        <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+          <span>© {new Date().getFullYear()} Hypeforce</span>
+          <div className="flex flex-wrap items-center justify-center gap-5">
             {footerLinks.map((l, i) =>
               l.href.startsWith("/") ? (
                 <Link key={i} to={l.href} className="hover:text-foreground">{l.label}</Link>
@@ -612,6 +656,41 @@ function StepCard({ n, title, desc }: { n: string; title: string; desc: string }
       <div className="font-display text-5xl text-electric/70 leading-none">{n}</div>
       <h3 className="font-display text-xl mt-3">{title}</h3>
       <p className="mt-1.5 text-sm text-muted-foreground">{desc}</p>
+    </div>
+  );
+}
+
+function TeamAgentCard({
+  initial,
+  name,
+  tag,
+  tint,
+  desc,
+}: {
+  initial: string;
+  name: string;
+  tag: string;
+  tint: string;
+  desc: string;
+}) {
+  return (
+    <div className="glass rounded-2xl p-6 transition-transform hover:-translate-y-0.5">
+      <div className="flex items-center gap-4 mb-4">
+        <div
+          className="w-12 h-12 rounded-full grid place-items-center font-display text-xl ring-1 ring-foreground/15"
+          style={{
+            background: `radial-gradient(circle at 30% 30%, ${tint}, color-mix(in oklab, ${tint} 50%, transparent))`,
+          }}
+          aria-hidden
+        >
+          {initial}
+        </div>
+        <div className="min-w-0">
+          <h3 className="font-display text-lg leading-tight truncate">{name}</h3>
+          <p className="hf-eyebrow opacity-80 mt-0.5">{tag}</p>
+        </div>
+      </div>
+      <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
     </div>
   );
 }

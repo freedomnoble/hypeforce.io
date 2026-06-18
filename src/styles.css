@@ -213,6 +213,7 @@
     filter: brightness(0.95);
   }
   .text-electric { color: var(--color-electric); }
+  .text-terminal-gold { color: oklch(0.82 0.17 75); }
   .ring-glow { box-shadow: var(--shadow-glow); }
   .grid-blueprint {
     background-image:
