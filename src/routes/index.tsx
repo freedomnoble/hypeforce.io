@@ -57,16 +57,9 @@ export const Route = createFileRoute("/")({
       // landing page have the right theme applied by the pre-hydration boot
       // script — no client mount required.
       if (themeKey && KNOWN_THEME_KEYS.has(themeKey)) {
-        try {
-          setResponseHeader(
-            "set-cookie",
-            `hf-landing-theme=${encodeURIComponent(themeKey)}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`,
-          );
-        } catch {
-          // setResponseHeader may not be available in some runtimes; the
-          // client-side landing-page useEffect still writes the cookie.
-        }
+        await writeLandingThemeCookieSSR(themeKey);
       }
+
       return {
         heroUrl: (row?.hero_image_url as string | null) ?? null,
         videoUrl: (row?.demo_video_url as string | null) ?? null,
