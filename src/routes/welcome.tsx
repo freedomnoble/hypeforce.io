@@ -1,7 +1,7 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import wordmarkAsset from "@/assets/hypeforce-wordmark-v2.png.asset.json";
+import appIcon from "@/assets/app-icon.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { SafeBg } from "@/components/hypeforce/safe-bg";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
+import { getPublicLandingTheme } from "@/lib/landing.functions";
 import { sendVerificationEmail } from "@/lib/email-verification.functions";
 import { redeemInviteToken, startTrial } from "@/lib/invites.functions";
 import { PENDING_INVITE_KEY } from "@/routes/join.$token";
@@ -20,7 +21,13 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/welcome")({
-  ssr: false,
+  loader: async () => {
+    try {
+      return await getPublicLandingTheme();
+    } catch {
+      return { themeKey: null };
+    }
+  },
   head: () => ({ meta: [{ title: "Welcome to Hypeforce" }] }),
   validateSearch: searchSchema,
   beforeLoad: async () => {
@@ -143,13 +150,13 @@ function WelcomePage() {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full flex items-center justify-center px-4 py-8 relative">
+    <div className="min-h-[100dvh] w-full flex items-center justify-center px-4 py-8 relative bg-background">
       <SafeBg />
 
 
       <div className="w-full max-w-[440px] relative z-10 text-center">
-        <div className="glass mx-auto mb-8 flex h-[54px] w-[214px] items-center justify-center rounded-2xl px-6">
-          <img src={wordmarkAsset.url} alt="Hypeforce" className="h-6 w-auto" />
+        <div className="glass mx-auto mb-8 flex size-24 items-center justify-center rounded-[1.5rem] p-2 ring-glow">
+          <img src={appIcon} alt="Hypeforce" className="size-full rounded-[1.25rem] object-cover" />
         </div>
 
         {stage === "intro" ? (
