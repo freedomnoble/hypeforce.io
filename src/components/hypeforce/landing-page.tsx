@@ -660,6 +660,41 @@ function StepCard({ n, title, desc }: { n: string; title: string; desc: string }
   );
 }
 
+function TeamAgentCard({
+  initial,
+  name,
+  tag,
+  tint,
+  desc,
+}: {
+  initial: string;
+  name: string;
+  tag: string;
+  tint: string;
+  desc: string;
+}) {
+  return (
+    <div className="glass rounded-2xl p-6 transition-transform hover:-translate-y-0.5">
+      <div className="flex items-center gap-4 mb-4">
+        <div
+          className="w-12 h-12 rounded-full grid place-items-center font-display text-xl ring-1 ring-foreground/15"
+          style={{
+            background: `radial-gradient(circle at 30% 30%, ${tint}, color-mix(in oklab, ${tint} 50%, transparent))`,
+          }}
+          aria-hidden
+        >
+          {initial}
+        </div>
+        <div className="min-w-0">
+          <h3 className="font-display text-lg leading-tight truncate">{name}</h3>
+          <p className="hf-eyebrow opacity-80 mt-0.5">{tag}</p>
+        </div>
+      </div>
+      <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+    </div>
+  );
+}
+
 function Bullet({ children, highlight = false }: { children: React.ReactNode; highlight?: boolean }) {
   return (
     <li className="flex items-start gap-2.5">
