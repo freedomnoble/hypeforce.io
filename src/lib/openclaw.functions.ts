@@ -205,7 +205,7 @@ export const createOpenclawAgent = createServerFn({ method: "POST" })
         .from("user_ai_connections")
         .select("status")
         .eq("user_id", context.userId)
-        .eq("provider", byokMatch[1])
+        .eq("provider", byokMatch[1] as "openai" | "anthropic" | "google" | "manus")
         .maybeSingle();
       if (!conn || conn.status !== "active") {
         throw new Error(
