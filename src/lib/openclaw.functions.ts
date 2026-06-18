@@ -82,6 +82,54 @@ export const AVAILABLE_MODELS = [
   { id: "anthropic/claude-haiku-4-5", label: "Claude Haiku 4.5" },
 ] as const;
 
+export type AvailableModel = {
+  id: string;
+  label: string;
+  group: "gateway" | "byok";
+  provider?: string;
+  badge?: string;
+};
+
+const BYOK_PROVIDER_LABEL: Record<string, string> = {
+  openai: "Your OpenAI key",
+  anthropic: "Your Anthropic key",
+  google: "Your Google key",
+  manus: "Your Manus key",
+};
+
+/**
+ * Returns the model list shown in the AgentWizard: the canonical gateway
+ * models, plus one entry per provider the caller has connected via BYOK.
+ * Only reads provider + status from `user_ai_connections` — never the
+ * encrypted key.
+ */
+export const listAvailableModels = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AvailableModel[]> => {
+    const gateway: AvailableModel[] = AVAILABLE_MODELS.map((m) => ({
+      id: m.id,
+      label: m.label,
+      group: "gateway",
+    }));
+
+    const { data: conns } = await context.supabase
+      .from("user_ai_connections")
+      .select("provider,status")
+      .eq("user_id", context.userId)
+      .eq("status", "active");
+
+    const byok: AvailableModel[] = (conns ?? []).map((c: any) => ({
+      id: `byok:${c.provider}`,
+      label: BYOK_PROVIDER_LABEL[c.provider] ?? `Your ${c.provider} key`,
+      group: "byok",
+      provider: c.provider,
+      badge: "BYOK",
+    }));
+
+    return [...gateway, ...byok];
+  });
+
+
 export const AVAILABLE_TOOLS = [
   { id: "web_search", label: "Web search" },
   { id: "code_exec", label: "Code execution" },
