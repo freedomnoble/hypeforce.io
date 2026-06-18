@@ -110,25 +110,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     scripts: [
       {
-        // Pre-hydration theme boot: applies the user's saved theme (or the
-        // CMS landing theme as a first-time fallback) BEFORE first paint, so
-        // there's no flash from default → user's theme on any route. The
-        // landing route ("/") is driven by SSR loader data and we leave its
-        // SSR-rendered data-theme alone here.
+        // Pre-hydration theme boot. Mirrors the resolver in theme-provider:
+        //   landing route ("/")        → SSR data-theme wins
+        //   any other route            → user's explicit pick (localStorage)
+        //                                   ?? CMS landing theme cookie
+        //                                   ?? "default"
         children: `(function(){try{
 var KNOWN=["default","tool-time","hail-mary","coffee","arachna-verse","newsprint"];
 var WITH_MODES={"arachna-verse":"dark","newsprint":"light"};
+function known(t){return t && (t.indexOf("custom:")===0 || KNOWN.indexOf(t)>=0);}
 var root=document.documentElement;
 var path=location.pathname;
 function ck(n){var m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));return m?decodeURIComponent(m[1]):null;}
 var saved=null;try{saved=localStorage.getItem('hf-theme');}catch(e){}
+if(!known(saved)) saved=null;
 var landing=ck('hf-landing-theme');
+if(!known(landing)) landing=null;
 var theme;
-if(path==='/'){theme=root.dataset.theme||'default';}
-else{
-  if(saved && (saved.indexOf('custom:')===0 || KNOWN.indexOf(saved)>=0)) theme=saved;
-  else if(landing && KNOWN.indexOf(landing)>=0) theme=landing;
-  else theme='default';
+if(path==='/'){
+  theme=root.dataset.theme||landing||'default';
+} else {
+  theme=saved||landing||'default';
 }
 if(theme.indexOf('custom:')===0){root.dataset.theme='custom';root.classList.remove('dark');}
 else if(KNOWN.indexOf(theme)>=0){
@@ -144,6 +146,7 @@ else if(KNOWN.indexOf(theme)>=0){
       },
     ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
