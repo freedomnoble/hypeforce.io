@@ -1,6 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { setResponseHeader } from "@tanstack/react-start/server";
 import { LandingPage } from "@/components/hypeforce/landing-page";
 import { getPublicLandingContent } from "@/lib/landing.functions";
+
+const KNOWN_THEME_KEYS = new Set([
+  "default",
+  "tool-time",
+  "hail-mary",
+  "coffee",
+  "arachna-verse",
+  "newsprint",
+]);
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
