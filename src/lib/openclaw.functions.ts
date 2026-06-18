@@ -180,7 +180,7 @@ export const createOpenclawAgent = createServerFn({ method: "POST" })
         agentId: inserted.id,
         env: {
           AGENT_ID: inserted.id,
-          AGENT_MODEL: inserted.model_id,
+          AGENT_MODEL: inserted.model_id ?? "",
           AGENT_TOOLS: (inserted.tool_allowlist ?? []).join(","),
           AGENT_PERSONA: JSON.stringify(inserted.persona ?? {}),
           AGENT_SKILLS: JSON.stringify(inserted.skill_definitions ?? []),
@@ -222,7 +222,7 @@ export const updateOpenclawAgent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: UpdateAgentInput) => d)
   .handler(async ({ data, context }): Promise<{ agent: OpenclawAgent }> => {
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, any> = {};
     if (data.displayName !== undefined) patch.display_name = data.displayName.trim();
     if (data.persona !== undefined) patch.persona = data.persona;
     if (data.modelId !== undefined) patch.model_id = data.modelId;
