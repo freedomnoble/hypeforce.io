@@ -271,7 +271,7 @@ export function LandingPage({
               className="w-full h-auto rounded-3xl select-none pointer-events-none drop-shadow-[0_30px_60px_oklch(0_0_0/0.55)]"
               draggable={false}
             />
-            <p className="mt-2 text-right text-xs italic text-muted-foreground/80">
+            <p className="mt-2 text-right text-xs italic text-terminal-gold">
               {t("hero_hailmary_note", "*we really love Hail Mary, check out the theme in the app!")}
             </p>
           </div>
