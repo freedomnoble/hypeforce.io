@@ -437,7 +437,7 @@ export const updateLandingContent = createServerFn({ method: "POST" })
       for (const [provider, url] of Object.entries(data.provider_avatars)) {
         if (!url || typeof url !== "string") continue;
         const placeholders = seedFor[provider] ?? [];
-        let q = supabaseAdmin.from("agents").update({ avatar_url: url }).eq("provider", provider);
+        let q = supabaseAdmin.from("agents").update({ avatar_url: url }).eq("provider", provider as any);
         if (placeholders.length > 0) {
           q = q.or(
             `avatar_url.is.null,avatar_url.in.(${placeholders.map((p) => `"${p}"`).join(",")})`,
