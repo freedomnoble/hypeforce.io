@@ -1,70 +1,43 @@
-## OpenClaw Phase 2
+## Problem
 
-Replace the `WizardPlaceholder` with the real agent-builder experience. Everything stays gated behind the existing `openclaw_enabled` feature flag and `openclaw_can_use` (subscription + COGS cap) check — no plan/billing changes.
+On `/`, the page paints with the default Blueprint theme for a moment, then snaps to Hail Mary (or whichever theme the CMS has set).
 
-### 1. Agent list (`/w/$workspaceId/openclaw`)
+Root cause is a two-step apply:
 
-When the flag is on, render the user's agents from `openclaw_agents` scoped to the current workspace:
+1. SSR renders `<html>` with no `data-theme` attribute → browser paints the default theme.
+2. After hydration, `LandingPage` runs a `useEffect` that calls `setLandingThemeOverride(themeKey)`. `ThemeProvider` then runs *its* `useEffect` to write `data-theme="hail-mary"` and (for themes with modes) toggle `dark`. That's the visible swap.
 
-- Empty state with "Create your first agent" CTA.
-- Card grid: display name, model, gateway status pill (`provisioning` / `ready` / `error` / `stopped`), last-active timestamp.
-- "New agent" button → opens the wizard sheet.
-- Each card links to the detail page.
+The CMS theme is already known on the server (it's in the `/` route loader as `themeKey`), so we can set `data-theme` on the `<html>` element during SSR and skip the flash entirely.
 
-### 2. Five-step create wizard (sheet/dialog)
+## Fix
 
-Single multi-step component, local form state, persists on final step.
+Make the root shell theme-aware for the landing route, and remove the redundant client-side override path.
 
-1. **Identity** — display name, short description.
-2. **Persona** — system prompt textarea + tone presets (writes to `persona` jsonb).
-3. **Model** — pick from a curated allowlist (`google/gemini-3-flash-preview`, `openai/gpt-5-mini`, `anthropic/claude-haiku-4-5`).
-4. **Skills** — freeform skill cards (name + instructions), stored in `skill_definitions` jsonb.
-5. **Tools & review** — checkbox list for `tool_allowlist` (`web_search`, `code_exec`, `image_gen`, `http_fetch`), review summary, Create button.
+### 1. `src/routes/__root.tsx` — apply theme during SSR
 
-Create flow: server fn `createOpenclawAgent` inserts the row, then kicks off Fly provisioning (next section), then returns the new agent id. UI navigates to the detail page.
+In `RootShell`, read the matched routes via `useRouterState({ select: s => s.matches })`, find the match for route id `/`, and pull `themeKey` out of its `loaderData`. Derive:
 
-### 3. Agent detail page (`/w/$workspaceId/openclaw/$agentId`)
+- `dataTheme`: `themeKey` if it's a known built-in theme id, else `"default"`.
+- `htmlClass`: `"dark"` when `themeHasModes(dataTheme)` and the theme's default mode is dark (Hail Mary qualifies via the existing `THEMES_WITH_MODES` rule; mirror the same default-mode logic used in `ThemeProvider`: `newsprint → light`, others → `dark`).
 
-- Header with name, model, status pill, last-active.
-- Tabs: **Overview** (persona + skills + tools, read-only summary), **Config** (edit form reusing wizard fields), **Runtime** (`fly_app`, `fly_machine_id`, `gateway_url`, status, "Restart" and "Stop" buttons).
-- Delete agent (destroys Fly machine, removes row).
-- No chat UI yet — that's Phase 3.
+Render `<html lang="en" data-theme={dataTheme} className={htmlClass}>`. This is what ships in the SSR HTML, so the first paint is already Hail Mary.
 
-### 4. Fly machine provisioning
+For non-landing routes the matches list won't contain `/`, so `dataTheme` falls back to `"default"` — same behavior as today.
 
-A thin Fly Machines client in `src/lib/fly.server.ts` (called only from server functions, never from routes/components at module scope). Uses Fly's Machines REST API.
+### 2. `src/components/hypeforce/theme-provider.tsx` — keep the override but stop the flicker on hydration
 
-Server functions in `src/lib/openclaw.functions.ts`:
+The `useEffect` that writes `data-theme` still runs after hydration. To avoid React clobbering the SSR attribute with a render that disagrees, initialize state with the same value the shell used:
 
-- `createOpenclawAgent` — insert row, set `gateway_status='provisioning'`, call Fly to create a per-agent app + machine, store `fly_app`, `fly_machine_id`, `gateway_url`, set `gateway_status='ready'` (or `error` with a logged reason).
-- `restartOpenclawAgent` / `stopOpenclawAgent` — POST to Fly machine lifecycle endpoints.
-- `deleteOpenclawAgent` — destroy machine + app, delete row.
-- `listOpenclawAgents` / `getOpenclawAgent` — read for the list and detail pages.
-- All gated by `requireSupabaseAuth` and re-check `openclaw_can_use` before any Fly call to respect the COGS cap.
+- Change the landing-override resolution to read `document.documentElement.dataset.theme` on first mount (client only) and seed `landingOverride` from it when on `/`. This makes the provider's first effect a no-op (writes the same attribute that's already there) instead of a transition from `default` → `hail-mary`.
+- Leave the `LandingPage` `useEffect` calling `setLandingThemeOverride(themeKey)` intact for client-side navigations into `/` (where there's no SSR pass).
 
-A single agent image is used (assumed already published — image ref configurable via `FLY_AGENT_IMAGE`). Per-machine env includes the agent id, model, persona, tools, and a one-shot signed token the agent uses to call back into Hypeforce.
+### 3. Verify
 
-Status is updated synchronously inside the create handler; a follow-up "refresh status" server fn polls Fly when the user re-opens the detail page.
+- Load `/` with Hail Mary set as the CMS theme. The first frame in the network response's HTML should contain `<html ... data-theme="hail-mary" class="dark">`. No flicker on hard reload.
+- Navigate from `/login` → `/` client-side: theme still applies (covered by the existing `LandingPage` effect).
+- Navigate from `/` → `/app`: provider's existing `forceDefault` branch still strips `data-theme` back to `default`.
 
-### 5. Secrets required
+## Out of scope
 
-Two new runtime secrets are needed before the Fly code can run. I'll request them after this plan is approved:
-
-- `FLY_API_TOKEN` — Fly.io personal access token (`fly auth token`).
-- `FLY_ORG_SLUG` — Fly organization slug agents are created in.
-
-Optional override: `FLY_AGENT_IMAGE` (defaults to a placeholder; I'll note the exact value to set once the agent image is published).
-
-### 6. Out of scope (Phase 3+)
-
-- Live chat / streaming responses from the agent gateway.
-- Tool execution sandbox.
-- Sharing agents across workspace members.
-- Per-tool usage metering beyond the existing `openclaw_cogs_ledger`.
-
-### Files
-
-- New: `src/routes/_auth.w.$workspaceId.openclaw.$agentId.tsx`, `src/components/hypeforce/openclaw/agent-card.tsx`, `src/components/hypeforce/openclaw/agent-wizard.tsx`, `src/lib/fly.server.ts`.
-- Edited: `src/routes/_auth.w.$workspaceId.openclaw.tsx` (list + wizard trigger), `src/lib/openclaw.functions.ts` (CRUD + Fly orchestration).
-
-No DB migration — `openclaw_agents` already has every column we need.
+- App routes (`/app`, `/w/...`) — they are `SSR: false` so there's no server HTML to mismatch; their theme apply already happens before first paint of the gateway. No change needed unless the user reports a flash there too.
+- Custom (user-saved) themes on the landing page — landing only uses built-in CMS themes today; custom themes still go through the existing client path.

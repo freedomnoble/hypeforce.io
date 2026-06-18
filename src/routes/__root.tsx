@@ -5,13 +5,14 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useMatches,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { createAuthInvalidationHandler } from "@/lib/auth-invalidation";
-import { ThemeProvider } from "@/components/hypeforce/theme-provider";
+import { ThemeProvider, THEMES, themeHasModes } from "@/components/hypeforce/theme-provider";
 import { SpiderverseGlitch } from "@/components/hypeforce/spiderverse-glitch";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 
