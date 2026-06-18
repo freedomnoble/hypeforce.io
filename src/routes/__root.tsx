@@ -116,8 +116,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
+  const matches = useMatches();
+  const landingMatch = matches.find((m) => m.routeId === "/");
+  const themeKey = (landingMatch?.loaderData as { themeKey?: string | null } | undefined)?.themeKey ?? null;
+  const isKnownTheme = !!themeKey && THEMES.some((t) => t.id === themeKey);
+  const dataTheme = isKnownTheme ? (themeKey as string) : "default";
+  const isDark = isKnownTheme && themeHasModes(dataTheme) && dataTheme !== "newsprint";
   return (
-    <html lang="en">
+    <html lang="en" data-theme={dataTheme} className={isDark ? "dark" : ""} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
