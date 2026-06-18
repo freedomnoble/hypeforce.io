@@ -324,11 +324,12 @@ export function LandingPage({
             {t("plays_with_label", "PLAYS WELL WITH")}
           </span>
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-3">
-            {playsWithItems.map((p, i) =>
-              p.logo_url ? (
+            {playsWithItems.map((p, i) => {
+              const logo = resolveLogo(p);
+              return logo ? (
                 <span key={i} className="inline-flex items-center gap-2">
                   <img
-                    src={p.logo_url}
+                    src={logo}
                     alt={p.label}
                     className="h-7 w-7 rounded-full object-cover ring-1 ring-foreground/15 bg-background/40"
                   />
@@ -336,8 +337,8 @@ export function LandingPage({
                 </span>
               ) : (
                 <span key={i} className="font-display text-foreground/90">{p.label}</span>
-              ),
-            )}
+              );
+            })}
           </div>
         </div>
       </section>
