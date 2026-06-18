@@ -183,10 +183,10 @@ export function LandingPage({
   ]);
 
   const playsWithItems = arr<PlaysWithItem>("plays_with", [
-    { label: "ChatGPT" },
-    { label: "Claude" },
-    { label: "Gemini" },
-    { label: "Manus" },
+    { label: "ChatGPT", logo_url: "/avatars/chatgpt.png" },
+    { label: "Claude", logo_url: "/avatars/claude.png" },
+    { label: "Gemini", logo_url: "/avatars/gemini.png" },
+    { label: "Manus", logo_url: "/avatars/manus.png" },
     { label: "+ your own keys" },
   ]);
 
