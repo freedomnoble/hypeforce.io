@@ -597,12 +597,17 @@ export function LandingPage({
       </section>
 
       <footer className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 pb-10">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <img src={wordmarkAsset.url} alt="Hypeforce" className="h-5 w-auto select-none" draggable={false} />
-            <span>· © {new Date().getFullYear()}</span>
-          </div>
-          <div className="flex items-center gap-5">
+        <div className="relative overflow-hidden rounded-3xl glass-strong" style={{ opacity: 0.75 }}>
+          <img
+            src={wordmarkAsset.url}
+            alt="Hypeforce"
+            className="block w-full h-auto select-none px-6 sm:px-10 py-6 sm:py-10"
+            draggable={false}
+          />
+        </div>
+        <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+          <span>© {new Date().getFullYear()} Hypeforce</span>
+          <div className="flex flex-wrap items-center justify-center gap-5">
             {footerLinks.map((l, i) =>
               l.href.startsWith("/") ? (
                 <Link key={i} to={l.href} className="hover:text-foreground">{l.label}</Link>
