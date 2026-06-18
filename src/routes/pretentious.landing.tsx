@@ -77,6 +77,7 @@ function LandingCMS() {
       setTheme(landing.theme_key ?? "default");
       setHero(landing.hero_image_url ?? "");
       setVideo(landing.demo_video_url ?? "");
+      setProviderAvatars({ ...(((landing as any).provider_avatars as Record<string, string>) ?? {}) });
     }
   }, [landing]);
 
