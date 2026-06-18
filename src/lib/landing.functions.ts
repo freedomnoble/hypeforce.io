@@ -29,6 +29,31 @@ export const getPublicLandingContent = createServerFn({ method: "GET" }).handler
   };
 });
 
+export const getPublicLandingTheme = createServerFn({ method: "GET" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("landing_content")
+    .select("theme_key")
+    .eq("id", 1)
+    .maybeSingle();
+  const themeKey = (data?.theme_key as string | null) ?? null;
+  if (themeKey) {
+    try {
+      const { setResponseHeader } = await import("@tanstack/react-start/server");
+      setResponseHeader(
+        "set-cookie",
+        `hf-landing-theme=${encodeURIComponent(themeKey)}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`,
+      );
+    } catch {}
+  }
+  if (typeof sessionStorage !== "undefined" && themeKey) {
+    try {
+      sessionStorage.setItem("hf-landing-theme", themeKey);
+    } catch {}
+  }
+  return { themeKey };
+});
+
 export const subscribeNewsletter = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) =>
     z

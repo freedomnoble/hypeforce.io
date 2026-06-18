@@ -143,8 +143,24 @@ function readUserTheme(): ThemeId | null {
 }
 
 function readLandingCookieTheme(): ThemeId | null {
-  const v = readCookie(LANDING_THEME_COOKIE);
+  let v = readCookie(LANDING_THEME_COOKIE);
+  if (!v && typeof window !== "undefined") {
+    try {
+      v = sessionStorage.getItem(LANDING_THEME_COOKIE);
+    } catch {}
+  }
   return v && isKnownTheme(v) ? v : null;
+}
+
+export function readBrowserAppliedTheme(): ThemeId {
+  if (typeof window === "undefined") return "default";
+  return resolveAppliedTheme({
+    isLandingRoute: window.location.pathname === "/",
+    landingOverride: null,
+    userTheme: readUserTheme(),
+    cookieLandingTheme: readLandingCookieTheme(),
+    hasPreview: false,
+  });
 }
 
 /**
@@ -338,6 +354,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setLandingOverride(t);
     if (t && isKnownTheme(t)) {
       writeCookie(LANDING_THEME_COOKIE, t);
+      try {
+        sessionStorage.setItem(LANDING_THEME_COOKIE, t);
+      } catch {}
       setCookieLandingTheme(t);
     }
   }, []);
