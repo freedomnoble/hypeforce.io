@@ -1026,7 +1026,7 @@ function ThemesPanel() {
 
         {customThemesEnabled && customThemes.map((c) => {
           const id = `custom:${c.id}`;
-          const active = id === theme;
+          const active = id === selectedThemeId;
           const swatchKeys = ["background", "panel", "primary", "accent"] as const;
           return (
             <div
