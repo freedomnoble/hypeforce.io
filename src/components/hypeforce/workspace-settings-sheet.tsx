@@ -995,7 +995,7 @@ function ThemesPanel() {
       </header>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {THEMES.map((t) => {
-          const active = t.id === theme;
+          const active = t.id === selectedThemeId;
           return (
             <button
               key={t.id}
