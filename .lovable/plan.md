@@ -1,28 +1,33 @@
-# Phase 3 — Status
+# Plan: Defer Lovable-as-an-agent
 
-## Done
+Based on your answers (wait for Lovable project API, BYOK only), no code is shipped this turn. We document it next to the Manus OAuth deferral so it's not lost.
 
-- **Dynamic models in AgentWizard** — `listAvailableModels` server fn returns gateway models + the caller's active BYOK providers. Wizard step 2 groups them as "Lovable Gateway" / "Your connected providers". Manus appears only when the user has an active Manus key.
-- **Email-inbound fallback (design only)** — see `docs/email-inbound-design.md`.
+## Why defer
 
-## Deferred / future goals
+The vision — `@lovable update "project-tag" with this copy from gemini` — requires a public **Lovable Projects API** (create project, push files, read preview URL, attach to a project tag). Today, Lovable only exposes:
 
-### Manus OAuth ("Plaid-like" connect button)
+- **AI Gateway** (`LOVABLE_API_KEY`) — chat completions, embeddings, image gen. This is just "another LLM" — adding it as a BYOK provider duplicates what Gemini/OpenAI already do in the wizard and gives no project-building powers.
+- **No public projects/preview/deploy API** — same situation as Manus OAuth: blocked on Lovable opening it up.
 
-Not possible today. Manus's OAuth ("Open App") flow is currently restricted to
-internal Manus team use — third-party public authorization is not yet
-available. Manus remains BYOK-only (users paste an API key, same as OpenAI /
-Anthropic / Google).
+So a v1 "Lovable agent" would be misleading: the name implies it builds Lovable projects, but it would only chat. Better to wait.
 
-Revisit when Manus opens OAuth to external developers. Sketch for that day:
+## What changes
 
-- Add `connection_type` (`byok` | `oauth`) on `user_ai_connections`.
-- `startManusOAuth` server fn → authorize URL + signed state cookie.
-- Public callback at `src/routes/api/public/oauth/manus/callback.ts` — exchange code, encrypt refresh token via `ai-crypto.server`, upsert connection.
-- Teach `callManus` to refresh access tokens when `connection_type='oauth'`.
-- Secrets needed at that point: `MANUS_OAUTH_CLIENT_ID`, `MANUS_OAUTH_CLIENT_SECRET`.
+Update `.lovable/plan.md` — under the existing **Deferred / future goals** section (where Manus OAuth lives), add a new entry:
 
-### Other deferred items
+> **Lovable as a buildable agent** — Blocked on Lovable shipping a public Projects API. Goal: BYOK `LOVABLE_API_KEY` provider in AgentWizard, plus a `lovable_project_tag` field on `agents` (or `channel_agent_overrides`) that maps the agent to an existing Lovable project URL. The agent could then:
+> - share the live preview URL in replies
+> - call a future `lovable.projects.update(tag, { files | prompt })` endpoint to push edits from chat
+> - relay other model output (e.g. "@lovable apply this copy from Gemini") into project updates
+>
+> Until that API exists, users should keep using the Lovable editor directly and paste preview links into channels manually.
 
-- Further `agent-router.functions.ts` splitting — not worth the complexity.
-- `xlsx` → `exceljs` swap in `file-extraction.server.ts`.
+## What we are NOT doing
+
+- Not adding `"lovable"` to `SUPPORTED_PROVIDERS` in `src/lib/ai-connections.functions.ts`.
+- Not adding a `callLovable` adapter in `src/lib/ai-providers.server.ts`.
+- Not adding a project-tag column to `agents`.
+
+## Revisit trigger
+
+When Lovable publishes a Projects API (watch docs.lovable.dev), this plan becomes a real Phase: BYOK provider + `lovable_project_tag` + a `pushToLovableProject` server fn called from the agent-router when the user `@`-mentions the tagged agent.
