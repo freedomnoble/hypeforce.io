@@ -1,48 +1,28 @@
-# Phase 3 — Medium-term UX wins
+# Phase 3 — Status
 
-Skip the further router split (not worth the complexity). Move on to the user-facing items from the audit.
+## Done
 
-## 1. Dynamic models in AgentWizard
+- **Dynamic models in AgentWizard** — `listAvailableModels` server fn returns gateway models + the caller's active BYOK providers. Wizard step 2 groups them as "Lovable Gateway" / "Your connected providers". Manus appears only when the user has an active Manus key.
+- **Email-inbound fallback (design only)** — see `docs/email-inbound-design.md`.
 
-Today `AgentWizard` step 2 uses a hardcoded `AVAILABLE_MODELS` list. Replace with a live list:
+## Deferred / future goals
 
-- New server fn `listAvailableModels` in `src/lib/ai-connections.functions.ts`:
-  - Returns gateway models (the current hardcoded set, but owned server-side so we update it in one place).
-  - Plus the caller's connected BYOK providers (read from `user_ai_connections`, **provider + status only — never `encrypted_key`**).
-- `AgentWizard` uses `useSuspenseQuery` on this fn. Manus appears as a selectable model only when the user has an active Manus connection.
-- Model dropdown groups: "Lovable Gateway" / "Your connected providers".
+### Manus OAuth ("Plaid-like" connect button)
 
-## 2. Manus OAuth connector
+Not possible today. Manus's OAuth ("Open App") flow is currently restricted to
+internal Manus team use — third-party public authorization is not yet
+available. Manus remains BYOK-only (users paste an API key, same as OpenAI /
+Anthropic / Google).
 
-Currently Manus is BYOK-only (paste an API key). Add OAuth as a second connection path:
+Revisit when Manus opens OAuth to external developers. Sketch for that day:
 
-- New column `connection_type text not null default 'byok'` on `user_ai_connections` (values: `byok`, `oauth`). Migration with grants unchanged.
-- New server fn `startManusOAuth` returning the authorize URL with a signed state cookie.
-- New public route `src/routes/api/public/oauth/manus/callback.ts`:
-  - Validates state, exchanges code → tokens, encrypts refresh token via existing `ai-crypto.server`, upserts `user_ai_connections` with `connection_type='oauth'`.
-- `callManus` in `ai-providers.server.ts` learns to refresh the access token when `connection_type='oauth'`.
-- Profile → AI Connections UI gets a "Connect with Manus" button next to the existing paste-key flow.
+- Add `connection_type` (`byok` | `oauth`) on `user_ai_connections`.
+- `startManusOAuth` server fn → authorize URL + signed state cookie.
+- Public callback at `src/routes/api/public/oauth/manus/callback.ts` — exchange code, encrypt refresh token via `ai-crypto.server`, upsert connection.
+- Teach `callManus` to refresh access tokens when `connection_type='oauth'`.
+- Secrets needed at that point: `MANUS_OAUTH_CLIENT_ID`, `MANUS_OAUTH_CLIENT_SECRET`.
 
-Requires: `MANUS_OAUTH_CLIENT_ID` + `MANUS_OAUTH_CLIENT_SECRET` (will request via add_secret when implementing).
+### Other deferred items
 
-## 3. Email-inbound fallback (design only)
-
-The audit flagged email-inbound as a reach goal. I'll write a short design note under `docs/` covering:
-- Reuses existing `src/routes/lovable/email/queue/process.ts` infra.
-- Inbound address → channel mapping table.
-- No code yet — just the doc so we can scope it later.
-
-## Out of scope
-
-- No further `agent-router` file splitting.
-- No auth / billing / Paddle changes.
-- No UI redesign of AgentWizard beyond the model dropdown.
-- `xlsx` swap deferred.
-
-## Suggested order
-
-1. Dynamic models (small, no secrets needed) — ~30 min.
-2. Email-inbound design doc — ~10 min.
-3. Manus OAuth (needs your client id/secret from Manus dashboard) — ~45 min.
-
-Approve and I'll start with step 1.
+- Further `agent-router.functions.ts` splitting — not worth the complexity.
+- `xlsx` → `exceljs` swap in `file-extraction.server.ts`.
