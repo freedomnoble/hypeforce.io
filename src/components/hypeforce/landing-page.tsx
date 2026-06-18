@@ -1,5 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useEffect, useState } from "react";
+import { subscribeNewsletter } from "@/lib/landing.functions";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
@@ -586,6 +588,32 @@ export function LandingPage({
         </section>
       )}
 
+      {/* Newsletter signup */}
+      <section id="newsletter" className="relative z-10 mx-auto max-w-5xl px-5 lg:px-8 py-20">
+        <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8 lg:p-12 shadow-2xl">
+          <div className="grid lg:grid-cols-[1.1fr_1fr] gap-8 lg:gap-12 items-center">
+            <div>
+              <p className="hf-eyebrow">{t("newsletter_eyebrow", "WEEKLY DROP")}</p>
+              <h2 className="hf-h2 mt-2">
+                {t("newsletter_headline", "Not ready yet? Build your own AI workforce.")}
+              </h2>
+              <p className="mt-4 text-muted-foreground text-base lg:text-lg">
+                {t(
+                  "newsletter_subhead",
+                  "Get a weekly breakdown of how teams are wiring ChatGPT, Claude, Gemini and Manus into real work — popular stacks, prompts that ship, and the playbooks behind Hypeforce. We don't gatekeep. Just hype up your workforce.",
+                )}
+              </p>
+            </div>
+            <NewsletterSignup
+              ctaLabel={t("newsletter_cta", "Get the playbook")}
+              successLabel={t(
+                "newsletter_success",
+                "You're in. Check your inbox for the first drop.",
+              )}
+            />
+          </div>
+        </div>
+      </section>
 
       {/* FAQ */}
       <section id="faq" className="relative z-10 mx-auto max-w-3xl px-5 lg:px-8 py-20">
