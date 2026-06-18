@@ -57,6 +57,7 @@ export function LandingPage({
   videoUrl,
   themeKey,
   content,
+  providerAvatars,
   pricing,
   freeTrialLanding,
 }: {
@@ -64,6 +65,7 @@ export function LandingPage({
   videoUrl?: string | null;
   themeKey?: string | null;
   content?: Record<string, any> | null;
+  providerAvatars?: Record<string, string> | null;
   pricing?: Record<string, any> | null;
   freeTrialLanding?: boolean;
 } = {}) {
@@ -183,12 +185,27 @@ export function LandingPage({
   ]);
 
   const playsWithItems = arr<PlaysWithItem>("plays_with", [
-    { label: "ChatGPT", logo_url: "/avatars/chatgpt.png" },
-    { label: "Claude", logo_url: "/avatars/claude.png" },
-    { label: "Gemini", logo_url: "/avatars/gemini.png" },
-    { label: "Manus", logo_url: "/avatars/manus.png" },
+    { label: "ChatGPT" },
+    { label: "Claude" },
+    { label: "Gemini" },
+    { label: "Manus" },
     { label: "+ your own keys" },
   ]);
+
+  const labelToProvider = (label: string): string | null => {
+    const s = label.toLowerCase();
+    if (s.includes("chatgpt") || s.includes("openai") || s.includes("gpt")) return "openai";
+    if (s.includes("claude") || s.includes("anthropic")) return "anthropic";
+    if (s.includes("gemini") || s.includes("google")) return "google";
+    if (s.includes("manus")) return "manus";
+    if (s.includes("lovable")) return "lovable";
+    return null;
+  };
+  const resolveLogo = (item: PlaysWithItem): string | undefined => {
+    if (item.logo_url) return item.logo_url;
+    const p = labelToProvider(item.label);
+    return p ? providerAvatars?.[p] ?? undefined : undefined;
+  };
 
   const footerLinks = arr<FooterLink>("footer_links", [
     { label: "Features", href: "#features" },
@@ -307,11 +324,12 @@ export function LandingPage({
             {t("plays_with_label", "PLAYS WELL WITH")}
           </span>
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-3">
-            {playsWithItems.map((p, i) =>
-              p.logo_url ? (
+            {playsWithItems.map((p, i) => {
+              const logo = resolveLogo(p);
+              return logo ? (
                 <span key={i} className="inline-flex items-center gap-2">
                   <img
-                    src={p.logo_url}
+                    src={logo}
                     alt={p.label}
                     className="h-7 w-7 rounded-full object-cover ring-1 ring-foreground/15 bg-background/40"
                   />
@@ -319,8 +337,8 @@ export function LandingPage({
                 </span>
               ) : (
                 <span key={i} className="font-display text-foreground/90">{p.label}</span>
-              ),
-            )}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -340,6 +358,7 @@ export function LandingPage({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <TeamAgentCard
             initial="G"
+            avatarUrl={providerAvatars?.google}
             name="Gemini 3 Flash"
             tag="Google · gateway"
             tint="oklch(0.72 0.16 250)"
@@ -347,6 +366,7 @@ export function LandingPage({
           />
           <TeamAgentCard
             initial="◎"
+            avatarUrl={providerAvatars?.openai}
             name="GPT-5 mini"
             tag="OpenAI · gateway"
             tint="oklch(0.72 0.16 155)"
@@ -354,6 +374,7 @@ export function LandingPage({
           />
           <TeamAgentCard
             initial="C"
+            avatarUrl={providerAvatars?.anthropic}
             name="Claude Haiku 4.5"
             tag="Anthropic · gateway"
             tint="oklch(0.76 0.15 35)"
@@ -657,12 +678,14 @@ function StepCard({ n, title, desc }: { n: string; title: string; desc: string }
 
 function TeamAgentCard({
   initial,
+  avatarUrl,
   name,
   tag,
   tint,
   desc,
 }: {
   initial: string;
+  avatarUrl?: string;
   name: string;
   tag: string;
   tint: string;
@@ -671,15 +694,23 @@ function TeamAgentCard({
   return (
     <div className="glass rounded-2xl p-6 transition-transform hover:-translate-y-0.5">
       <div className="flex items-center gap-4 mb-4">
-        <div
-          className="w-12 h-12 rounded-full grid place-items-center font-display text-xl ring-1 ring-foreground/15"
-          style={{
-            background: `radial-gradient(circle at 30% 30%, ${tint}, color-mix(in oklab, ${tint} 50%, transparent))`,
-          }}
-          aria-hidden
-        >
-          {initial}
-        </div>
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={name}
+            className="w-12 h-12 rounded-full object-cover ring-1 ring-foreground/15"
+          />
+        ) : (
+          <div
+            className="w-12 h-12 rounded-full grid place-items-center font-display text-xl ring-1 ring-foreground/15"
+            style={{
+              background: `radial-gradient(circle at 30% 30%, ${tint}, color-mix(in oklab, ${tint} 50%, transparent))`,
+            }}
+            aria-hidden
+          >
+            {initial}
+          </div>
+        )}
         <div className="min-w-0">
           <h3 className="font-display text-lg leading-tight truncate">{name}</h3>
           <p className="hf-eyebrow opacity-80 mt-0.5">{tag}</p>

@@ -31,6 +31,7 @@ export const Route = createFileRoute("/")({
         videoUrl: (row?.demo_video_url as string | null) ?? null,
         themeKey: (row?.theme_key as string | null) ?? null,
         content: (row?.content as Record<string, any> | null) ?? null,
+        providerAvatars: (row?.provider_avatars as Record<string, string> | null) ?? null,
         pricing: (res.pricing as Record<string, any> | null) ?? null,
         freeTrialLanding: !!res.freeTrialLanding,
       };
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/")({
         videoUrl: null,
         themeKey: null,
         content: null,
+        providerAvatars: null,
         pricing: null,
         freeTrialLanding: false,
       };
@@ -51,13 +53,14 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
-  const { heroUrl, videoUrl, themeKey, content, pricing, freeTrialLanding } = Route.useLoaderData();
+  const { heroUrl, videoUrl, themeKey, content, providerAvatars, pricing, freeTrialLanding } = Route.useLoaderData();
   return (
     <LandingPage
       heroUrl={heroUrl}
       videoUrl={videoUrl}
       themeKey={themeKey}
       content={content}
+      providerAvatars={providerAvatars}
       pricing={pricing}
       freeTrialLanding={freeTrialLanding}
     />

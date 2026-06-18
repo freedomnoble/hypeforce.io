@@ -68,6 +68,7 @@ function LandingCMS() {
   const [theme, setTheme] = useState<string>("default");
   const [hero, setHero] = useState<string>("");
   const [video, setVideo] = useState<string>("");
+  const [providerAvatars, setProviderAvatars] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -76,6 +77,7 @@ function LandingCMS() {
       setTheme(landing.theme_key ?? "default");
       setHero(landing.hero_image_url ?? "");
       setVideo(landing.demo_video_url ?? "");
+      setProviderAvatars({ ...(((landing as any).provider_avatars as Record<string, string>) ?? {}) });
     }
   }, [landing]);
 
@@ -93,6 +95,21 @@ function LandingCMS() {
       if (kind === "hero") setHero(publicUrl);
       else setVideo(publicUrl);
       toast.success(`${kind} uploaded`);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleProviderUpload = async (file: File, provider: string) => {
+    setBusy(true);
+    try {
+      const { signedUrl, publicUrl } = await uploadUrl({ data: { filename: file.name, kind: "provider" } });
+      const res = await fetch(signedUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      if (!res.ok) throw new Error("Upload failed");
+      setProviderAvatars((prev) => ({ ...prev, [provider]: publicUrl }));
+      toast.success(`${provider} avatar uploaded`);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -122,12 +139,18 @@ function LandingCMS() {
           }
         }
       }
+      // Strip blank avatar entries so we never overwrite with "".
+      const cleanedAvatars: Record<string, string> = {};
+      for (const [k, v] of Object.entries(providerAvatars)) {
+        if (typeof v === "string" && v.trim()) cleanedAvatars[k] = v.trim();
+      }
       await saveFn({
         data: {
           content: parsed,
           theme_key: theme === "default" ? null : theme,
           hero_image_url: hero || null,
           demo_video_url: video || null,
+          provider_avatars: cleanedAvatars,
         },
       });
       toast.success("Landing saved");
@@ -197,6 +220,50 @@ function LandingCMS() {
           </div>
         </div>
       </GlassPanel>
+
+      <GlassPanel className="p-5 space-y-4">
+        <div>
+          <h3 className="font-display text-lg">Provider avatars</h3>
+          <p className="text-xs text-white/50 mt-1">
+            One avatar per AI provider. Used on the landing page's <em>Plays well with</em> bar and
+            the <em>Day one roster</em>, and applied as the default avatar for every existing and
+            new agent on that provider (custom-uploaded avatars are never overwritten).
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {(["openai", "anthropic", "google", "manus", "lovable"] as const).map((p) => {
+            const url = providerAvatars[p] ?? "";
+            return (
+              <div key={p} className="flex gap-3 items-start p-3 rounded-lg bg-white/5 border border-white/10">
+                {url ? (
+                  <img src={url} alt={p} className="h-14 w-14 rounded-full object-cover ring-1 ring-white/15" />
+                ) : (
+                  <div className="h-14 w-14 rounded-full bg-white/10 grid place-items-center text-xs uppercase text-white/50">
+                    {p[0]}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm capitalize">{p}</div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files?.[0] && handleProviderUpload(e.target.files[0], p)}
+                    className="mt-1 text-xs"
+                  />
+                  <input
+                    value={url}
+                    onChange={(e) => setProviderAvatars({ ...providerAvatars, [p]: e.target.value })}
+                    placeholder="…or paste a URL"
+                    className="mt-2 w-full px-2 py-1.5 rounded bg-white/5 border border-white/10 text-xs"
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </GlassPanel>
+
+
 
 
       <GlassPanel className="p-5 space-y-3">

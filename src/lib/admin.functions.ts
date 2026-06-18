@@ -403,6 +403,16 @@ export const updateLandingContent = createServerFn({ method: "POST" })
     theme_key: z.string().max(100).nullable().optional(),
     hero_image_url: z.string().max(1000).nullable().optional(),
     demo_video_url: z.string().max(1000).nullable().optional(),
+    provider_avatars: z
+      .object({
+        openai: z.string().max(1000).optional().nullable(),
+        anthropic: z.string().max(1000).optional().nullable(),
+        google: z.string().max(1000).optional().nullable(),
+        manus: z.string().max(1000).optional().nullable(),
+        lovable: z.string().max(1000).optional().nullable(),
+      })
+      .partial()
+      .optional(),
   }).parse(i))
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
@@ -412,6 +422,32 @@ export const updateLandingContent = createServerFn({ method: "POST" })
       .update({ ...data, updated_by: context.userId })
       .eq("id", 1);
     if (error) throw new Error(error.message);
+
+    // Propagate provider avatars to every existing agent — replace only null
+    // avatars or the original seed placeholders, never custom uploads.
+    if (data.provider_avatars) {
+      const seedFor: Record<string, string[]> = {
+        openai: ["/avatars/chatgpt.png"],
+        anthropic: ["/avatars/claude.png"],
+        // Skip nano.png — Nano Banana keeps its distinct image-gen identity.
+        google: ["/avatars/gemini.png"],
+        manus: ["/avatars/manus.png"],
+        lovable: [],
+      };
+      for (const [provider, url] of Object.entries(data.provider_avatars)) {
+        if (!url || typeof url !== "string") continue;
+        const placeholders = seedFor[provider] ?? [];
+        let q = supabaseAdmin.from("agents").update({ avatar_url: url }).eq("provider", provider as any);
+        if (placeholders.length > 0) {
+          q = q.or(
+            `avatar_url.is.null,avatar_url.in.(${placeholders.map((p) => `"${p}"`).join(",")})`,
+          );
+        } else {
+          q = q.is("avatar_url", null);
+        }
+        await q;
+      }
+    }
     return { ok: true };
   });
 
@@ -446,17 +482,16 @@ export const updatePricingConfig = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Admin asset upload — returns signed PUT url for landing hero/video
+// Admin asset upload — returns signed PUT url for landing hero/video/provider-avatar
 export const createLandingUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: any) => z.object({
     filename: z.string().min(1).max(200),
-    kind: z.enum(["hero", "video"]),
+    kind: z.enum(["hero", "video", "provider"]),
   }).parse(i))
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Reuse avatars bucket (public) for landing assets so public URL works
     const path = `landing/${data.kind}-${Date.now()}-${data.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const { data: signed, error } = await supabaseAdmin.storage
       .from("avatars")
