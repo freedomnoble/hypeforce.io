@@ -68,6 +68,7 @@ function LandingCMS() {
   const [theme, setTheme] = useState<string>("default");
   const [hero, setHero] = useState<string>("");
   const [video, setVideo] = useState<string>("");
+  const [providerAvatars, setProviderAvatars] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
