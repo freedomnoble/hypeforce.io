@@ -12,6 +12,16 @@ export const getPublicLandingContent = createServerFn({ method: "GET" }).handler
       .eq("key", "free_trial_landing")
       .maybeSingle(),
   ]);
+  const themeKey = (content?.theme_key as string | null) ?? null;
+  if (themeKey) {
+    try {
+      const { setResponseHeader } = await import("@tanstack/react-start/server");
+      setResponseHeader(
+        "set-cookie",
+        `hf-landing-theme=${encodeURIComponent(themeKey)}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`,
+      );
+    } catch {}
+  }
   return {
     content: content ?? null,
     pricing: pricing ?? null,
