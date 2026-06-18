@@ -48,6 +48,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AuthWWorkspaceIdOpenclawRouteImport } from './routes/_auth.w.$workspaceId.openclaw'
 import { Route as AuthWWorkspaceIdAdminRouteImport } from './routes/_auth.w.$workspaceId.admin'
+import { Route as AuthWWorkspaceIdOpenclawAgentIdRouteImport } from './routes/_auth.w.$workspaceId.openclaw.$agentId'
 import { Route as AuthWWorkspaceIdDDmIdRouteImport } from './routes/_auth.w.$workspaceId.d.$dmId'
 import { Route as AuthWWorkspaceIdCChannelIdRouteImport } from './routes/_auth.w.$workspaceId.c.$channelId'
 
@@ -248,6 +249,12 @@ const AuthWWorkspaceIdAdminRoute = AuthWWorkspaceIdAdminRouteImport.update({
   path: '/w/$workspaceId/admin',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthWWorkspaceIdOpenclawAgentIdRoute =
+  AuthWWorkspaceIdOpenclawAgentIdRouteImport.update({
+    id: '/$agentId',
+    path: '/$agentId',
+    getParentRoute: () => AuthWWorkspaceIdOpenclawRoute,
+  } as any)
 const AuthWWorkspaceIdDDmIdRoute = AuthWWorkspaceIdDDmIdRouteImport.update({
   id: '/w/$workspaceId/d/$dmId',
   path: '/w/$workspaceId/d/$dmId',
@@ -295,12 +302,13 @@ export interface FileRoutesByFullPath {
   '/onboarding/': typeof AuthOnboardingIndexRoute
   '/profile/': typeof AuthProfileIndexRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
-  '/w/$workspaceId/openclaw': typeof AuthWWorkspaceIdOpenclawRoute
+  '/w/$workspaceId/openclaw': typeof AuthWWorkspaceIdOpenclawRouteWithChildren
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
   '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
   '/w/$workspaceId/d/$dmId': typeof AuthWWorkspaceIdDDmIdRoute
+  '/w/$workspaceId/openclaw/$agentId': typeof AuthWWorkspaceIdOpenclawAgentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -334,12 +342,13 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthOnboardingIndexRoute
   '/profile': typeof AuthProfileIndexRoute
   '/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
-  '/w/$workspaceId/openclaw': typeof AuthWWorkspaceIdOpenclawRoute
+  '/w/$workspaceId/openclaw': typeof AuthWWorkspaceIdOpenclawRouteWithChildren
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/w/$workspaceId': typeof AuthWWorkspaceIdIndexRoute
   '/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
   '/w/$workspaceId/d/$dmId': typeof AuthWWorkspaceIdDDmIdRoute
+  '/w/$workspaceId/openclaw/$agentId': typeof AuthWWorkspaceIdOpenclawAgentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -378,12 +387,13 @@ export interface FileRoutesById {
   '/_auth/onboarding/': typeof AuthOnboardingIndexRoute
   '/_auth/profile/': typeof AuthProfileIndexRoute
   '/_auth/w/$workspaceId/admin': typeof AuthWWorkspaceIdAdminRoute
-  '/_auth/w/$workspaceId/openclaw': typeof AuthWWorkspaceIdOpenclawRoute
+  '/_auth/w/$workspaceId/openclaw': typeof AuthWWorkspaceIdOpenclawRouteWithChildren
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/_auth/w/$workspaceId/': typeof AuthWWorkspaceIdIndexRoute
   '/_auth/w/$workspaceId/c/$channelId': typeof AuthWWorkspaceIdCChannelIdRoute
   '/_auth/w/$workspaceId/d/$dmId': typeof AuthWWorkspaceIdDDmIdRoute
+  '/_auth/w/$workspaceId/openclaw/$agentId': typeof AuthWWorkspaceIdOpenclawAgentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -428,6 +438,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId/'
     | '/w/$workspaceId/c/$channelId'
     | '/w/$workspaceId/d/$dmId'
+    | '/w/$workspaceId/openclaw/$agentId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -467,6 +478,7 @@ export interface FileRouteTypes {
     | '/w/$workspaceId'
     | '/w/$workspaceId/c/$channelId'
     | '/w/$workspaceId/d/$dmId'
+    | '/w/$workspaceId/openclaw/$agentId'
   id:
     | '__root__'
     | '/'
@@ -510,6 +522,7 @@ export interface FileRouteTypes {
     | '/_auth/w/$workspaceId/'
     | '/_auth/w/$workspaceId/c/$channelId'
     | '/_auth/w/$workspaceId/d/$dmId'
+    | '/_auth/w/$workspaceId/openclaw/$agentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -803,6 +816,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthWWorkspaceIdAdminRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/w/$workspaceId/openclaw/$agentId': {
+      id: '/_auth/w/$workspaceId/openclaw/$agentId'
+      path: '/$agentId'
+      fullPath: '/w/$workspaceId/openclaw/$agentId'
+      preLoaderRoute: typeof AuthWWorkspaceIdOpenclawAgentIdRouteImport
+      parentRoute: typeof AuthWWorkspaceIdOpenclawRoute
+    }
     '/_auth/w/$workspaceId/d/$dmId': {
       id: '/_auth/w/$workspaceId/d/$dmId'
       path: '/w/$workspaceId/d/$dmId'
@@ -862,11 +882,25 @@ const AuthProfileRouteWithChildren = AuthProfileRoute._addFileChildren(
   AuthProfileRouteChildren,
 )
 
+interface AuthWWorkspaceIdOpenclawRouteChildren {
+  AuthWWorkspaceIdOpenclawAgentIdRoute: typeof AuthWWorkspaceIdOpenclawAgentIdRoute
+}
+
+const AuthWWorkspaceIdOpenclawRouteChildren: AuthWWorkspaceIdOpenclawRouteChildren =
+  {
+    AuthWWorkspaceIdOpenclawAgentIdRoute: AuthWWorkspaceIdOpenclawAgentIdRoute,
+  }
+
+const AuthWWorkspaceIdOpenclawRouteWithChildren =
+  AuthWWorkspaceIdOpenclawRoute._addFileChildren(
+    AuthWWorkspaceIdOpenclawRouteChildren,
+  )
+
 interface AuthRouteChildren {
   AuthOnboardingRoute: typeof AuthOnboardingRouteWithChildren
   AuthProfileRoute: typeof AuthProfileRouteWithChildren
   AuthWWorkspaceIdAdminRoute: typeof AuthWWorkspaceIdAdminRoute
-  AuthWWorkspaceIdOpenclawRoute: typeof AuthWWorkspaceIdOpenclawRoute
+  AuthWWorkspaceIdOpenclawRoute: typeof AuthWWorkspaceIdOpenclawRouteWithChildren
   AuthWWorkspaceIdIndexRoute: typeof AuthWWorkspaceIdIndexRoute
   AuthWWorkspaceIdCChannelIdRoute: typeof AuthWWorkspaceIdCChannelIdRoute
   AuthWWorkspaceIdDDmIdRoute: typeof AuthWWorkspaceIdDDmIdRoute
@@ -876,7 +910,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthOnboardingRoute: AuthOnboardingRouteWithChildren,
   AuthProfileRoute: AuthProfileRouteWithChildren,
   AuthWWorkspaceIdAdminRoute: AuthWWorkspaceIdAdminRoute,
-  AuthWWorkspaceIdOpenclawRoute: AuthWWorkspaceIdOpenclawRoute,
+  AuthWWorkspaceIdOpenclawRoute: AuthWWorkspaceIdOpenclawRouteWithChildren,
   AuthWWorkspaceIdIndexRoute: AuthWWorkspaceIdIndexRoute,
   AuthWWorkspaceIdCChannelIdRoute: AuthWWorkspaceIdCChannelIdRoute,
   AuthWWorkspaceIdDDmIdRoute: AuthWWorkspaceIdDDmIdRoute,
@@ -940,13 +974,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -1,26 +1,70 @@
-## Newsprint theme tweaks
+## OpenClaw Phase 2
 
-Update only the Newsprint theme block in `src/styles.css` (lines ~806–942). No other files change.
+Replace the `WizardPlaceholder` with the real agent-builder experience. Everything stays gated behind the existing `openclaw_enabled` feature flag and `openclaw_can_use` (subscription + COGS cap) check — no plan/billing changes.
 
-### Light mode
-- Keep paper texture on the body background (already there).
-- `.glass` / `.glass-strong` panels become true frosted glassmorphism:
-  - `background-color` reduced to **60% opacity** white-paper (`oklch(0.99 0.006 85 / 0.60)`); `.glass-strong` slightly higher (~0.70) for hierarchy.
-  - Add `backdrop-filter: blur(20px) saturate(140%)` so the paper texture shows through.
-  - Remove the opaque paper-texture fill on the panels (texture lives on the body, not the panel) so the frost reads.
-  - Keep the layered drop shadows for premium depth.
-- Force panel text + foreground tokens to **charcoal** (`oklch(0.18 0.005 60)`) so copy on glass stays legible.
+### 1. Agent list (`/w/$workspaceId/openclaw`)
 
-### Dark mode
-- Background stays charcoal (already there); drop the paper texture on `body` (no change needed — it's already charcoal-only).
-- `.glass` / `.glass-strong` panels become frosted glass over charcoal:
-  - `background-color` set to **50% opacity** light paper (`oklch(0.94 0.012 85 / 0.50)`) — keeps the "paper on charcoal" feel but translucent.
-  - Add `backdrop-filter: blur(20px) saturate(130%)`.
-  - Remove the opaque paper-texture fill on the panel so the blur reads as glass; keep texture only on buttons/accents via the existing `.btn-paper` rule.
-  - Keep charcoal shadows.
-- Card/popover tokens unchanged; only the `.glass*` surfaces get the new translucency.
+When the flag is on, render the user's agents from `openclaw_agents` scoped to the current workspace:
 
-### Notes
-- Use standard `backdrop-filter` only — Lightning CSS adds the `-webkit-` prefix at build (per project rule).
-- No component or token-name changes; existing surfaces using `.glass` / `.glass-strong` pick up the new look automatically.
-- No changes to buttons, accents, or the paper-texture URIs themselves.
+- Empty state with "Create your first agent" CTA.
+- Card grid: display name, model, gateway status pill (`provisioning` / `ready` / `error` / `stopped`), last-active timestamp.
+- "New agent" button → opens the wizard sheet.
+- Each card links to the detail page.
+
+### 2. Five-step create wizard (sheet/dialog)
+
+Single multi-step component, local form state, persists on final step.
+
+1. **Identity** — display name, short description.
+2. **Persona** — system prompt textarea + tone presets (writes to `persona` jsonb).
+3. **Model** — pick from a curated allowlist (`google/gemini-3-flash-preview`, `openai/gpt-5-mini`, `anthropic/claude-haiku-4-5`).
+4. **Skills** — freeform skill cards (name + instructions), stored in `skill_definitions` jsonb.
+5. **Tools & review** — checkbox list for `tool_allowlist` (`web_search`, `code_exec`, `image_gen`, `http_fetch`), review summary, Create button.
+
+Create flow: server fn `createOpenclawAgent` inserts the row, then kicks off Fly provisioning (next section), then returns the new agent id. UI navigates to the detail page.
+
+### 3. Agent detail page (`/w/$workspaceId/openclaw/$agentId`)
+
+- Header with name, model, status pill, last-active.
+- Tabs: **Overview** (persona + skills + tools, read-only summary), **Config** (edit form reusing wizard fields), **Runtime** (`fly_app`, `fly_machine_id`, `gateway_url`, status, "Restart" and "Stop" buttons).
+- Delete agent (destroys Fly machine, removes row).
+- No chat UI yet — that's Phase 3.
+
+### 4. Fly machine provisioning
+
+A thin Fly Machines client in `src/lib/fly.server.ts` (called only from server functions, never from routes/components at module scope). Uses Fly's Machines REST API.
+
+Server functions in `src/lib/openclaw.functions.ts`:
+
+- `createOpenclawAgent` — insert row, set `gateway_status='provisioning'`, call Fly to create a per-agent app + machine, store `fly_app`, `fly_machine_id`, `gateway_url`, set `gateway_status='ready'` (or `error` with a logged reason).
+- `restartOpenclawAgent` / `stopOpenclawAgent` — POST to Fly machine lifecycle endpoints.
+- `deleteOpenclawAgent` — destroy machine + app, delete row.
+- `listOpenclawAgents` / `getOpenclawAgent` — read for the list and detail pages.
+- All gated by `requireSupabaseAuth` and re-check `openclaw_can_use` before any Fly call to respect the COGS cap.
+
+A single agent image is used (assumed already published — image ref configurable via `FLY_AGENT_IMAGE`). Per-machine env includes the agent id, model, persona, tools, and a one-shot signed token the agent uses to call back into Hypeforce.
+
+Status is updated synchronously inside the create handler; a follow-up "refresh status" server fn polls Fly when the user re-opens the detail page.
+
+### 5. Secrets required
+
+Two new runtime secrets are needed before the Fly code can run. I'll request them after this plan is approved:
+
+- `FLY_API_TOKEN` — Fly.io personal access token (`fly auth token`).
+- `FLY_ORG_SLUG` — Fly organization slug agents are created in.
+
+Optional override: `FLY_AGENT_IMAGE` (defaults to a placeholder; I'll note the exact value to set once the agent image is published).
+
+### 6. Out of scope (Phase 3+)
+
+- Live chat / streaming responses from the agent gateway.
+- Tool execution sandbox.
+- Sharing agents across workspace members.
+- Per-tool usage metering beyond the existing `openclaw_cogs_ledger`.
+
+### Files
+
+- New: `src/routes/_auth.w.$workspaceId.openclaw.$agentId.tsx`, `src/components/hypeforce/openclaw/agent-card.tsx`, `src/components/hypeforce/openclaw/agent-wizard.tsx`, `src/lib/fly.server.ts`.
+- Edited: `src/routes/_auth.w.$workspaceId.openclaw.tsx` (list + wizard trigger), `src/lib/openclaw.functions.ts` (CRUD + Fly orchestration).
+
+No DB migration — `openclaw_agents` already has every column we need.

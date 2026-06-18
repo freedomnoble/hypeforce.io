@@ -1,14 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { WorkspaceShell } from "@/components/hypeforce/workspace-shell";
 import { Button } from "@/components/ui/button";
-import { Bot, Sparkles, Check, ArrowLeft } from "lucide-react";
+import { Bot, Sparkles, Check, ArrowLeft, Plus } from "lucide-react";
 import {
   getOpenclawFlags,
   getOpenclawWaitlistStatus,
   joinOpenclawWaitlist,
+  listOpenclawAgents,
 } from "@/lib/openclaw.functions";
+import { AgentCard } from "@/components/hypeforce/openclaw/agent-card";
+import { AgentWizard } from "@/components/hypeforce/openclaw/agent-wizard";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_auth/w/$workspaceId/openclaw")({
@@ -20,6 +24,7 @@ function OpenclawPage() {
   const flagsFn = useServerFn(getOpenclawFlags);
   const statusFn = useServerFn(getOpenclawWaitlistStatus);
   const joinFn = useServerFn(joinOpenclawWaitlist);
+  const listFn = useServerFn(listOpenclawAgents);
   const qc = useQueryClient();
 
   const { data: flags, isLoading: flagsLoading } = useQuery({
@@ -49,7 +54,7 @@ function OpenclawPage() {
   return (
     <WorkspaceShell workspaceId={workspaceId}>
       <div className="min-h-full w-full px-4 sm:px-8 py-10">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <Link
             to="/w/$workspaceId"
             params={{ workspaceId }}
@@ -75,11 +80,78 @@ function OpenclawPage() {
               joining={join.isPending}
             />
           ) : (
-            <WizardPlaceholder />
+            <AgentList workspaceId={workspaceId} listFn={listFn} />
           )}
         </div>
       </div>
     </WorkspaceShell>
+  );
+}
+
+function AgentList({
+  workspaceId,
+  listFn,
+}: {
+  workspaceId: string;
+  listFn: ReturnType<typeof useServerFn<typeof listOpenclawAgents>>;
+}) {
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const { data, isLoading } = useQuery({
+    queryKey: ["openclaw-agents", workspaceId],
+    queryFn: () => listFn({ data: { workspaceId } }),
+  });
+
+  const agents = data?.agents ?? [];
+
+  return (
+    <>
+      <div className="flex items-end justify-between gap-4 mb-6">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-mono">
+            OpenClaw
+          </div>
+          <h1 className="font-display text-3xl tracking-tight">Your agents</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Private AI agents with their own skills, persona, and tools.
+          </p>
+        </div>
+        <Button onClick={() => setWizardOpen(true)} className="gap-2">
+          <Plus className="w-4 h-4" /> New agent
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="text-sm text-muted-foreground font-mono">loading…</div>
+      ) : agents.length === 0 ? (
+        <div className="paper-panel rounded-2xl p-10 text-center space-y-4">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 grid place-items-center">
+            <Bot className="w-7 h-7 text-primary" />
+          </div>
+          <div>
+            <h2 className="font-display text-2xl tracking-tight">No agents yet</h2>
+            <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+              Spin up your first OpenClaw agent — give it a persona, pick a model, and
+              wire up the tools it can use.
+            </p>
+          </div>
+          <Button onClick={() => setWizardOpen(true)} className="gap-2">
+            <Sparkles className="w-4 h-4" /> Create your first agent
+          </Button>
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 gap-4">
+          {agents.map((a) => (
+            <AgentCard key={a.id} agent={a} workspaceId={workspaceId} />
+          ))}
+        </div>
+      )}
+
+      <AgentWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        workspaceId={workspaceId}
+      />
+    </>
   );
 }
 
@@ -129,21 +201,6 @@ function ComingSoonPanel({
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function WizardPlaceholder() {
-  // Phase 2 will render the actual 5-step wizard / agent list here.
-  return (
-    <div className="paper-panel rounded-2xl p-8 text-center space-y-3">
-      <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 grid place-items-center">
-        <Bot className="w-7 h-7 text-primary" />
-      </div>
-      <h1 className="font-display text-3xl tracking-tight">OpenClaw</h1>
-      <p className="text-sm text-muted-foreground max-w-md mx-auto">
-        The agent builder is live. The 5-step wizard ships in Phase 2.
-      </p>
     </div>
   );
 }
