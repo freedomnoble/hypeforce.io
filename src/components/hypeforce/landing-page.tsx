@@ -429,11 +429,11 @@ export function LandingPage({
             {t("use_cases_subhead", "Hype up your work with 5 agents that work together. That's 5x5 the productivity and work shipped.")}
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="max-w-2xl mx-auto">
           {useCaseItems.map((u, i) => (
             <UseCaseCard
               key={i}
-              n={String(i + 1).padStart(2, "0")}
+              n=""
               icon={FEATURE_ICONS[u.icon ?? ""] ?? <Rocket />}
               title={u.title}
               desc={u.desc}
@@ -679,12 +679,12 @@ function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: stri
 
 function UseCaseCard({ n, icon, title, desc }: { n: string; icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="glass rounded-2xl p-6 group transition-transform hover:-translate-y-0.5">
-      <div className="flex items-center justify-between mb-4">
+    <div className={`glass rounded-2xl p-6 group transition-transform hover:-translate-y-0.5 ${n ? "" : "text-center"}`}>
+      <div className="flex items-center justify-center mb-4">
         <div className="liquid-glass rounded-xl w-11 h-11 grid place-items-center text-electric">
           {icon}
         </div>
-        <span className="font-display text-2xl text-electric/70 leading-none">{n}</span>
+        {n ? <span className="font-display text-2xl text-electric/70 leading-none ml-auto">{n}</span> : null}
       </div>
       <h3 className="font-display text-lg">{title}</h3>
       <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{desc}</p>
