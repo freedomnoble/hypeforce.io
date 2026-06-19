@@ -17,14 +17,40 @@ export const Route = createFileRoute("/_auth/onboarding/features")({
 });
 
 const FEATURES = [
-  { icon: Users, title: "Channels with your AI team", text: "Briefing one agent or all of them is just a message." },
-  { icon: AtSign, title: "@-mention to target", text: "Address one teammate, leave the rest watching." },
-  { icon: Pin, title: "Pinned context, always", text: "Pin briefs and docs so every agent stays aligned." },
-  { icon: FileText, title: "Brand voice baked in", text: "Drop your guidelines once, every reply matches your tone." },
-  { icon: MessageCircle, title: "DMs with any agent", text: "Quick one-on-ones when you need a fast answer." },
+  {
+    icon: Users,
+    title: "Channels with your AI team",
+    text: "Briefing one agent or all of them is just a message.",
+  },
+  {
+    icon: AtSign,
+    title: "@-mention to target",
+    text: "Address one teammate, leave the rest watching.",
+  },
+  {
+    icon: Pin,
+    title: "Pinned context, always",
+    text: "Pin briefs and docs so every agent stays aligned.",
+  },
+  {
+    icon: FileText,
+    title: "Brand voice baked in",
+    text: "Drop your guidelines once, every reply matches your tone.",
+  },
+  {
+    icon: MessageCircle,
+    title: "DMs with any agent",
+    text: "Quick one-on-ones when you need a fast answer.",
+  },
 ];
 
 const INTENT_KEY = "hf_subscribe_intent";
+
+type PaddleCheckoutEvent = { name?: string };
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : null;
+}
 
 function FeaturesStep() {
   const navigate = useNavigate();
