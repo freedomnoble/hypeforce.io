@@ -206,9 +206,15 @@ function FeaturesStep() {
 
       <div className="rounded-2xl bg-gradient-to-br from-electric/15 to-primary/10 p-5 border border-electric/30 text-center mb-3">
         <div className="flex items-baseline justify-center gap-2 mb-1">
-          <span className="font-display text-4xl font-bold">{billing === "monthly" ? "$9" : "$97"}</span>
-          <span className="text-sm text-muted-foreground">/{billing === "monthly" ? "month" : "year"}</span>
-          <span className="text-base text-muted-foreground line-through ml-1">{billing === "monthly" ? "$19" : "$205"}</span>
+          <span className="font-display text-4xl font-bold">
+            {billing === "monthly" ? "$9" : "$97"}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            /{billing === "monthly" ? "month" : "year"}
+          </span>
+          <span className="text-base text-muted-foreground line-through ml-1">
+            {billing === "monthly" ? "$19" : "$205"}
+          </span>
         </div>
         <div className="text-xs text-muted-foreground">5 days free · founding price locked in</div>
       </div>
