@@ -126,6 +126,16 @@ function FeaturesStep() {
   const onSubscribe = async () => {
     try {
       const { data: u } = await supabase.auth.getUser();
+      setIntentGiven(true);
+      try {
+        sessionStorage.setItem(INTENT_KEY, "1");
+        sessionStorage.setItem(
+          "hf_onboarding_intent",
+          JSON.stringify({ intent: "founder", billing }),
+        );
+      } catch {
+        // Ignore storage failures.
+      }
       await openCheckout({
         priceId: billing === "annual" ? "founder_annual" : "founder_monthly",
         customerEmail: data?.email ?? u.user?.email,
@@ -138,17 +148,13 @@ function FeaturesStep() {
           }
         },
       });
-      setIntentGiven(true);
+    } catch (e: unknown) {
+      setIntentGiven(false);
       try {
-        sessionStorage.setItem(INTENT_KEY, "1");
-        sessionStorage.setItem(
-          "hf_onboarding_intent",
-          JSON.stringify({ intent: "founder", billing }),
-        );
+        sessionStorage.removeItem(INTENT_KEY);
       } catch {
         // Ignore storage failures.
       }
-    } catch (e: unknown) {
       toast.error(getErrorMessage(e) ?? "Checkout failed to open. Please try again.");
     }
   };
