@@ -429,11 +429,11 @@ export function LandingPage({
             {t("use_cases_subhead", "Hype up your work with 5 agents that work together. That's 5x5 the productivity and work shipped.")}
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="max-w-2xl mx-auto">
           {useCaseItems.map((u, i) => (
             <UseCaseCard
               key={i}
-              n={String(i + 1).padStart(2, "0")}
+              n=""
               icon={FEATURE_ICONS[u.icon ?? ""] ?? <Rocket />}
               title={u.title}
               desc={u.desc}
