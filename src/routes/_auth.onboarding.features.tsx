@@ -123,7 +123,6 @@ function FeaturesStep() {
 
   const canContinue = intentGiven || alreadySubscribed;
 
-
   const onSubscribe = async () => {
     try {
       const { data: u } = await supabase.auth.getUser();
@@ -132,7 +131,7 @@ function FeaturesStep() {
         customerEmail: data?.email ?? u.user?.email,
         customData: { userId: u.user?.id ?? "", onboarding: "1", billing },
         successUrl: `${window.location.origin}/onboarding/features?checkout=success`,
-        onEvent: (e: any) => {
+        onEvent: (e: PaddleCheckoutEvent) => {
           if (e?.name === "checkout.completed") {
             toast.success("Trial started — your subscription will activate shortly.");
             invalidate();
@@ -142,10 +141,15 @@ function FeaturesStep() {
       setIntentGiven(true);
       try {
         sessionStorage.setItem(INTENT_KEY, "1");
-        sessionStorage.setItem("hf_onboarding_intent", JSON.stringify({ intent: "founder", billing }));
-      } catch {}
-    } catch (e: any) {
-      toast.error(e?.message ?? "Checkout failed to open. Please try again.");
+        sessionStorage.setItem(
+          "hf_onboarding_intent",
+          JSON.stringify({ intent: "founder", billing }),
+        );
+      } catch {
+        // Ignore storage failures.
+      }
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) ?? "Checkout failed to open. Please try again.");
     }
   };
 
