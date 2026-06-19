@@ -64,7 +64,9 @@ function FeaturesStep() {
     try {
       const raw = sessionStorage.getItem("hf_onboarding_intent");
       if (raw && JSON.parse(raw)?.billing === "annual") return "annual";
-    } catch {}
+    } catch {
+      return "monthly";
+    }
     return "monthly";
   });
   const [continuing, setContinuing] = useState(false);
@@ -75,14 +77,18 @@ function FeaturesStep() {
 
   const trialEndsMs = data?.trial_ends_at ? new Date(data.trial_ends_at).getTime() : 0;
   const trialActive = !!trialEndsMs && trialEndsMs > Date.now();
-  const hoursLeft = trialActive ? Math.max(0, Math.ceil((trialEndsMs - Date.now()) / 3_600_000)) : 0;
+  const hoursLeft = trialActive
+    ? Math.max(0, Math.ceil((trialEndsMs - Date.now()) / 3_600_000))
+    : 0;
   const isLastDay = trialActive && hoursLeft <= 24;
   const alreadyCancelled = !!data?.trial_cancel_requested_at || cancelRequested;
 
   useEffect(() => {
     try {
       if (sessionStorage.getItem(INTENT_KEY) === "1") setIntentGiven(true);
-    } catch {}
+    } catch {
+      return;
+    }
   }, []);
 
   // Redeem any pending invite token so invited users see "Gifted" here,
@@ -92,7 +98,9 @@ function FeaturesStep() {
     let token: string | null = null;
     try {
       token = sessionStorage.getItem(PENDING_INVITE_KEY);
-    } catch {}
+    } catch {
+      token = null;
+    }
     if (!token) return;
     let cancelled = false;
     (async () => {
@@ -100,7 +108,9 @@ function FeaturesStep() {
         await redeem({ data: { token: token! } });
         try {
           sessionStorage.removeItem(PENDING_INVITE_KEY);
-        } catch {}
+        } catch {
+          // Ignore storage failures.
+        }
         if (!cancelled) await invalidate();
       } catch {
         // Leave token in place — /app will retry after onboarding.
