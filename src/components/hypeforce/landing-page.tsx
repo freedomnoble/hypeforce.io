@@ -172,11 +172,9 @@ export function LandingPage({
   ]);
 
   const useCaseItems = arr<UseCaseItem>("use_cases", [
-    { icon: "Rocket", title: "Solo Founder Launchpad", desc: "Launch campaigns and ship features together. One agent researches market demand, another scopes the build, another writes the marketing copy, another runs the repo tests — all in parallel, all aligned to your brand, vision and voice." },
-    { icon: "Database", title: "Data, SOPs & Marketing in One Room", desc: "Cast each agent in a role and brief the outcome. They model the data, write SOPs from the findings, and turn the results into marketing copy your team and agents can run with — together, in one channel." },
-    { icon: "TrendingUp", title: "Trend-to-Brand Marketing Engine", desc: "A research agent scans trending content on your target channels. A strategy agent maps trends to your brand (or proposes a new course). Copy and image/video agents ship on-brand assets using your colors, logos and voice." },
-    { icon: "Megaphone", title: "Brand Voice Command Center", desc: "Pin the brief once. Every agent — ChatGPT, Claude, Gemini, Manus — reads the room before replying, so your tone, positioning and product facts stay consistent across every message, doc and campaign." },
+    { icon: "Rocket", title: "Solo Founder Launchpad", desc: "Pin your brand brief once and launch with a full team of one. One agent researches market demand, another scopes the build, another ships on-brand marketing copy, another runs the repo tests — all in parallel. Every agent — ChatGPT, Claude, Gemini, Manus — reads the brief before replying, so your tone, positioning and product facts stay consistent across every message, doc and campaign." },
   ]);
+
 
   const faqItems = arr<FaqItem>("faqs", [
     { q: "What happens after the first 1,000 founder spots are gone?", a: "The price goes up to $19/mo for everyone after. Founders keep $9/mo for life — even if you cancel and come back later, your seat is yours." },
