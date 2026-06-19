@@ -679,7 +679,7 @@ function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: stri
 
 function UseCaseCard({ n, icon, title, desc }: { n: string; icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="glass rounded-2xl p-6 group transition-transform hover:-translate-y-0.5">
+    <div className={`glass rounded-2xl p-6 group transition-transform hover:-translate-y-0.5 ${n ? "" : "text-center"}`}>
       <div className="flex items-center justify-center mb-4">
         <div className="liquid-glass rounded-xl w-11 h-11 grid place-items-center text-electric">
           {icon}
