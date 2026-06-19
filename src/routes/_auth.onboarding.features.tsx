@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { redeemInviteToken, requestTrialCancellation } from "@/lib/invites.functions";
 import { PENDING_INVITE_KEY } from "@/routes/join.$token";
 import { Users, AtSign, Pin, FileText, MessageCircle, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_auth/onboarding/features")({
   component: FeaturesStep,
@@ -33,6 +34,13 @@ function FeaturesStep() {
 
   const alreadySubscribed = !!(data?.has_active_subscription || data?.is_comped);
   const [intentGiven, setIntentGiven] = useState<boolean>(false);
+  const [billing, setBilling] = useState<"monthly" | "annual">(() => {
+    try {
+      const raw = sessionStorage.getItem("hf_onboarding_intent");
+      if (raw && JSON.parse(raw)?.billing === "annual") return "annual";
+    } catch {}
+    return "monthly";
+  });
   const [continuing, setContinuing] = useState(false);
   const [cancelRequested, setCancelRequested] = useState(false);
   const redeem = useServerFn(redeemInviteToken);
@@ -81,25 +89,28 @@ function FeaturesStep() {
 
 
   const onSubscribe = async () => {
-    setIntentGiven(true);
     try {
-      sessionStorage.setItem(INTENT_KEY, "1");
-    } catch {}
-    const { data: u } = await supabase.auth.getUser();
-    let billing: "monthly" | "annual" = "monthly";
-    try {
-      const raw = sessionStorage.getItem("hf_onboarding_intent");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed?.billing === "annual") billing = "annual";
-      }
-    } catch {}
-    await openCheckout({
-      priceId: billing === "annual" ? "founder_annual" : "founder_monthly",
-      customerEmail: data?.email ?? u.user?.email,
-      customData: { userId: u.user?.id ?? "", onboarding: "1" },
-      successUrl: `${window.location.origin}/onboarding/features?checkout=success`,
-    });
+      const { data: u } = await supabase.auth.getUser();
+      await openCheckout({
+        priceId: billing === "annual" ? "founder_annual" : "founder_monthly",
+        customerEmail: data?.email ?? u.user?.email,
+        customData: { userId: u.user?.id ?? "", onboarding: "1", billing },
+        successUrl: `${window.location.origin}/onboarding/features?checkout=success`,
+        onEvent: (e: any) => {
+          if (e?.name === "checkout.completed") {
+            toast.success("Trial started — your subscription will activate shortly.");
+            invalidate();
+          }
+        },
+      });
+      setIntentGiven(true);
+      try {
+        sessionStorage.setItem(INTENT_KEY, "1");
+        sessionStorage.setItem("hf_onboarding_intent", JSON.stringify({ intent: "founder", billing }));
+      } catch {}
+    } catch (e: any) {
+      toast.error(e?.message ?? "Checkout failed to open. Please try again.");
+    }
   };
 
   const onContinue = async () => {
@@ -136,19 +147,36 @@ function FeaturesStep() {
         ))}
       </ul>
 
+      <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/30 p-1 mb-3">
+        {(["monthly", "annual"] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setBilling(option)}
+            className={`h-10 rounded-lg text-sm font-medium transition-all ${
+              billing === option
+                ? "bg-electric text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {option === "monthly" ? "Monthly" : "Annual"}
+          </button>
+        ))}
+      </div>
+
       <div className="rounded-2xl bg-gradient-to-br from-electric/15 to-primary/10 p-5 border border-electric/30 text-center mb-3">
         <div className="flex items-baseline justify-center gap-2 mb-1">
-          <span className="font-display text-4xl font-bold">$9</span>
-          <span className="text-sm text-muted-foreground">/month</span>
-          <span className="text-base text-muted-foreground line-through ml-1">$19</span>
+          <span className="font-display text-4xl font-bold">{billing === "monthly" ? "$9" : "$97"}</span>
+          <span className="text-sm text-muted-foreground">/{billing === "monthly" ? "month" : "year"}</span>
+          <span className="text-base text-muted-foreground line-through ml-1">{billing === "monthly" ? "$19" : "$205"}</span>
         </div>
-        <div className="text-xs text-muted-foreground">Founding price · locked in</div>
+        <div className="text-xs text-muted-foreground">5 days free · founding price locked in</div>
       </div>
 
       <Button
         onClick={onSubscribe}
-        disabled={checkoutLoading || alreadySubscribed || !!(data?.trial_ends_at && new Date(data.trial_ends_at) > new Date())}
-        variant={alreadySubscribed || data?.trial_ends_at ? "secondary" : "default"}
+        disabled={checkoutLoading || alreadySubscribed}
+        variant={alreadySubscribed ? "secondary" : "default"}
         className="w-full h-12 text-base disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {checkoutLoading
@@ -157,9 +185,7 @@ function FeaturesStep() {
             ? "Gifted"
             : data?.has_active_subscription
               ? "Subscribed"
-              : data?.trial_ends_at && new Date(data.trial_ends_at) > new Date()
-                ? "5-day free trial"
-                : "Subscribe"}
+              : "Start 5-day free trial"}
       </Button>
 
       <Button
