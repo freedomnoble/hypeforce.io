@@ -10,20 +10,47 @@ import { supabase } from "@/integrations/supabase/client";
 import { redeemInviteToken, requestTrialCancellation } from "@/lib/invites.functions";
 import { PENDING_INVITE_KEY } from "@/routes/join.$token";
 import { Users, AtSign, Pin, FileText, MessageCircle, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_auth/onboarding/features")({
   component: FeaturesStep,
 });
 
 const FEATURES = [
-  { icon: Users, title: "Channels with your AI team", text: "Briefing one agent or all of them is just a message." },
-  { icon: AtSign, title: "@-mention to target", text: "Address one teammate, leave the rest watching." },
-  { icon: Pin, title: "Pinned context, always", text: "Pin briefs and docs so every agent stays aligned." },
-  { icon: FileText, title: "Brand voice baked in", text: "Drop your guidelines once, every reply matches your tone." },
-  { icon: MessageCircle, title: "DMs with any agent", text: "Quick one-on-ones when you need a fast answer." },
+  {
+    icon: Users,
+    title: "Channels with your AI team",
+    text: "Briefing one agent or all of them is just a message.",
+  },
+  {
+    icon: AtSign,
+    title: "@-mention to target",
+    text: "Address one teammate, leave the rest watching.",
+  },
+  {
+    icon: Pin,
+    title: "Pinned context, always",
+    text: "Pin briefs and docs so every agent stays aligned.",
+  },
+  {
+    icon: FileText,
+    title: "Brand voice baked in",
+    text: "Drop your guidelines once, every reply matches your tone.",
+  },
+  {
+    icon: MessageCircle,
+    title: "DMs with any agent",
+    text: "Quick one-on-ones when you need a fast answer.",
+  },
 ];
 
 const INTENT_KEY = "hf_subscribe_intent";
+
+type PaddleCheckoutEvent = { name?: string };
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : null;
+}
 
 function FeaturesStep() {
   const navigate = useNavigate();
@@ -33,6 +60,15 @@ function FeaturesStep() {
 
   const alreadySubscribed = !!(data?.has_active_subscription || data?.is_comped);
   const [intentGiven, setIntentGiven] = useState<boolean>(false);
+  const [billing, setBilling] = useState<"monthly" | "annual">(() => {
+    try {
+      const raw = sessionStorage.getItem("hf_onboarding_intent");
+      if (raw && JSON.parse(raw)?.billing === "annual") return "annual";
+    } catch {
+      return "monthly";
+    }
+    return "monthly";
+  });
   const [continuing, setContinuing] = useState(false);
   const [cancelRequested, setCancelRequested] = useState(false);
   const redeem = useServerFn(redeemInviteToken);
@@ -41,14 +77,18 @@ function FeaturesStep() {
 
   const trialEndsMs = data?.trial_ends_at ? new Date(data.trial_ends_at).getTime() : 0;
   const trialActive = !!trialEndsMs && trialEndsMs > Date.now();
-  const hoursLeft = trialActive ? Math.max(0, Math.ceil((trialEndsMs - Date.now()) / 3_600_000)) : 0;
+  const hoursLeft = trialActive
+    ? Math.max(0, Math.ceil((trialEndsMs - Date.now()) / 3_600_000))
+    : 0;
   const isLastDay = trialActive && hoursLeft <= 24;
   const alreadyCancelled = !!data?.trial_cancel_requested_at || cancelRequested;
 
   useEffect(() => {
     try {
       if (sessionStorage.getItem(INTENT_KEY) === "1") setIntentGiven(true);
-    } catch {}
+    } catch {
+      return;
+    }
   }, []);
 
   // Redeem any pending invite token so invited users see "Gifted" here,
@@ -58,7 +98,9 @@ function FeaturesStep() {
     let token: string | null = null;
     try {
       token = sessionStorage.getItem(PENDING_INVITE_KEY);
-    } catch {}
+    } catch {
+      token = null;
+    }
     if (!token) return;
     let cancelled = false;
     (async () => {
@@ -66,7 +108,9 @@ function FeaturesStep() {
         await redeem({ data: { token: token! } });
         try {
           sessionStorage.removeItem(PENDING_INVITE_KEY);
-        } catch {}
+        } catch {
+          // Ignore storage failures.
+        }
         if (!cancelled) await invalidate();
       } catch {
         // Leave token in place — /app will retry after onboarding.
@@ -79,27 +123,40 @@ function FeaturesStep() {
 
   const canContinue = intentGiven || alreadySubscribed;
 
-
   const onSubscribe = async () => {
-    setIntentGiven(true);
     try {
-      sessionStorage.setItem(INTENT_KEY, "1");
-    } catch {}
-    const { data: u } = await supabase.auth.getUser();
-    let billing: "monthly" | "annual" = "monthly";
-    try {
-      const raw = sessionStorage.getItem("hf_onboarding_intent");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed?.billing === "annual") billing = "annual";
+      const { data: u } = await supabase.auth.getUser();
+      setIntentGiven(true);
+      try {
+        sessionStorage.setItem(INTENT_KEY, "1");
+        sessionStorage.setItem(
+          "hf_onboarding_intent",
+          JSON.stringify({ intent: "founder", billing }),
+        );
+      } catch {
+        // Ignore storage failures.
       }
-    } catch {}
-    await openCheckout({
-      priceId: billing === "annual" ? "founder_annual" : "founder_monthly",
-      customerEmail: data?.email ?? u.user?.email,
-      customData: { userId: u.user?.id ?? "", onboarding: "1" },
-      successUrl: `${window.location.origin}/onboarding/features?checkout=success`,
-    });
+      await openCheckout({
+        priceId: billing === "annual" ? "founder_annual" : "founder_monthly",
+        customerEmail: data?.email ?? u.user?.email,
+        customData: { userId: u.user?.id ?? "", onboarding: "1", billing },
+        successUrl: `${window.location.origin}/onboarding/features?checkout=success`,
+        onEvent: (e: PaddleCheckoutEvent) => {
+          if (e?.name === "checkout.completed") {
+            toast.success("Trial started — your subscription will activate shortly.");
+            invalidate();
+          }
+        },
+      });
+    } catch (e: unknown) {
+      setIntentGiven(false);
+      try {
+        sessionStorage.removeItem(INTENT_KEY);
+      } catch {
+        // Ignore storage failures.
+      }
+      toast.error(getErrorMessage(e) ?? "Checkout failed to open. Please try again.");
+    }
   };
 
   const onContinue = async () => {
@@ -136,19 +193,42 @@ function FeaturesStep() {
         ))}
       </ul>
 
+      <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/30 p-1 mb-3">
+        {(["monthly", "annual"] as const).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setBilling(option)}
+            className={`h-10 rounded-lg text-sm font-medium transition-all ${
+              billing === option
+                ? "bg-electric text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {option === "monthly" ? "Monthly" : "Annual"}
+          </button>
+        ))}
+      </div>
+
       <div className="rounded-2xl bg-gradient-to-br from-electric/15 to-primary/10 p-5 border border-electric/30 text-center mb-3">
         <div className="flex items-baseline justify-center gap-2 mb-1">
-          <span className="font-display text-4xl font-bold">$9</span>
-          <span className="text-sm text-muted-foreground">/month</span>
-          <span className="text-base text-muted-foreground line-through ml-1">$19</span>
+          <span className="font-display text-4xl font-bold">
+            {billing === "monthly" ? "$9" : "$97"}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            /{billing === "monthly" ? "month" : "year"}
+          </span>
+          <span className="text-base text-muted-foreground line-through ml-1">
+            {billing === "monthly" ? "$19" : "$205"}
+          </span>
         </div>
-        <div className="text-xs text-muted-foreground">Founding price · locked in</div>
+        <div className="text-xs text-muted-foreground">5 days free · founding price locked in</div>
       </div>
 
       <Button
         onClick={onSubscribe}
-        disabled={checkoutLoading || alreadySubscribed || !!(data?.trial_ends_at && new Date(data.trial_ends_at) > new Date())}
-        variant={alreadySubscribed || data?.trial_ends_at ? "secondary" : "default"}
+        disabled={checkoutLoading || alreadySubscribed}
+        variant={alreadySubscribed ? "secondary" : "default"}
         className="w-full h-12 text-base disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {checkoutLoading
@@ -157,9 +237,7 @@ function FeaturesStep() {
             ? "Gifted"
             : data?.has_active_subscription
               ? "Subscribed"
-              : data?.trial_ends_at && new Date(data.trial_ends_at) > new Date()
-                ? "5-day free trial"
-                : "Subscribe"}
+              : "Start 5-day free trial"}
       </Button>
 
       <Button
