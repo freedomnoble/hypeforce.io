@@ -386,19 +386,39 @@ export const setTicketStatus = createServerFn({ method: "POST" })
   });
 
 // ============================================================ Landing CMS
-export const getLandingContentAdmin = createServerFn({ method: "GET" })
+const VariantInput = z.union([z.literal("a"), z.literal("b")]).optional();
+const variantToId = (v?: "a" | "b") => (v === "b" ? 2 : 1);
+
+export const getLandingContentAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((i: unknown) => z.object({ variant: VariantInput }).parse(i ?? {}))
+  .handler(async ({ data, context }) => {
     await ensureAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin.from("landing_content").select("*").eq("id", 1).single();
+    const id = variantToId(data.variant);
+    const { data: row, error } = await supabaseAdmin
+      .from("landing_content")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
     if (error) throw new Error(error.message);
-    return data;
+    if (!row) {
+      // Ensure variant B exists even if migration was skipped on a stale DB.
+      const { data: created, error: cErr } = await supabaseAdmin
+        .from("landing_content")
+        .insert({ id, content: {} })
+        .select("*")
+        .single();
+      if (cErr) throw new Error(cErr.message);
+      return created;
+    }
+    return row;
   });
 
 export const updateLandingContent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: any) => z.object({
+    variant: VariantInput,
     content: z.record(z.string(), z.any()).optional(),
     theme_key: z.string().max(100).nullable().optional(),
     hero_image_url: z.string().max(1000).nullable().optional(),
@@ -417,24 +437,26 @@ export const updateLandingContent = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { variant, ...patch } = data;
+    const id = variantToId(variant);
     const { error } = await supabaseAdmin
       .from("landing_content")
-      .update({ ...data, updated_by: context.userId })
-      .eq("id", 1);
+      .upsert(
+        { id, ...patch, updated_by: context.userId },
+        { onConflict: "id" },
+      );
     if (error) throw new Error(error.message);
 
-    // Propagate provider avatars to every existing agent — replace only null
-    // avatars or the original seed placeholders, never custom uploads.
-    if (data.provider_avatars) {
+    // Propagate provider avatars (variant A only — globals).
+    if (id === 1 && patch.provider_avatars) {
       const seedFor: Record<string, string[]> = {
         openai: ["/avatars/chatgpt.png"],
         anthropic: ["/avatars/claude.png"],
-        // Skip nano.png — Nano Banana keeps its distinct image-gen identity.
         google: ["/avatars/gemini.png"],
         manus: ["/avatars/manus.png"],
         lovable: [],
       };
-      for (const [provider, url] of Object.entries(data.provider_avatars)) {
+      for (const [provider, url] of Object.entries(patch.provider_avatars)) {
         if (!url || typeof url !== "string") continue;
         const placeholders = seedFor[provider] ?? [];
         let q = supabaseAdmin.from("agents").update({ avatar_url: url }).eq("provider", provider as any);
@@ -448,6 +470,74 @@ export const updateLandingContent = createServerFn({ method: "POST" })
         await q;
       }
     }
+    return { ok: true };
+  });
+
+// ============================================================ Landing A/B
+export const getLandingAbConfig = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("landing_ab_config")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
+    return { mode: (data?.mode as "a" | "b" | "split") ?? "a" };
+  });
+
+export const setLandingAbMode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ mode: z.enum(["a", "b", "split"]) }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("landing_ab_config")
+      .upsert(
+        { id: 1, mode: data.mode, updated_by: context.userId },
+        { onConflict: "id" },
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const getLandingAbStats = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ days: z.number().int().min(1).max(365).optional() }).parse(i ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const since = new Date(Date.now() - (data.days ?? 30) * 86400_000).toISOString();
+    const { data: rows, error } = await supabaseAdmin
+      .from("landing_ab_events")
+      .select("variant,kind")
+      .gte("created_at", since);
+    if (error) throw new Error(error.message);
+    const tally = { a: { views: 0, signups: 0 }, b: { views: 0, signups: 0 } };
+    for (const r of rows ?? []) {
+      const v = r.variant as "a" | "b";
+      if (r.kind === "view") tally[v].views += 1;
+      else if (r.kind === "signup") tally[v].signups += 1;
+    }
+    return tally;
+  });
+
+export const resetLandingAbStats = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("landing_ab_events")
+      .delete()
+      .gte("created_at", "1970-01-01");
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 
