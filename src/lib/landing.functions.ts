@@ -55,6 +55,10 @@ export const getPublicLandingContent = createServerFn({ method: "GET" })
     const variantRow = variantId === 2 ? rowB ?? null : rowA;
 
     // Variant B inherits hero/theme/video/avatars from A unless explicitly set.
+    // videos_enabled is a global toggle — always sourced from variant A so the
+    // admin's "show demo video" switch controls both landing pages at once.
+    const baseInner = (base?.content as Record<string, any> | null) ?? {};
+    const variantInner = (variantRow?.content as Record<string, any> | null) ?? {};
     const content =
       variantRow && base
         ? {
@@ -66,8 +70,13 @@ export const getPublicLandingContent = createServerFn({ method: "GET" })
               variantRow.provider_avatars && Object.keys(variantRow.provider_avatars).length > 0
                 ? variantRow.provider_avatars
                 : base.provider_avatars,
+            content: {
+              ...variantInner,
+              videos_enabled: baseInner.videos_enabled ?? variantInner.videos_enabled ?? "true",
+            },
           }
         : variantRow;
+
 
     const themeKey = (content?.theme_key as string | null) ?? null;
     if (themeKey) {
