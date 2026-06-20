@@ -447,6 +447,25 @@ export const updateLandingContent = createServerFn({ method: "POST" })
       );
     if (error) throw new Error(error.message);
 
+    // videos_enabled is a global toggle that controls both landing pages.
+    // Mirror it onto variant A so the public loader (which only reads A's
+    // value) reflects edits made while editing variant B.
+    if (id !== 1 && patch.content && Object.prototype.hasOwnProperty.call(patch.content, "videos_enabled")) {
+      const { data: aRow } = await supabaseAdmin
+        .from("landing_content")
+        .select("content")
+        .eq("id", 1)
+        .maybeSingle();
+      const aContent = (aRow?.content as Record<string, any> | null) ?? {};
+      await supabaseAdmin
+        .from("landing_content")
+        .upsert(
+          { id: 1, content: { ...aContent, videos_enabled: patch.content.videos_enabled }, updated_by: context.userId },
+          { onConflict: "id" },
+        );
+    }
+
+
     // Propagate provider avatars (variant A only — globals).
     if (id === 1 && patch.provider_avatars) {
       const seedFor: Record<string, string[]> = {
