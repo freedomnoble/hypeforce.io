@@ -172,6 +172,7 @@ function LandingCMS() {
       }
       await saveFn({
         data: {
+          variant,
           content: parsed,
           theme_key: theme === "default" ? null : theme,
           hero_image_url: hero || null,
@@ -179,8 +180,9 @@ function LandingCMS() {
           provider_avatars: cleanedAvatars,
         },
       });
-      toast.success("Landing saved");
+      toast.success(`Variant ${variant.toUpperCase()} saved`);
       await refetch();
+
     } catch (e: any) {
       toast.error(e.message);
     } finally {
