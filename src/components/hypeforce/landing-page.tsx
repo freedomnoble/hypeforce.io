@@ -434,7 +434,7 @@ export function LandingPage({
                 {t("use_cases_subhead", "Hype up your work with 5 agents that work together. That's 5x5 the productivity and work shipped.")}
               </p>
             </div>
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-2xl mx-auto flex flex-col gap-5">
               {useCaseItems.map((u, i) => (
                 <UseCaseCard
                   key={i}
