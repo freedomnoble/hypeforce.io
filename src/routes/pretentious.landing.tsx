@@ -70,9 +70,25 @@ function LandingCMS() {
   const getPrice = useServerFn(getPricingConfigAdmin);
   const savePrice = useServerFn(updatePricingConfig);
   const uploadUrl = useServerFn(createLandingUploadUrl);
+  const getAbCfg = useServerFn(getLandingAbConfig);
+  const setAbMode = useServerFn(setLandingAbMode);
+  const getAbStats = useServerFn(getLandingAbStats);
+  const resetStats = useServerFn(resetLandingAbStats);
 
-  const { data: landing, refetch } = useQuery({ queryKey: ["admin-landing"], queryFn: () => getFn() });
+  const [variant, setVariant] = useState<"a" | "b">("a");
+
+  const { data: landing, refetch } = useQuery({
+    queryKey: ["admin-landing", variant],
+    queryFn: () => getFn({ data: { variant } }),
+  });
   const { data: pricing, refetch: refetchPrice } = useQuery({ queryKey: ["admin-pricing"], queryFn: () => getPrice() });
+  const { data: abCfg, refetch: refetchAb } = useQuery({ queryKey: ["admin-ab-cfg"], queryFn: () => getAbCfg() });
+  const { data: abStats, refetch: refetchStats } = useQuery({
+    queryKey: ["admin-ab-stats"],
+    queryFn: () => getAbStats({ data: { days: 30 } }),
+  });
+
+
 
   const [content, setContent] = useState<Record<string, string>>({});
   const [theme, setTheme] = useState<string>("default");
