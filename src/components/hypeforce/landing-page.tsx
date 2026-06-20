@@ -62,6 +62,7 @@ export function LandingPage({
   providerAvatars,
   pricing,
   freeTrialLanding,
+  variant,
 }: {
   heroUrl?: string | null;
   videoUrl?: string | null;
@@ -70,7 +71,9 @@ export function LandingPage({
   providerAvatars?: Record<string, string> | null;
   pricing?: Record<string, any> | null;
   freeTrialLanding?: boolean;
+  variant?: "a" | "b";
 } = {}) {
+
   const [signedIn, setSignedIn] = useState(false);
   const [userEmail, setUserEmail] = useState<string | undefined>();
   const [userId, setUserId] = useState<string | undefined>();
