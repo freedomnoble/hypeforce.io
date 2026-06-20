@@ -58,7 +58,7 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
-  const { heroUrl, videoUrl, themeKey, content, providerAvatars, pricing, freeTrialLanding } =
+  const { heroUrl, videoUrl, themeKey, content, providerAvatars, pricing, freeTrialLanding, variant } =
     Route.useLoaderData();
   return (
     <LandingPage
@@ -69,6 +69,8 @@ function IndexPage() {
       providerAvatars={providerAvatars}
       pricing={pricing}
       freeTrialLanding={freeTrialLanding}
+      variant={variant}
     />
   );
 }
+
