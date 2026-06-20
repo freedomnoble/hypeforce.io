@@ -1,36 +1,68 @@
-## Plan
+# A/B Landing Page Test
 
-Fix the onboarding subscription step so new users are no longer stuck and can start a card-backed 5-day trial.
+Add a second landing variant ("B") that reuses the existing landing page component (same styling/theme) but pulls different copy. Admin chooses traffic mode: A only, B only, or 50/50 split. Track signups per variant.
 
-### What I’ll change
+## What you'll see in the admin (/pretentious/landing)
 
-1. **Make the trial button clickable**
-   - The current “5-day free trial” button is disabled when an app-side trial already exists, which traps users on this screen.
-   - I’ll change it so the trial button opens the built-in payments checkout instead of disabling.
+- **Variant switcher** at the top: tabs for "Variant A" and "Variant B". The existing copy editor (hero, sections, FAQ, JSON arrays) edits whichever variant is selected.
+- **Traffic mode** card:
+  - Force A — every visitor sees A
+  - Force B — every visitor sees B
+  - A/B Test (50/50) — random assignment, sticky per visitor
+- **Conversion stats** card: views, signups, and signup rate for A and B over the last 30 days, with a "reset counters" button.
 
-2. **Use payment-provider trial behavior**
-   - Update the existing monthly and annual subscription prices to include a **5-day trial**.
-   - Checkout will show the card-on-file flow with 5 days free, then the selected paid amount after the trial.
+Theme, hero image, demo video, provider avatars, pricing — all stay global (one set, shared by both variants).
 
-3. **Add monthly / annual toggle on onboarding**
-   - Add a small segmented toggle on the subscription screen.
-   - Monthly opens `founder_monthly`; annual opens `founder_annual`.
-   - Both will use the 5-day trial.
+## What the visitor experiences
 
-4. **Make Continue work after checkout starts/completes**
-   - Keep Continue disabled until the user has started checkout or already has access.
-   - When checkout opens or completes, enable Continue and keep the onboarding flow moving to the next step.
-   - Add error feedback if checkout fails instead of silently doing nothing.
+- Identical look and feel. Same theme, same components, same hero art.
+- B uses the NEPQ-style copy from your PDF/screenshot: question-led hero ("Doing the work of ten people — with a dozen AI tabs open?"), pain → vision → bridge → consequence → pricing → final CTA. Section order and counts match A so the existing component renders both cleanly.
+- Assignment is sticky: a cookie remembers which variant a visitor saw, so refreshes don't re-roll.
 
-5. **Keep the app icon restored**
-   - Leave the `app-icon.png` usage intact on onboarding/welcome.
+## How conversions are counted
 
-### Technical notes
+- A view is logged the first time a visitor lands (per variant, per day, deduped by the cookie).
+- A signup is attributed to whichever variant cookie the new user had at signup time.
+- Stats are simple counts: `views`, `signups`, `signups / views`.
 
-- Files likely touched:
-  - `src/routes/_auth.onboarding.features.tsx`
-  - possibly shared pricing constants if useful
-- Payment catalog updates:
-  - Patch the test and live `founder_monthly` and `founder_annual` prices to add `trial_period: { interval: "day", frequency: 5 }`.
-- No database schema changes planned.
-- No changes to the theme work in this pass except avoiding regressions on the onboarding screen.
+## Technical details
+
+**DB migration** (new tables, all with GRANTs + RLS):
+- `landing_content` already has `id=1` (A). Add `id=2` row for B, seeded with NEPQ copy from the PDF.
+- `landing_ab_config` (singleton row): `mode text check in ('a','b','split')`, `updated_at`.
+- `landing_ab_events` (`id`, `variant char(1)`, `kind text check in ('view','signup')`, `visitor_id uuid`, `user_id uuid null`, `created_at`). Indexed on `(variant, kind, created_at)`.
+- RLS: admin-only select; inserts via service role from server fns. Grants: `service_role` all; `authenticated` select only for admins via `has_role`.
+
+**Server functions** (`src/lib/landing.functions.ts`):
+- `getPublicLandingContent` extended to accept an optional `variant` arg and return the right row + the active mode. Public route loader calls it without args; route resolves variant from cookie.
+- `assignLandingVariant` (POST, public): reads/sets `hf-landing-variant` cookie based on mode, returns `'a' | 'b'`. Logs a `view` event (deduped by cookie+day).
+- Admin fns in `src/lib/admin.functions.ts`:
+  - `getLandingContentAdmin({ variant })` / `updateLandingContent({ variant, ... })` — variant-aware.
+  - `getLandingAbConfig` / `setLandingAbMode({ mode })`.
+  - `getLandingAbStats({ days })` — returns `{ a: {views, signups}, b: {...} }`.
+  - `resetLandingAbStats()`.
+
+**Signup attribution**: in the onboarding bootstrap server fn (where the user row is first created), read the `hf-landing-variant` cookie and insert a `signup` event with the new `user_id`. No client changes needed.
+
+**Routing** (`src/routes/index.tsx`):
+- Loader calls `assignLandingVariant()` first, then `getPublicLandingContent({ variant })`. Same `<LandingPage />` component renders either copy — no new component file, no style duplication.
+
+**Admin UI** (`src/routes/pretentious.landing.tsx`):
+- Add `variantSelected` state ('a' | 'b') and refetch landing on change. All existing copy/JSON fields are unchanged but bound to the selected variant.
+- Add two new GlassPanels: Traffic mode (3 radio buttons + Save) and Conversion stats (table with totals + reset).
+
+**Seed copy for variant B** (from your PDF, applied to existing field keys):
+- `hero_eyebrow`: "Stage 1 · Connect — are you here?"
+- `hero_headline`: "Doing the work of ten people — with a dozen AI tabs open?"
+- `hero_subhead`: "You're the founder, the marketer, the dev, and the support team. And your AI 'help' lives in scattered tabs that forget everything the moment you switch."
+- `hero_cta_primary`: "Show me a better way"
+- `hero_cta_secondary`: "See founder pricing"
+- Section eyebrows/headlines re-keyed to NEPQ stages (Problem Awareness / Solution Awareness / Bridge / Consequence / Commitment) using the exact phrasing in the PDF table.
+- `use_cases` JSON: 3 pain cards ("Let me paste the brief again…", "Twelve tabs, zero teamwork", "Context that vanishes").
+- `features` JSON: kept as today (Hypeforce intro lands at the "Bridge" section).
+- Pricing/FAQ/footer unchanged.
+
+## Out of scope
+- No new design, theme, or layout work — B uses the exact same component tree.
+- No experiment framework (GrowthBook/PostHog) — counters live in our own table so you can read them without leaving the admin.
+- No multivariate or >2 variants for now (schema leaves room to add C later by widening the check constraint).

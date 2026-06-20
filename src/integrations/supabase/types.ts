@@ -814,6 +814,54 @@ export type Database = {
           },
         ]
       }
+      landing_ab_config: {
+        Row: {
+          id: number
+          mode: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: number
+          mode?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: number
+          mode?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      landing_ab_events: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          user_id: string | null
+          variant: string
+          visitor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          user_id?: string | null
+          variant: string
+          visitor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          user_id?: string | null
+          variant?: string
+          visitor_id?: string | null
+        }
+        Relationships: []
+      }
       landing_content: {
         Row: {
           content: Json

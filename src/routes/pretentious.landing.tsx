@@ -8,6 +8,10 @@ import {
   getPricingConfigAdmin,
   updatePricingConfig,
   createLandingUploadUrl,
+  getLandingAbConfig,
+  setLandingAbMode,
+  getLandingAbStats,
+  resetLandingAbStats,
 } from "@/lib/admin.functions";
 import { GlassPanel } from "@/components/admin/admin-shell";
 import { THEMES as APP_THEMES } from "@/components/hypeforce/theme-provider";
@@ -16,6 +20,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/pretentious/landing")({
   component: LandingCMS,
 });
+
 
 // Mirror the keys actually used by landing-page.tsx. Editing these in
 // /pretentious updates the live homepage immediately.
@@ -65,9 +70,25 @@ function LandingCMS() {
   const getPrice = useServerFn(getPricingConfigAdmin);
   const savePrice = useServerFn(updatePricingConfig);
   const uploadUrl = useServerFn(createLandingUploadUrl);
+  const getAbCfg = useServerFn(getLandingAbConfig);
+  const setAbMode = useServerFn(setLandingAbMode);
+  const getAbStats = useServerFn(getLandingAbStats);
+  const resetStats = useServerFn(resetLandingAbStats);
 
-  const { data: landing, refetch } = useQuery({ queryKey: ["admin-landing"], queryFn: () => getFn() });
+  const [variant, setVariant] = useState<"a" | "b">("a");
+
+  const { data: landing, refetch } = useQuery({
+    queryKey: ["admin-landing", variant],
+    queryFn: () => getFn({ data: { variant } }),
+  });
   const { data: pricing, refetch: refetchPrice } = useQuery({ queryKey: ["admin-pricing"], queryFn: () => getPrice() });
+  const { data: abCfg, refetch: refetchAb } = useQuery({ queryKey: ["admin-ab-cfg"], queryFn: () => getAbCfg() });
+  const { data: abStats, refetch: refetchStats } = useQuery({
+    queryKey: ["admin-ab-stats"],
+    queryFn: () => getAbStats({ data: { days: 30 } }),
+  });
+
+
 
   const [content, setContent] = useState<Record<string, string>>({});
   const [theme, setTheme] = useState<string>("default");
@@ -151,6 +172,7 @@ function LandingCMS() {
       }
       await saveFn({
         data: {
+          variant,
           content: parsed,
           theme_key: theme === "default" ? null : theme,
           hero_image_url: hero || null,
@@ -158,8 +180,9 @@ function LandingCMS() {
           provider_avatars: cleanedAvatars,
         },
       });
-      toast.success("Landing saved");
+      toast.success(`Variant ${variant.toUpperCase()} saved`);
       await refetch();
+
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -181,12 +204,126 @@ function LandingCMS() {
     }
   };
 
+  const mode = (abCfg?.mode as "a" | "b" | "split") ?? "a";
+  const aViews = abStats?.a.views ?? 0;
+  const aSigns = abStats?.a.signups ?? 0;
+  const bViews = abStats?.b.views ?? 0;
+  const bSigns = abStats?.b.signups ?? 0;
+  const rate = (s: number, v: number) => (v > 0 ? ((s / v) * 100).toFixed(2) + "%" : "—");
+
+  const handleSetMode = async (m: "a" | "b" | "split") => {
+    setBusy(true);
+    try {
+      await setAbMode({ data: { mode: m } });
+      toast.success(`Traffic mode → ${m.toUpperCase()}`);
+      await refetchAb();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleResetStats = async () => {
+    if (!confirm("Reset all A/B view + signup counters? This can't be undone.")) return;
+    setBusy(true);
+    try {
+      await resetStats();
+      toast.success("Counters reset");
+      await refetchStats();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl tracking-tight">Landing CMS</h1>
         <button onClick={save} disabled={busy} className="px-4 py-2 rounded-xl bg-purple-500/30 hover:bg-purple-500/40 border border-purple-300/20 text-sm">Save copy & assets</button>
       </div>
+
+      <GlassPanel className="p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-lg">A/B traffic mode</h3>
+          <div className="text-xs text-white/50">Sticky per visitor for 30 days</div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              { id: "a", label: "Force A" },
+              { id: "b", label: "Force B" },
+              { id: "split", label: "A/B test (50/50)" },
+            ] as const
+          ).map((m) => (
+            <button
+              key={m.id}
+              onClick={() => handleSetMode(m.id)}
+              disabled={busy}
+              className={`px-3 py-1.5 rounded-lg text-sm ${mode === m.id ? "bg-purple-500/30 border border-purple-300/30" : "bg-white/5 border border-white/10 text-white/70"}`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      </GlassPanel>
+
+      <GlassPanel className="p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-lg">Conversions (last 30 days)</h3>
+          <button onClick={handleResetStats} disabled={busy} className="px-2 py-1 rounded bg-white/5 border border-white/10 text-xs text-white/60 hover:text-white">Reset counters</button>
+        </div>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          {(
+            [
+              { v: "a", label: "Variant A", views: aViews, signs: aSigns },
+              { v: "b", label: "Variant B", views: bViews, signs: bSigns },
+            ] as const
+          ).map((row) => (
+            <div key={row.v} className="p-3 rounded-lg bg-white/5 border border-white/10">
+              <div className="text-xs uppercase tracking-wide text-white/50 font-mono">{row.label}</div>
+              <div className="mt-2 flex items-baseline gap-4">
+                <div>
+                  <div className="text-xs text-white/50">Views</div>
+                  <div className="text-xl font-display">{row.views}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-white/50">Signups</div>
+                  <div className="text-xl font-display">{row.signs}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-white/50">Rate</div>
+                  <div className="text-xl font-display">{rate(row.signs, row.views)}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassPanel>
+
+      <GlassPanel className="p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-lg">Editing copy for</h3>
+          <div className="flex gap-2">
+            {(["a", "b"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setVariant(v)}
+                className={`px-3 py-1.5 rounded-lg text-sm ${variant === v ? "bg-purple-500/30 border border-purple-300/30" : "bg-white/5 border border-white/10 text-white/60"}`}
+              >
+                Variant {v.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="text-xs text-white/50">
+          Theme, hero image, demo video, and provider avatars are shared (saved on Variant A). Editing them while Variant B is selected has no effect on the live site.
+        </p>
+      </GlassPanel>
+
+
 
       <GlassPanel className="p-5 space-y-4">
         <h3 className="font-display text-lg">Theme</h3>

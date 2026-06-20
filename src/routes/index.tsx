@@ -1,15 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LandingPage } from "@/components/hypeforce/landing-page";
-import { getPublicLandingContent } from "@/lib/landing.functions";
-
-const KNOWN_THEME_KEYS = new Set([
-  "default",
-  "tool-time",
-  "hail-mary",
-  "coffee",
-  "arachna-verse",
-  "newsprint",
-]);
+import { assignLandingVariant, getPublicLandingContent } from "@/lib/landing.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -33,7 +24,8 @@ export const Route = createFileRoute("/")({
   }),
   loader: async () => {
     try {
-      const res = await getPublicLandingContent();
+      const { variant } = await assignLandingVariant();
+      const res = await getPublicLandingContent({ data: { variant } });
       const row: any = res.content ?? null;
       const themeKey = (row?.theme_key as string | null) ?? null;
       return {
@@ -44,6 +36,7 @@ export const Route = createFileRoute("/")({
         providerAvatars: (row?.provider_avatars as Record<string, string> | null) ?? null,
         pricing: (res.pricing as Record<string, any> | null) ?? null,
         freeTrialLanding: !!res.freeTrialLanding,
+        variant,
       };
     } catch {
       return {
@@ -54,6 +47,7 @@ export const Route = createFileRoute("/")({
         providerAvatars: null,
         pricing: null,
         freeTrialLanding: false,
+        variant: "a" as const,
       };
     }
   },
@@ -64,7 +58,8 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
-  const { heroUrl, videoUrl, themeKey, content, providerAvatars, pricing, freeTrialLanding } = Route.useLoaderData();
+  const { heroUrl, videoUrl, themeKey, content, providerAvatars, pricing, freeTrialLanding } =
+    Route.useLoaderData();
   return (
     <LandingPage
       heroUrl={heroUrl}
