@@ -17,6 +17,25 @@ export const ensureUserBootstrap = createServerFn({ method: "POST" })
       "@/integrations/supabase/client.server"
     );
 
+    // Attribute signup to whichever landing variant the visitor saw, if any.
+    // Idempotent via the (user_id, variant) WHERE kind='signup' unique index.
+    try {
+      const { getCookie } = await import("@tanstack/react-start/server");
+      const variant = getCookie("hf-landing-variant");
+      if (variant === "a" || variant === "b") {
+        await supabaseAdmin
+          .from("landing_ab_events")
+          .insert({ variant, kind: "signup", user_id: userId })
+          .then((res) => {
+            // ignore duplicate-key on retries
+            if (res.error && !/duplicate|unique/i.test(res.error.message)) {
+              console.error("[bootstrap signup attribution]", res.error.message);
+            }
+          });
+      }
+    } catch {}
+
+
     // 1. Profile
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
     const email = authUser?.user?.email ?? null;
