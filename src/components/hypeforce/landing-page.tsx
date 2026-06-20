@@ -346,104 +346,115 @@ export function LandingPage({
         </div>
       </section>
 
-      {/* MEET YOUR TEAM — no-key agents available on sign-up */}
-      <section id="team" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <p className="hf-eyebrow">{t("team_eyebrow", "Day one roster")}</p>
-          <h2 className="hf-h2">{t("team_headline", "Meet your team, ready to go after sign-up!")}</h2>
-          <p className="mt-3 text-muted-foreground text-lg">
-            {t(
-              "team_subhead",
-              "Three agents are wired in by default — no API keys, no setup. Drop them into any channel and start shipping. Bring your own keys later if you want.",
-            )}
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <TeamAgentCard
-            initial="G"
-            avatarUrl={providerAvatars?.google}
-            name="Gemini 3 Flash"
-            tag="Google · gateway"
-            tint="oklch(0.72 0.16 250)"
-            desc="Fast generalist with a huge context window. Best for research synthesis, long-doc summarisation, and quick first drafts."
-          />
-          <TeamAgentCard
-            initial="◎"
-            avatarUrl={providerAvatars?.openai}
-            name="GPT-5 mini"
-            tag="OpenAI · gateway"
-            tint="oklch(0.72 0.16 155)"
-            desc="Sharp reasoning at low latency. Best for structured thinking, project breakdowns, and snappy back-and-forth in chat."
-          />
-          <TeamAgentCard
-            initial="C"
-            avatarUrl={providerAvatars?.anthropic}
-            name="Claude Haiku 4.5"
-            tag="Anthropic · gateway"
-            tint="oklch(0.76 0.15 35)"
-            desc="Warm, careful writing partner. Best for brand voice, editing, longform copy, and tone-sensitive replies."
-          />
-        </div>
-      </section>
+      {/* Reorderable section blocks (variant B flips problem→solution→bridge→roster) */}
+      {(() => {
+        const teamSection = (
+          <section key="team" id="team" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <p className="hf-eyebrow">{t("team_eyebrow", "Day one roster")}</p>
+              <h2 className="hf-h2">{t("team_headline", "Meet your team, ready to go after sign-up!")}</h2>
+              <p className="mt-3 text-muted-foreground text-lg">
+                {t(
+                  "team_subhead",
+                  "Three agents are wired in by default — no API keys, no setup. Drop them into any channel and start shipping. Bring your own keys later if you want.",
+                )}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <TeamAgentCard
+                initial="G"
+                avatarUrl={providerAvatars?.google}
+                name="Gemini 3 Flash"
+                tag="Google · gateway"
+                tint="oklch(0.72 0.16 250)"
+                desc="Fast generalist with a huge context window. Best for research synthesis, long-doc summarisation, and quick first drafts."
+              />
+              <TeamAgentCard
+                initial="◎"
+                avatarUrl={providerAvatars?.openai}
+                name="GPT-5 mini"
+                tag="OpenAI · gateway"
+                tint="oklch(0.72 0.16 155)"
+                desc="Sharp reasoning at low latency. Best for structured thinking, project breakdowns, and snappy back-and-forth in chat."
+              />
+              <TeamAgentCard
+                initial="C"
+                avatarUrl={providerAvatars?.anthropic}
+                name="Claude Haiku 4.5"
+                tag="Anthropic · gateway"
+                tint="oklch(0.76 0.15 35)"
+                desc="Warm, careful writing partner. Best for brand voice, editing, longform copy, and tone-sensitive replies."
+              />
+            </div>
+          </section>
+        );
 
+        const howSection = (
+          <section key="how" id="how" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <p className="hf-eyebrow">{t("how_eyebrow", "How it works")}</p>
+              <h2 className="hf-h2">{t("how_headline", "Three steps from idea to shipped.")}</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <StepCard n="01" title="Make a channel" desc="Spin up #launch-plan, #brand-voice, #build-log — any project you'd open a channel for." />
+              <StepCard n="02" title="Invite your team" desc="Drop in the agents you want — ChatGPT, Claude, Gemini, Manus — and add teammate or two!" />
+              <StepCard n="03" title="Brief and ship" desc="Pin the brief, @-mention the agents, and let the work happen in one placewith one context." />
+            </div>
+          </section>
+        );
 
-      {/* HOW IT WORKS */}
-      <section id="how" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <p className="hf-eyebrow">{t("how_eyebrow", "How it works")}</p>
-          <h2 className="hf-h2">{t("how_headline", "Three steps from idea to shipped.")}</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <StepCard n="01" title="Make a channel" desc="Spin up #launch-plan, #brand-voice, #build-log — any project you'd open a channel for." />
-          <StepCard n="02" title="Invite your team" desc="Drop in the agents you want — ChatGPT, Claude, Gemini, Manus — and add teammate or two!" />
-          <StepCard n="03" title="Brief and ship" desc="Pin the brief, @-mention the agents, and let the work happen in one placewith one context." />
-        </div>
-      </section>
+        const featuresSection = (
+          <section key="features" id="features" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <p className="hf-eyebrow">{t("features_eyebrow", "The platform")}</p>
+              <h2 className="hf-h2">{t("features_headline", "No integration needed; total control ready.")}</h2>
+              <p className="mt-3 text-muted-foreground text-lg">
+                {t("features_subhead", "Hypeforce is a chat-first workspace where humans and agents collaborate in shared channels with shared context, shared memory and shared goals.")}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {featureItems.map((f, i) => (
+                <FeatureCard
+                  key={i}
+                  icon={FEATURE_ICONS[f.icon ?? ""] ?? <Sparkles />}
+                  title={f.title}
+                  desc={f.desc}
+                />
+              ))}
+            </div>
+          </section>
+        );
 
+        const useCasesSection = (
+          <section key="use-cases" id="use-cases" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <p className="hf-eyebrow">{t("use_cases_eyebrow", "Use cases")}</p>
+              <h2 className="hf-h2">{t("use_cases_headline", "25X yourself or your team")}</h2>
+              <p className="mt-3 text-muted-foreground text-lg">
+                {t("use_cases_subhead", "Hype up your work with 5 agents that work together. That's 5x5 the productivity and work shipped.")}
+              </p>
+            </div>
+            <div className="max-w-2xl mx-auto">
+              {useCaseItems.map((u, i) => (
+                <UseCaseCard
+                  key={i}
+                  n=""
+                  icon={FEATURE_ICONS[u.icon ?? ""] ?? <Rocket />}
+                  title={u.title}
+                  desc={u.desc}
+                />
+              ))}
+            </div>
+          </section>
+        );
 
-      {/* FEATURES GRID (Platform) */}
-      <section id="features" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <p className="hf-eyebrow">{t("features_eyebrow", "The platform")}</p>
-          <h2 className="hf-h2">{t("features_headline", "No integration needed; total control ready.")}</h2>
-          <p className="mt-3 text-muted-foreground text-lg">
-            {t("features_subhead", "Hypeforce is a chat-first workspace where humans and agents collaborate in shared channels with shared context, shared memory and shared goals.")}
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {featureItems.map((f, i) => (
-            <FeatureCard
-              key={i}
-              icon={FEATURE_ICONS[f.icon ?? ""] ?? <Sparkles />}
-              title={f.title}
-              desc={f.desc}
-            />
-          ))}
-        </div>
-      </section>
+        // Variant A: Day-one roster → How → Features → Use cases
+        // Variant B (NEPQ): Problem (use cases) → Solution (features) → Bridge (how) → Day-one roster
+        return variant === "b"
+          ? [useCasesSection, featuresSection, howSection, teamSection]
+          : [teamSection, howSection, featuresSection, useCasesSection];
+      })()}
 
-
-      {/* USE CASES */}
-      <section id="use-cases" className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 py-20">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <p className="hf-eyebrow">{t("use_cases_eyebrow", "Use cases")}</p>
-          <h2 className="hf-h2">{t("use_cases_headline", "25X yourself or your team")}</h2>
-          <p className="mt-3 text-muted-foreground text-lg">
-            {t("use_cases_subhead", "Hype up your work with 5 agents that work together. That's 5x5 the productivity and work shipped.")}
-          </p>
-        </div>
-        <div className="max-w-2xl mx-auto">
-          {useCaseItems.map((u, i) => (
-            <UseCaseCard
-              key={i}
-              n=""
-              icon={FEATURE_ICONS[u.icon ?? ""] ?? <Rocket />}
-              title={u.title}
-              desc={u.desc}
-            />
-          ))}
-        </div>
-      </section>
 
 
       {/* DEMO VIDEO */}
