@@ -132,7 +132,7 @@ function ProjectStep() {
             Do you have any brand voice or guideline documents?
           </div>
           <div className="text-xs text-muted-foreground mb-3">
-            It's ok if not — we can help with this later.
+            It's ok if not — we can help with this later. Accepted: PDF, DOC, DOCX, TXT, MD · max 10 MB.
           </div>
 
           <input
