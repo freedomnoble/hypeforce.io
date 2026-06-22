@@ -92,7 +92,7 @@ export const sendVerificationEmail = createServerFn({ method: "POST" })
       console.error("[email-verification] send failed", e);
     }
 
-    return { ok: true, link };
+    return { ok: true };
   });
 
 export const confirmEmailVerification = createServerFn({ method: "POST" })
