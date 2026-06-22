@@ -160,7 +160,7 @@ function FeaturesStep() {
   };
 
   const onContinue = async () => {
-    if (!canContinue || continuing) return;
+    if (continuing) return;
     setContinuing(true);
     patch({ step: 4 });
     navigate({ to: "/onboarding/invites", replace: true });
