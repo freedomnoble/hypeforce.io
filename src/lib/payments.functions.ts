@@ -59,9 +59,6 @@ export const createPaddleCheckoutTransaction = createServerFn({ method: "POST" }
     if (!priceResult.data?.length) throw new Error("Price not found");
     const paddlePriceId = priceResult.data[0].id as string;
 
-    // Fetch the user's email from auth claims for the customer record.
-    const customerEmail = (context.claims as any)?.email as string | undefined;
-
     const body: Record<string, unknown> = {
       items: [{ price_id: paddlePriceId, quantity: data.quantity ?? 1 }],
       collection_mode: "automatic",
@@ -71,9 +68,6 @@ export const createPaddleCheckoutTransaction = createServerFn({ method: "POST" }
         userId: context.userId,
       },
     };
-    if (customerEmail) {
-      body.customer = { email: customerEmail };
-    }
 
     const res = await gatewayFetch(data.environment, `/transactions`, {
       method: "POST",
