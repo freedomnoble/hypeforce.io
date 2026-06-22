@@ -37,7 +37,7 @@ function ProjectStep() {
   }, [data]);
 
   const onUpload = async (file: File) => {
-    const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+    const MAX_BYTES = 100 * 1024 * 1024; // 100 MB
     const ALLOWED = [".pdf", ".doc", ".docx", ".txt", ".md"];
     const lower = file.name.toLowerCase();
     if (!ALLOWED.some((ext) => lower.endsWith(ext))) {
@@ -45,7 +45,7 @@ function ProjectStep() {
       return;
     }
     if (file.size > MAX_BYTES) {
-      toast.error("File is too large. Max 10 MB.");
+      toast.error("File is too large. Max 100 MB.");
       return;
     }
     setUploading(true);
