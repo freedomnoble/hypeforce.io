@@ -160,7 +160,7 @@ function FeaturesStep() {
   };
 
   const onContinue = async () => {
-    if (!canContinue || continuing) return;
+    if (continuing) return;
     setContinuing(true);
     patch({ step: 4 });
     navigate({ to: "/onboarding/invites", replace: true });
@@ -242,11 +242,11 @@ function FeaturesStep() {
 
       <Button
         onClick={onContinue}
-        disabled={!canContinue || continuing}
+        disabled={continuing}
         variant="ghost"
         className="w-full h-11 mt-2"
       >
-        Continue
+        {canContinue ? "Continue" : "Skip for now"}
       </Button>
 
       {isLastDay && !alreadySubscribed && (

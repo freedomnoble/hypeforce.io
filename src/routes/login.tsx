@@ -37,33 +37,21 @@ export const Route = createFileRoute("/login")({
   ),
 });
 
-type Mode = "signin" | "signup" | "forgot";
+type Mode = "signin" | "forgot";
 
 function LoginPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/app`,
-            data: { display_name: name || email.split("@")[0] },
-          },
-        });
-        if (error) throw error;
-        toast.success("Check your email to confirm your account, then sign in.");
-        setMode("signin");
-      } else if (mode === "forgot") {
+      if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
@@ -90,8 +78,7 @@ function LoginPage() {
     }
   };
 
-  const title =
-    mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link";
+  const title = mode === "signin" ? "Sign in" : "Send reset link";
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative">
@@ -106,12 +93,7 @@ function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {mode === "signup" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="name">Display name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Alex Rivera" />
-            </div>
-          )}
+          {null}
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@studio.com" />

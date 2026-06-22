@@ -146,7 +146,14 @@ function WelcomePage() {
       // Brand-new user → go straight to onboarding (skip the /app gateway race).
       navigate({ to: "/onboarding", replace: true });
     } catch (err: any) {
-      toast.error(err?.message ?? "Couldn't create your profile");
+      const msg: string = err?.message ?? "Couldn't create your profile";
+      if (/password/i.test(msg) && /weak|short|character|least/i.test(msg)) {
+        toast.error("Password is too weak. Use at least 8 characters with a mix of letters, numbers, and symbols.");
+      } else if (/already|registered|exists/i.test(msg)) {
+        toast.error("That email is already registered. Try logging in instead.");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setSubmitting(false);
     }
