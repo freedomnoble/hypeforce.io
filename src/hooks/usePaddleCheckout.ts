@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { initializePaddle, getPaddlePriceId, setPaddleEventCallback } from "@/lib/paddle";
+import { initializePaddle, getPaddleEnvironment, setPaddleEventCallback } from "@/lib/paddle";
+import { createPaddleCheckoutTransaction } from "@/lib/payments.functions";
 
 export function usePaddleCheckout() {
   const [loading, setLoading] = useState(false);
@@ -15,16 +16,26 @@ export function usePaddleCheckout() {
     setLoading(true);
     try {
       await initializePaddle();
-      const paddlePriceId = await getPaddlePriceId(options.priceId);
+
+      // SECURITY: Create the transaction server-side so customData.userId is
+      // stamped from the verified JWT, not the browser. The frontend never
+      // chooses which user receives the subscription/credits.
+      const { transactionId } = await createPaddleCheckoutTransaction({
+        data: {
+          priceId: options.priceId,
+          quantity: options.quantity ?? 1,
+          environment: getPaddleEnvironment(),
+          customData: options.customData,
+        },
+      });
 
       if (options.onEvent) {
         setPaddleEventCallback(options.onEvent);
       }
 
       window.Paddle.Checkout.open({
-        items: [{ priceId: paddlePriceId, quantity: options.quantity ?? 1 }],
+        transactionId,
         customer: options.customerEmail ? { email: options.customerEmail } : undefined,
-        customData: options.customData,
         settings: {
           displayMode: "overlay",
           successUrl:
