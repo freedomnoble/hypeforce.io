@@ -242,11 +242,11 @@ function FeaturesStep() {
 
       <Button
         onClick={onContinue}
-        disabled={!canContinue || continuing}
+        disabled={continuing}
         variant="ghost"
         className="w-full h-11 mt-2"
       >
-        Continue
+        {canContinue ? "Continue" : "Skip for now"}
       </Button>
 
       {isLastDay && !alreadySubscribed && (
