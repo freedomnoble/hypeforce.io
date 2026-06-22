@@ -51,19 +51,7 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/app`,
-            data: { display_name: name || email.split("@")[0] },
-          },
-        });
-        if (error) throw error;
-        toast.success("Check your email to confirm your account, then sign in.");
-        setMode("signin");
-      } else if (mode === "forgot") {
+      if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
