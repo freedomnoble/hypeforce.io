@@ -78,8 +78,7 @@ function LoginPage() {
     }
   };
 
-  const title =
-    mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link";
+  const title = mode === "signin" ? "Sign in" : "Send reset link";
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 relative">
