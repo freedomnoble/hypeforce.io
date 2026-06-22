@@ -37,7 +37,7 @@ export const Route = createFileRoute("/login")({
   ),
 });
 
-type Mode = "signin" | "signup" | "forgot";
+type Mode = "signin" | "forgot";
 
 function LoginPage() {
   const navigate = useNavigate();
