@@ -167,7 +167,7 @@ export function LandingPage({
 
   const featureItems = arr<FeatureItem>("features", [
     { icon: "MessageSquare", title: "Slack-style channels", desc: "Pin briefs, thread replies, search everything. The familiar workspace your team already lives in." },
-    { icon: "Bot", title: "A roster of agents", desc: "ChatGPT, Claude, Gemini, Manus and custom agents — each with their own avatar, prompt and tools." },
+    { icon: "Bot", title: "A roster of agents", desc: "ChatGPT, Claude, Gemini and custom agents — each with their own avatar, prompt and tools." },
     { icon: "Users", title: "@-mention to target", desc: "@claude for the long thinking, @gemini for the fast pass, or just send a message and let the whole crew weigh in." },
     { icon: "Workflow", title: "Shared context", desc: "Channel memory, pinned briefs, uploaded docs — every agent reads the room before it replies." },
     { icon: "Zap", title: "Built for speed", desc: "Simple to navigate and set context, brand voice, and more.  Switch channels, brief agents and ship in seconds." },
@@ -175,13 +175,13 @@ export function LandingPage({
   ]);
 
   const useCaseItems = arr<UseCaseItem>("use_cases", [
-    { icon: "Rocket", title: "Solo Founder Launchpad", desc: "Pin your brand brief once and launch with a full team of one. One agent researches market demand, another scopes the build, another ships on-brand marketing copy, another runs the repo tests — all in parallel. Every agent — ChatGPT, Claude, Gemini, Manus — reads the brief before replying, so your tone, positioning and product facts stay consistent across every message, doc and campaign." },
+    { icon: "Rocket", title: "Solo Founder Launchpad", desc: "Pin your brand brief once and launch with a full team of one. One agent researches market demand, another scopes the build, another ships on-brand marketing copy, another runs the repo tests — all in parallel. Every agent — ChatGPT, Claude, Gemini — reads the brief before replying, so your tone, positioning and product facts stay consistent across every message, doc and campaign." },
   ]);
 
 
   const faqItems = arr<FaqItem>("faqs", [
     { q: "What happens after the first 1,000 founder spots are gone?", a: "The price goes up to $19/mo for everyone after. Founders keep $9/mo for life — even if you cancel and come back later, your seat is yours." },
-    { q: "Can I bring my own API keys?", a: "Yes. Add your own ChatGPT, Claude, Gemini or Manus keys in workspace settings. We never store your keys in plaintext." },
+    { q: "Can I bring my own API keys?", a: "Yes. Add your own ChatGPT, Claude, Gemini keys in workspace settings. We never store your keys in plaintext." },
     { q: "What does \u201cown your data\u201d mean?", a: "You can export every channel, message and pinned brief at any time. Delete your workspace and it's gone — no shadow copies." },
     { q: "Is there a free trial?", a: "You can preview the product without a card. When you're ready to ship work, claim a founder seat — cancel anytime." },
     { q: "When does annual billing start?", a: "Right when you subscribe. Annual saves 10% off twelve months at the founder price." },
@@ -191,8 +191,8 @@ export function LandingPage({
     { label: "ChatGPT" },
     { label: "Claude" },
     { label: "Gemini" },
-    { label: "Manus" },
-    { label: "+ your own keys" },
+    { label: "Nano Bannana" },
+    { label: "or bring your own keys!" },
   ]);
 
   const labelToProvider = (label: string): string | null => {
@@ -200,7 +200,7 @@ export function LandingPage({
     if (s.includes("chatgpt") || s.includes("openai") || s.includes("gpt")) return "openai";
     if (s.includes("claude") || s.includes("anthropic")) return "anthropic";
     if (s.includes("gemini") || s.includes("google")) return "google";
-    if (s.includes("manus")) return "manus";
+    if (s.includes("manus") || s.includes("bannana")) return "manus";
     if (s.includes("lovable")) return "lovable";
     return null;
   };
@@ -397,7 +397,7 @@ export function LandingPage({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <StepCard n="01" title="Make a channel" desc="Spin up #launch-plan, #brand-voice, #build-log — any project you'd open a channel for." />
-              <StepCard n="02" title="Invite your team" desc="Drop in the agents you want — ChatGPT, Claude, Gemini, Manus — and add teammate or two!" />
+              <StepCard n="02" title="Invite your team" desc="Drop in the agents you want — ChatGPT, Claude, Gemini — and add teammate or two!" />
               <StepCard n="03" title="Brief and ship" desc="Pin the brief, @-mention the agents, and let the work happen in one placewith one context." />
             </div>
           </section>
@@ -542,7 +542,7 @@ export function LandingPage({
               <p className="mt-2 text-sm text-muted-foreground">After the 1,000 founder spots are claimed.</p>
               <ul className="mt-6 space-y-2.5 text-sm">
                 <Bullet>Unlimited channels and agents</Bullet>
-                <Bullet>ChatGPT, Claude, Gemini, Manus</Bullet>
+                <Bullet>ChatGPT, Claude, Gemini</Bullet>
                 <Bullet>Bring your own keys</Bullet>
                 <Bullet>Export anything, delete anything</Bullet>
               </ul>
@@ -612,7 +612,7 @@ export function LandingPage({
               <p className="mt-4 text-muted-foreground text-base lg:text-lg">
                 {t(
                   "newsletter_subhead",
-                  "Get a weekly breakdown of how teams are wiring ChatGPT, Claude, Gemini and Manus into real work — popular stacks, prompts that ship, and the playbooks behind Hypeforce. We don't gatekeep. Just hype up your workforce.",
+                  "Get a weekly breakdown of how teams are wiring ChatGPT, Claude, Gemini into real work — popular stacks, prompts that ship, and the playbooks behind Hypeforce. We don't gatekeep. Just hype up your workforce.",
                 )}
               </p>
             </div>
