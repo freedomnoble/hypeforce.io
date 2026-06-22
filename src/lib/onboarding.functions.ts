@@ -150,8 +150,22 @@ export const setProject = createServerFn({ method: "POST" })
 
 export const setBrandDoc = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: { url: string }) =>
-    z.object({ url: z.string().url().max(2000) }).parse(i),
+  .inputValidator((i: {
+    url: string;
+    path?: string;
+    filename?: string;
+    sizeBytes?: number;
+    mimeType?: string;
+  }) =>
+    z
+      .object({
+        url: z.string().url().max(2000),
+        path: z.string().max(1000).optional(),
+        filename: z.string().max(255).optional(),
+        sizeBytes: z.number().int().nonnegative().optional(),
+        mimeType: z.string().max(120).optional(),
+      })
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -160,6 +174,64 @@ export const setBrandDoc = createServerFn({ method: "POST" })
       .update({ onboarding_brand_doc_url: data.url, updated_at: new Date().toISOString() })
       .eq("id", context.userId);
     if (error) throw new Error(error.message);
+
+    // Surface the doc in the user's workspace: pin it in the "brand-voice"
+    // channel and add a knowledge_base entry so the agent router includes
+    // it in context.
+    try {
+      const { data: mem } = await supabaseAdmin
+        .from("workspace_members")
+        .select("workspace_id")
+        .eq("user_id", context.userId)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const workspaceId = mem?.workspace_id;
+      if (workspaceId && data.path && data.filename) {
+        const { data: ch } = await supabaseAdmin
+          .from("channels")
+          .select("id")
+          .eq("workspace_id", workspaceId)
+          .eq("name", "brand-voice")
+          .maybeSingle();
+
+        // Replace any prior brand doc rows for this user/workspace.
+        await supabaseAdmin
+          .from("files")
+          .delete()
+          .eq("workspace_id", workspaceId)
+          .eq("uploader_id", context.userId)
+          .eq("scope", "knowledge")
+          .eq("is_pinned", true);
+
+        await supabaseAdmin.from("files").insert({
+          workspace_id: workspaceId,
+          uploader_id: context.userId,
+          bucket: "knowledge",
+          path: data.path,
+          filename: data.filename,
+          mime_type: data.mimeType ?? null,
+          size_bytes: data.sizeBytes ?? null,
+          scope: "knowledge",
+          channel_id: ch?.id ?? null,
+          is_pinned: true,
+        });
+
+        await supabaseAdmin
+          .from("knowledge_base")
+          .delete()
+          .eq("workspace_id", workspaceId)
+          .eq("title", "Brand Voice");
+        await supabaseAdmin.from("knowledge_base").insert({
+          workspace_id: workspaceId,
+          title: "Brand Voice",
+          body: `Brand voice / guidelines document uploaded during onboarding.\nFile: ${data.filename}\nURL: ${data.url}`,
+        });
+      }
+    } catch (e) {
+      console.error("[setBrandDoc] failed to pin brand doc into workspace", e);
+    }
+
     return { ok: true };
   });
 
