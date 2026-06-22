@@ -93,12 +93,7 @@ function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {mode === "signup" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="name">Display name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Alex Rivera" />
-            </div>
-          )}
+          {null}
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@studio.com" />
