@@ -37,26 +37,49 @@ function ProjectStep() {
   }, [data]);
 
   const onUpload = async (file: File) => {
+    const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+    const ALLOWED = [".pdf", ".doc", ".docx", ".txt", ".md"];
+    const lower = file.name.toLowerCase();
+    if (!ALLOWED.some((ext) => lower.endsWith(ext))) {
+      toast.error(`Unsupported file type. Allowed: ${ALLOWED.join(", ")}`);
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      toast.error("File is too large. Max 10 MB.");
+      return;
+    }
     setUploading(true);
     try {
       const { data: u } = await supabase.auth.getUser();
       const uid = u.user?.id;
       if (!uid) throw new Error("Not signed in");
       const path = `${uid}/brand/${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from("knowledge").upload(path, file);
+      const { error } = await supabase.storage.from("knowledge").upload(path, file, {
+        contentType: file.type || undefined,
+        upsert: false,
+      });
       if (error) throw error;
-      const { data: signed } = await supabase.storage
+      const { data: signed, error: signErr } = await supabase.storage
         .from("knowledge")
         .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signErr) throw signErr;
       const url = signed?.signedUrl ?? "";
-      if (url) {
-        await saveBrand({ data: { url } });
-        setDocUrl(url);
-        patch({ brand_doc_url: url });
-        toast.success("Brand doc uploaded");
-      }
+      if (!url) throw new Error("Could not generate a link for your file.");
+      await saveBrand({
+        data: {
+          url,
+          path,
+          filename: file.name,
+          sizeBytes: file.size,
+          mimeType: file.type || undefined,
+        },
+      });
+      setDocUrl(url);
+      patch({ brand_doc_url: url });
+      toast.success("Brand doc uploaded — pinned to #brand-voice");
     } catch (e: any) {
-      toast.error(e?.message ?? "Upload failed");
+      console.error("[onboarding/project] upload failed", e);
+      toast.error(e?.message ?? "Upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
