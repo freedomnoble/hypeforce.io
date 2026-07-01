@@ -412,92 +412,119 @@ export function WorkspaceShell({
     <div className="flex flex-col h-[100dvh] w-full overflow-hidden">
     <UpsellBanner />
     {workspace?.feature_flags?.coffee_button ? <CoffeeUpsellButton /> : null}
-    <div className="flex flex-1 w-full overflow-hidden p-0 sm:p-2 gap-0 sm:gap-2 relative pb-14 sm:pb-2">
+    <div className="flex flex-1 w-full overflow-hidden p-0 sm:p-2 gap-0 sm:gap-2 relative pb-14 sm:pb-24">
       <ClientOnly fallback={null}><InfiniteGridBg /></ClientOnly>
-      {/* Far-left rail */}
-      <aside data-tour="workspaces-rail" className="hidden sm:flex w-16 flex-col items-center gap-3 py-4 glass rounded-2xl">
-
-        <Link to="/" className="flex flex-col items-center">
-          <img src={appIcon} alt="Hypeforce" className="w-10 h-10 rounded-xl ring-1 ring-border" />
+      {/* Bottom dock (sm+) — replaces the old left rail. Collapsible. */}
+      <div
+        data-tour="workspaces-rail"
+        className="hidden sm:flex fixed left-1/2 -translate-x-1/2 bottom-4 z-30 items-center gap-1.5 glass rounded-2xl px-2 py-2 shadow-[0_12px_48px_rgba(0,0,0,0.35)] border border-border/60 backdrop-blur-xl transition-all"
+      >
+        <Link to="/" className="shrink-0">
+          <img src={appIcon} alt="Hypeforce" className="w-9 h-9 rounded-xl ring-1 ring-border" />
         </Link>
-        <div className="h-px w-8 bg-border my-1" />
-        {workspaces.map((w) => (
-          <Link
-            key={w.id}
-            to="/w/$workspaceId"
-            params={{ workspaceId: w.id }}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-display font-semibold transition-all ${
-              w.id === workspaceId
-                ? "bg-primary text-primary-foreground ring-glow"
-                : "bg-secondary text-foreground/80 hover:bg-secondary/80"
-            }`}
-            title={w.name}
-          >
-            {w.name.slice(0, 2).toUpperCase()}
-          </Link>
-        ))}
-        <button
-          onClick={async () => {
-            const name = prompt("New workspace name");
-            if (!name) return;
-            try {
-              const { workspaceId: newId } = await createWorkspaceFn({ data: { name } });
-              navigate({ to: "/w/$workspaceId", params: { workspaceId: newId } });
-            } catch (err: any) {
-              toast.error(err?.message ?? "Couldn't create workspace");
-            }
-          }}
-          className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 text-muted-foreground hover:bg-secondary"
-          title="New workspace"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
-        <div className="flex-1" />
-        {themeHasModes(useTheme().theme) && (
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary"
-            title="Toggle light/dark"
-          >
-            <AnimatedThemeToggler />
-          </div>
-        )}
-        <button
-          data-tour="workspace-settings-btn"
-          onClick={() => setSettingsOpen(true)}
-          className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary"
-          title="Workspace settings"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
 
-        <button
-          onClick={() => setInboxOpen(true)}
-          className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary relative"
-          title="Inbox"
-        >
-          <Inbox className="w-4 h-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-electric text-[10px] font-semibold text-background grid place-items-center">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setSupportOpen(true)}
-          className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary"
-          title="Get help"
-        >
-          <HelpCircle className="w-4 h-4" />
-        </button>
-        {isSuperAdmin && (
-          <div className="w-10 h-10 flex items-center justify-center">
-            <AdminCubeButton title="Admin console" size={22} />
-          </div>
+        {!dockCollapsed && (
+          <>
+            <div className="w-px h-8 bg-border/70 mx-1" />
+            <div className="flex items-center gap-1.5 max-w-[40vw] overflow-x-auto scrollbar-thin">
+              {workspaces.map((w) => (
+                <Link
+                  key={w.id}
+                  to="/w/$workspaceId"
+                  params={{ workspaceId: w.id }}
+                  className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center text-xs font-display font-semibold transition-all ${
+                    w.id === workspaceId
+                      ? "bg-primary text-primary-foreground ring-glow"
+                      : "bg-secondary text-foreground/80 hover:bg-secondary/80"
+                  }`}
+                  title={w.name}
+                >
+                  {w.name.slice(0, 2).toUpperCase()}
+                </Link>
+              ))}
+              <button
+                onClick={async () => {
+                  const name = prompt("New workspace name");
+                  if (!name) return;
+                  try {
+                    const { workspaceId: newId } = await createWorkspaceFn({ data: { name } });
+                    navigate({ to: "/w/$workspaceId", params: { workspaceId: newId } });
+                  } catch (err: any) {
+                    toast.error(err?.message ?? "Couldn't create workspace");
+                  }
+                }}
+                className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center bg-secondary/60 text-muted-foreground hover:bg-secondary"
+                title="New workspace"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="w-px h-8 bg-border/70 mx-1" />
+
+            <div className="flex items-center gap-1">
+              {themeHasModes(useTheme().theme) && (
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary"
+                  title="Toggle light/dark"
+                >
+                  <AnimatedThemeToggler />
+                </div>
+              )}
+              <button
+                data-tour="workspace-settings-btn"
+                onClick={() => setSettingsOpen(true)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary"
+                title="Workspace settings"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setInboxOpen(true)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary relative"
+                title="Inbox"
+              >
+                <Inbox className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-electric text-[10px] font-semibold text-background grid place-items-center">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setSupportOpen(true)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary"
+                title="Get help"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
+              {isSuperAdmin && (
+                <div className="w-9 h-9 flex items-center justify-center">
+                  <AdminCubeButton title="Admin console" size={20} />
+                </div>
+              )}
+              <button
+                onClick={signOut}
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          </>
         )}
-        <button onClick={signOut} className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground">
-          <LogOut className="w-4 h-4" />
+
+        <div className="w-px h-8 bg-border/70 mx-1" />
+        <button
+          onClick={() => setDockCollapsed((v) => !v)}
+          className="w-9 h-9 rounded-xl flex items-center justify-center bg-secondary/60 hover:bg-secondary text-muted-foreground"
+          title={dockCollapsed ? "Expand dock" : "Collapse dock"}
+          aria-label={dockCollapsed ? "Expand dock" : "Collapse dock"}
+        >
+          <ChevronLeft className={`w-4 h-4 transition-transform ${dockCollapsed ? "rotate-90" : "-rotate-90"}`} />
         </button>
-      </aside>
+      </div>
+
 
       {/* Sidebar */}
       <aside className={`${hasActive ? "hidden" : "flex sm:hidden"} md:flex w-full md:w-64 flex-col paper-panel rounded-2xl overflow-hidden`}>
