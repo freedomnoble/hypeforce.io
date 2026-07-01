@@ -183,6 +183,7 @@ export function WorkspaceShell({
   // Mobile-only sheets (off-canvas drawers)
   const [workspacesSheetOpen, setWorkspacesSheetOpen] = useState(false);
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
+  const [dockCollapsed, setDockCollapsed] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const markTourSeenFn = useServerFn(markTourSeen);
   const resetTourFn = useServerFn(resetTour);
