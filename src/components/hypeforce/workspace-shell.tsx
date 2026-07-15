@@ -417,7 +417,8 @@ export function WorkspaceShell({
       {/* Bottom dock (sm+) — replaces the old left rail. Collapsible. */}
       <div
         data-tour="workspaces-rail"
-        className="hidden sm:flex fixed left-1/2 -translate-x-1/2 bottom-4 z-30 items-center gap-1.5 glass rounded-2xl px-2 py-2 shadow-[0_12px_48px_rgba(0,0,0,0.35)] border border-border/60 backdrop-blur-xl transition-all"
+        className="hidden sm:flex items-center gap-1.5 glass rounded-2xl px-2 py-2 shadow-[0_12px_48px_rgba(0,0,0,0.35)] border border-border/60 backdrop-blur-xl transition-all"
+        style={{ position: "fixed", left: "50%", bottom: "1rem", transform: "translateX(-50%)", zIndex: 30 }}
       >
         <Link to="/" className="shrink-0">
           <img src={appIcon} alt="Hypeforce" className="w-9 h-9 rounded-xl ring-1 ring-border" />
